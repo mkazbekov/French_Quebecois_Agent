@@ -52,6 +52,19 @@ Stored documents still accept the pre-2026-09-18 CEFR strings and migrate them o
 parse (`StoredLevelSchema` in `schema.ts`). `merge.ts` moves a level by at most one
 step per session toward the median of recent observations.
 
+## Program (syllabus)
+
+`src/lib/learner/syllabus.ts` is the fixed learning program: units per level
+(`L<level>-<G|F|T|Q><nn>`: grammar, function, theme, quebec), each with a goal.
+Progress lives in `roadmap.units` (per-unit `ok` / `struggled` counters and a
+derived status) and `roadmap.current_unit`. In `merge.ts`, a unit becomes `done`
+when `ok >= 2 && ok >= 2 * struggled`; the next current unit is the first not-done
+unit at level ≤ oral level + 1 in program order, unless the reviewer's
+`suggested_focus.unit_id` names a pending unit to pull forward. The queue is
+rebuilt from the syllabus every session. The tutor prompt carries the current unit,
+the next four, and per-level progress; the reviewer sees the units in play and
+reports `units_practiced` against those ids only.
+
 ## Session modes
 
 `resolveMode` in `src/lib/tutor/instructions.ts`: the first call is `assessment`

@@ -76,8 +76,22 @@ just said on screen (reading). You can also type any time instead of speaking.
 The choice is saved in your learner profile. You can also just ask the tutor out
 loud ("explain in English", "on continue en français").
 
-**Review Mistakes** (link at the top) shows your level per competency, recurring
-errors, vocabulary being recycled, grammar points, and the current curriculum focus.
+**Review Mistakes** (link at the top) shows your level per competency, your progress
+through the program, recurring errors, vocabulary being recycled, grammar points, and
+the current focus.
+
+## The program
+
+There is a fixed syllabus behind the calls: for each of the 12 levels, a list of
+units (grammar forms, things you do with the language, vocabulary themes, Québec usage
+and culture), each with a stable id like `L3-G02` and a one-line goal. Guided practice
+and lessons are built around the **current unit**. Units are marked done by code
+after two sessions where you produced the target well (and at most half as many
+struggles); the program then moves to the next unit in order. Gaps from lower levels
+are filled before moving up, and one level above yours is always in reach. The
+end-of-call review may pull a unit forward when your errors call for it, but cannot
+skip or invent units. The Review page shows a progress bar per level and the unit
+list for your level.
 
 ## Levels
 

@@ -44,6 +44,10 @@ setup and everyday flow.
   and the PATIENCE block in the prompt exist because the tutor used to talk over the
   learner. Do not shorten the silence window or make the VAD more eager without a
   voice test.
+- **The program is code, not prompt.** `src/lib/learner/syllabus.ts` is the fixed
+  syllabus (stable ids, never renumber; append new units). `merge.ts` decides
+  done/next; the reviewer can only report `units_practiced` and pull one pending
+  unit forward. Guided and lesson calls target `roadmap.current_unit`.
 - **Every session teaches and assesses.** First call is a placement (`assessment`);
   then `auto` cycles guided → lesson → quebec → guided → lesson → assessment. The
   `lesson` mode teaches one grammar point + 3–5 words; `assessment` covers all four
@@ -68,12 +72,12 @@ src/app/api/realtime/session     POST: learner state → instructions → ek_ ke
 src/app/api/session/end          POST: evidence → review → merge → persist → summary
 src/app/api/learner              GET: state + storeKind; PATCH: language_mode preference
 src/hooks/useTutorSession.ts     realtime lifecycle, note_evidence tool, crash recovery
-src/lib/learner/                 schema, stores, merge, render, defaults
+src/lib/learner/                 schema, stores, merge, render, defaults, levels, syllabus
 src/lib/voice/                   VoiceSession contract + gemini/openai implementations
 src/lib/tutor/instructions.ts    tutor prompt builder (pedagogy lives here)
 src/lib/tutor/gemini-setup.ts    Live API setup message, tool declaration, URLs
 src/lib/tutor/review.ts          structured session review (gemini | openai)
-tests/                           vitest; merge rules, stores, levels, prompt, two-session loop
+tests/                           vitest; merge rules, stores, levels, syllabus, prompt, two-session loop
 ```
 
 ## Working style
@@ -94,8 +98,9 @@ tests/                           vitest; merge rules, stores, levels, prompt, tw
 ## State of the project and what the next session must do first
 
 Built 2026-09-17; Gemini Live made the default 2026-09-17; patience, the 12-level
-Échelle québécoise, lesson/level-check modes and four-competency assessment added
-2026-09-18. Verified on this machine at that point: typecheck, lint, 40 tests,
+Échelle québécoise, lesson/level-check modes, four-competency assessment and the
+fixed syllabus program added 2026-09-18. Verified on this machine at that point:
+typecheck, lint, 46 tests,
 production build, `npm run check:gemini-setup` (Live API accepts the new VAD
 config), and earlier Letta persistence across processes against the real Letta
 Cloud agent. The OpenAI backend is optional; `check:realtime` / `check:review`
@@ -106,7 +111,8 @@ Next session, in order:
 1. `npm run dev`, then have the user do the manual voice test with Gemini: press
    Start, wait for the greeting, answer slowly with a pause mid-sentence and confirm
    the tutor does not jump in. Say "je veux arrêter", press End, confirm the summary
-   card and that `/review` shows levels as `n / 12 · stage · ≈ CEFR`.
+   card and that `/review` shows levels as `n / 12 · stage · ≈ CEFR` and a Program
+   section with a current unit (set by the first review).
 2. If the tutor is still impatient in the voice test, first try
    `silenceDurationMs` 2000 in `src/lib/tutor/gemini-setup.ts`, then re-run
    `npm run check:gemini-setup`.

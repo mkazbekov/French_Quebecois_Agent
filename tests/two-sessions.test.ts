@@ -52,7 +52,9 @@ const delta1: ReviewDelta = {
   grammar: [{ point: "passé composé with être", outcome: "failure", note: "aller" }],
   pronunciation: [],
   errors_improving: [],
+  units_practiced: [{ unit_id: "L3-G02", outcome: "struggled" }],
   suggested_focus: {
+    unit_id: "L3-G02",
     current_focus: "Passé composé",
     reason: "Auxiliary errors with verbs of movement.",
     next_practice: "Talk for 10 minutes about yesterday in Montréal.",
@@ -94,7 +96,9 @@ describe("two sessions", () => {
 
     expect(mode).toBe("guided"); // sessions_completed = 1 → guided
     expect(instructions).toContain("ERROR-001");
-    expect(instructions).toContain("Passé composé");
+    expect(reloaded.roadmap.current_unit).toBe("L3-G02"); // pulled forward by the reviewer
+    expect(instructions).toContain("Current unit: L3-G02");
+    expect(instructions).toContain("Auxiliary errors with verbs of movement");
     expect(instructions).toContain("je suis allé au travail");
     expect(instructions).toContain("ligne orange (QC)");
     expect(instructions).toContain("Commutes by métro");

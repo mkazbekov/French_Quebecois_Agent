@@ -1,4 +1,5 @@
 import type { Competency, LearnerState } from "./schema";
+import { pendingUnits } from "./syllabus";
 
 function emptyCompetency(level: Competency["level"]): Competency {
   return {
@@ -41,7 +42,9 @@ export function defaultLearnerState(name: string): LearnerState {
       reason: "First session. The tutor needs a baseline of what you can already understand, say, read and write.",
       next_practice: "Introduce yourself, say where you live in Montréal and what you do in a normal day; type one or two sentences when asked.",
       after: "Estimate a starting level (Échelle québécoise 1–12) for each of the four competencies.",
-      queue: ["Greetings and small talk (Québec style)", "Present tense of common verbs", "Numbers, time, prices"],
+      current_unit: null,
+      units: [],
+      queue: pendingUnits(2, []).slice(0, 6).map((u) => `${u.title} (${u.id})`),
       recent_topics: [],
       updated_at: null,
     },

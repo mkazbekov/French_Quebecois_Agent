@@ -101,6 +101,8 @@ export function renderLearnerMarkdown(state: LearnerState): string {
         `Reason: ${state.roadmap.reason}`,
         `Next practice: ${state.roadmap.next_practice}`,
         state.roadmap.after ? `After: ${state.roadmap.after}` : "",
+        state.roadmap.current_unit ? `Current unit: ${state.roadmap.current_unit}` : "",
+        state.roadmap.units.length ? `Units done: ${state.roadmap.units.filter((u) => u.status === "done").map((u) => u.id).join(", ") || "(none)"}` : "",
         state.roadmap.queue.length ? `Queue: ${state.roadmap.queue.join(", ")}` : "",
         state.roadmap.recent_topics.length ? `Recent topics: ${state.roadmap.recent_topics.join(", ")}` : "",
       ]

@@ -163,12 +163,26 @@ export const PronunciationSchema = z.object({
 });
 export type Pronunciation = z.infer<typeof PronunciationSchema>;
 
+/** Progress on one syllabus unit (see ./syllabus.ts). Status is derived by merge.ts. */
+export const UnitProgressSchema = z.object({
+  id: z.string(), // L3-G02
+  status: z.enum(["not_started", "in_progress", "done"]),
+  ok: z.number().int().nonnegative().default(0),
+  struggled: z.number().int().nonnegative().default(0),
+  last_practiced: z.string().nullable().default(null),
+});
+export type UnitProgress = z.infer<typeof UnitProgressSchema>;
+
 export const RoadmapSchema = z.object({
   current_focus: z.string(),
   reason: z.string(),
   next_practice: z.string(),
   after: z.string().default(""),
-  /** Upcoming focus candidates, most urgent first. */
+  /** Syllabus unit id the program is on right now (null before placement). */
+  current_unit: z.string().nullable().default(null),
+  /** Per-unit progress through the syllabus. */
+  units: z.array(UnitProgressSchema).default([]),
+  /** Upcoming units, in program order. */
   queue: z.array(z.string()).default([]),
   recent_topics: z.array(z.string()).max(12).default([]),
   updated_at: z.string().nullable().default(null),
@@ -311,6 +325,12 @@ export const ReviewPronunciationSchema = z.object({
   example: z.string(),
 });
 
+export const ReviewUnitSchema = z.object({
+  /** Syllabus unit id exactly as listed in the prompt (e.g. L3-G02). */
+  unit_id: z.string(),
+  outcome: z.enum(["introduced", "practiced_ok", "struggled"]),
+});
+
 export const ReviewDeltaSchema = z.object({
   topics: z.array(z.string()),
   summary_for_learner: z.array(z.string()).describe("3-6 short bullet strings, plain language"),
@@ -321,7 +341,11 @@ export const ReviewDeltaSchema = z.object({
   pronunciation: z.array(ReviewPronunciationSchema),
   /** Errors from the registry (by id) that were clearly NOT made this session despite opportunity. */
   errors_improving: z.array(z.string()),
+  /** Syllabus units actually worked on this session. */
+  units_practiced: z.array(ReviewUnitSchema),
   suggested_focus: z.object({
+    /** Syllabus unit id to pull forward as the next focus, or "" to follow program order. */
+    unit_id: z.string(),
     current_focus: z.string(),
     reason: z.string(),
     next_practice: z.string(),

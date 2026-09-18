@@ -1,5 +1,6 @@
 import { LEVEL_DESCRIPTORS, MAX_LEVEL, clampLevel, formatLevel, stageOf } from "@/lib/learner/levels";
 import type { LearnerState, SessionMode } from "@/lib/learner/schema";
+import { findUnit, formatUnit, levelProgress, pendingUnits } from "@/lib/learner/syllabus";
 import type { SessionRecord } from "@/lib/learner/store";
 
 /**
@@ -11,11 +12,11 @@ const MODE_GUIDANCE: Record<Exclude<SessionMode, "auto">, string> = {
   free: `MODE: Free conversation.
 Fluency first. Follow the learner's interests. Correct only errors that block understanding or that match a recurring pattern below, and do it lightly (recast the sentence correctly in your reply rather than lecturing).`,
   guided: `MODE: Guided practice.
-Pick ONE goal from the roadmap's current focus. Steer the conversation so the learner must use that vocabulary/grammar naturally (ask questions whose natural answer requires it). Do not announce "today we study X"; just make it happen. Recast or briefly correct when the target form goes wrong.`,
+Work on the PROGRAM's current unit (its goal is the target). Steer the conversation so the learner must use that vocabulary/grammar naturally (ask questions whose natural answer requires it). Do not announce "today we study X"; just make it happen. Recast or briefly correct when the target form goes wrong.`,
   correction: `MODE: Correction mode.
 The learner asked for more explicit correction. After a sentence with a clear error, give the corrected form in one short line, then continue the conversation. Still do not correct every tiny slip; prioritise recurring patterns and anything that changes meaning.`,
   lesson: `MODE: Lesson.
-A short structured lesson inside a conversation, built from the roadmap focus and the GRAMMAR / VOCABULARY lists below.
+A short structured lesson inside a conversation, built around the PROGRAM's current unit (use its goal as the lesson objective) plus the GRAMMAR / VOCABULARY lists below.
 1. Warm-up (1–2 minutes): one easy question to get the learner talking.
 2. Grammar point: pick ONE point (weak or "introduced" first, otherwise the next natural step for their level). Explain it in at most three short sentences with two example sentences. Then ask three or four questions whose natural answer requires that form. Correct the target form every time it goes wrong, briefly.
 3. Vocabulary: teach three to five words or expressions (target list first, then Québec items relevant to the topic). For each: say it, give the meaning, use it in one example, and have the learner use it in their own sentence.
@@ -124,6 +125,19 @@ function pronunciationLines(state: LearnerState): string {
   return items.length ? items.map((p) => `- ${p.feature}${p.example ? ` (e.g. ${p.example})` : ""}`).join("\n") : "(none)";
 }
 
+function programLines(state: LearnerState): string {
+  const level = state.competencies.oral_production.level;
+  const current = state.roadmap.current_unit ? findUnit(state.roadmap.current_unit) : undefined;
+  const pending = pendingUnits(level, state.roadmap.units).filter((u) => u.id !== current?.id).slice(0, 4);
+  const { done, total } = levelProgress(level, state.roadmap.units);
+  const lines = [
+    current ? `- Current unit: ${formatUnit(current)}` : "- Current unit: none yet (placement first; then the program starts at the learner's level).",
+    `- Coming up: ${pending.length ? pending.map((u) => `${u.id} ${u.title}`).join("; ") : "(nothing pending near this level)"}`,
+    `- Progress at ${formatLevel(level)}: ${done}/${total} units done.`,
+  ];
+  return lines.join("\n");
+}
+
 function recentSessions(records: SessionRecord[]): string {
   if (!records.length) return "This is the learner's first session with you.";
   return records
@@ -184,6 +198,9 @@ LEARNER
 - Name: ${p.name}. Sessions so far: ${p.sessions_completed}${daysSince !== null ? ` (last one ${daysSince} day${daysSince === 1 ? "" : "s"} ago)` : ""}.
 - Goals: ${p.goals.join("; ")}
 ${p.notes.length ? `- Things they've told you: ${p.notes.slice(-8).join("; ")}` : ""}
+
+PROGRAM (syllabus on the Échelle québécoise; guided and lesson calls are built around the current unit)
+${programLines(state)}
 
 CURRENT FOCUS (from the curriculum roadmap)
 - Focus: ${state.roadmap.current_focus}

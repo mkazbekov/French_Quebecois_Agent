@@ -1,4 +1,5 @@
-import { clampLevel, type Level } from "./levels";
+import { clampLevel, formatLevel, type Level } from "./levels";
+import { findUnit, pendingUnits, type SyllabusUnit } from "./syllabus";
 import {
   type CompetencyKey,
   type ErrorRecord,
@@ -253,15 +254,42 @@ export function applyReviewDelta(
   }
 
   // -------------------------------------------------------------------
-  // f. Roadmap
+  // f. Syllabus progress + roadmap
   // -------------------------------------------------------------------
-  s.roadmap.current_focus = delta.suggested_focus.current_focus;
-  s.roadmap.reason = delta.suggested_focus.reason;
+  // A unit is done after two good sessions with at most half as many struggles.
+  for (const ru of delta.units_practiced) {
+    if (!findUnit(ru.unit_id)) continue;
+    let rec = s.roadmap.units.find((u) => u.id === ru.unit_id);
+    if (!rec) {
+      rec = { id: ru.unit_id, status: "not_started", ok: 0, struggled: 0, last_practiced: null };
+      s.roadmap.units.push(rec);
+    }
+    if (ru.outcome === "practiced_ok") rec.ok += 1;
+    else if (ru.outcome === "struggled") rec.struggled += 1;
+    rec.last_practiced = nowIso;
+    rec.status = rec.ok >= 2 && rec.ok >= 2 * rec.struggled ? "done" : "in_progress";
+  }
+
+  // Program order decides the next unit; the reviewer may only pull a pending unit forward.
+  const level = s.competencies.oral_production.level;
+  const pending = pendingUnits(level, s.roadmap.units);
+  const pulled: SyllabusUnit | undefined = delta.suggested_focus.unit_id
+    ? pending.find((u) => u.id === delta.suggested_focus.unit_id)
+    : undefined;
+  const current = pulled ?? pending[0] ?? null;
+  const label = (u: SyllabusUnit) => `${u.title} (${u.id})`;
+
+  s.roadmap.current_unit = current?.id ?? null;
+  s.roadmap.current_focus = current ? label(current) : delta.suggested_focus.current_focus;
+  s.roadmap.reason = current
+    ? pulled
+      ? delta.suggested_focus.reason
+      : `Next unit of the program at ${formatLevel(level)}: ${current.goal}${delta.suggested_focus.reason ? ` Reviewer: ${delta.suggested_focus.reason}` : ""}`
+    : delta.suggested_focus.reason;
   s.roadmap.next_practice = delta.suggested_focus.next_practice;
   s.roadmap.after = delta.suggested_focus.after;
   s.roadmap.recent_topics = dedupeKeepNewest(s.roadmap.recent_topics, delta.topics, 12);
-  const currentFocusKey = normalize(s.roadmap.current_focus);
-  s.roadmap.queue = s.roadmap.queue.filter((q) => normalize(q) !== currentFocusKey);
+  s.roadmap.queue = pending.filter((u) => u.id !== current?.id).slice(0, 6).map(label);
   s.roadmap.updated_at = nowIso;
 
   // -------------------------------------------------------------------

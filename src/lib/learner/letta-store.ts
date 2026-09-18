@@ -24,7 +24,8 @@ const BLOCK_LIMITS: Record<LearnerDocument, number> = {
   competencies: 8_000,
   grammar: 8_000,
   pronunciation: 8_000,
-  roadmap: 8_000,
+  // roadmap carries per-unit syllabus progress (~150 chars/unit pretty-printed, ~90 units).
+  roadmap: 24_000,
 };
 
 const BLOCK_DESCRIPTIONS: Record<LearnerDocument, string> = {
@@ -181,7 +182,8 @@ export class LettaLearnerStore implements LearnerStore {
         const trimmed = trimToFit(label, doc);
         const value = JSON.stringify(trimmed, null, 1);
         try {
-          await this.client.agents.blocks.update(label, { agent_id: this.agentId, value });
+          // `limit` is sent every time so blocks created with an older, smaller limit grow to the current one.
+          await this.client.agents.blocks.update(label, { agent_id: this.agentId, value, limit: BLOCK_LIMITS[label] });
         } catch (err) {
           throw new Error(`[Letta] failed to update block "${label}": ${err instanceof Error ? err.message : String(err)}`);
         }

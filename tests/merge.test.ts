@@ -26,7 +26,9 @@ function emptyDelta(overrides: Partial<ReviewDelta> = {}): ReviewDelta {
     grammar: [],
     pronunciation: [],
     errors_improving: [],
+    units_practiced: [],
     suggested_focus: {
+      unit_id: "",
       current_focus: "Next focus",
       reason: "Because reasons.",
       next_practice: "Practice X.",
@@ -255,14 +257,14 @@ describe("applyReviewDelta - roadmap", () => {
     expect(state.roadmap.recent_topics.at(-1)).toBe("topic-4-c");
   });
 
-  it("removes the current focus from the queue once it becomes the new focus", () => {
+  it("fills the queue from the syllabus and never lists the current unit in it", () => {
     const state = freshState();
-    state.roadmap.queue = ["Numbers, time, prices", "Greetings and small talk (Québec style)"];
-    const delta = emptyDelta({
-      suggested_focus: { current_focus: "Numbers, time, prices", reason: "r", next_practice: "p", after: "" },
-    });
-    const { state: after } = applyReviewDelta(state, delta, baseEvidence(), NOW);
-    expect(after.roadmap.queue).not.toContain("Numbers, time, prices");
+    const { state: after } = applyReviewDelta(state, emptyDelta(), baseEvidence(), NOW);
+    expect(after.roadmap.current_unit).toBe("L1-F01");
+    expect(after.roadmap.current_focus).toContain("L1-F01");
+    expect(after.roadmap.queue.length).toBe(6);
+    expect(after.roadmap.queue.join(" ")).not.toContain("L1-F01");
+    expect(after.roadmap.queue[0]).toContain("L1-T01");
   });
 });
 

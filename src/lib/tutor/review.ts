@@ -3,6 +3,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { env } from "@/lib/env";
 import { describeScale, formatLevel } from "@/lib/learner/levels";
+import { findUnit, formatUnit, pendingUnits } from "@/lib/learner/syllabus";
 import { ReviewDeltaSchema, type LearnerState, type ReviewDelta, type SessionEvidence } from "@/lib/learner/schema";
 
 /**
@@ -27,12 +28,21 @@ function compactState(state: LearnerState): string {
     .filter((v) => v.status !== "known")
     .map((v) => `${v.word} (${v.status})`)
     .slice(0, 40);
+  const level = c.oral_production.level;
+  const current = state.roadmap.current_unit ? findUnit(state.roadmap.current_unit) : undefined;
+  const inProgress = state.roadmap.units
+    .filter((u) => u.status === "in_progress")
+    .map((u) => findUnit(u.id))
+    .filter((u): u is NonNullable<typeof u> => !!u);
+  const upcoming = pendingUnits(level, state.roadmap.units).slice(0, 10);
+  const unitLines = [...new Map([current, ...inProgress, ...upcoming].filter((u): u is NonNullable<typeof u> => !!u).map((u) => [u.id, u])).values()].map(formatUnit);
   return [
     `Learner: ${state.profile.name}; sessions completed: ${state.profile.sessions_completed}`,
     `Levels: oral_production ${formatLevel(c.oral_production.level)}, oral_comprehension ${formatLevel(c.oral_comprehension.level)}, written_production ${formatLevel(c.written_production.level)}, written_comprehension ${formatLevel(c.written_comprehension.level)}`,
     `Current focus: ${state.roadmap.current_focus} — ${state.roadmap.reason}`,
     `Roadmap queue: ${state.roadmap.queue.join(" | ") || "(empty)"}`,
     `Recent topics: ${state.roadmap.recent_topics.join(", ") || "(none)"}`,
+    `Syllabus units in play (current: ${current?.id ?? "none"}; use these ids only):\n${unitLines.length ? unitLines.map((x) => "  " + x).join("\n") : "  (none)"}`,
     `Known error registry:\n${errors.length ? errors.map((x) => "  " + x).join("\n") : "  (empty)"}`,
     `Grammar points tracked:\n${grammar.length ? grammar.map((x) => "  " + x).join("\n") : "  (none)"}`,
     `Vocabulary not yet solid: ${vocab.join(", ") || "(none)"}`,
@@ -64,7 +74,8 @@ ${describeScale()}
 - Vocabulary: "used_correctly" for words the learner produced well (especially target/shaky ones), "struggled" for words they searched for, mis-used, or needed in English, "introduced" for useful words the tutor taught. Mark register "quebec" for Québec-specific usage (dépanneur, magasiner, frette, chum/blonde, tantôt, char, correct...).
 - Grammar: report points actually exercised, with success/failure outcomes.
 - Pronunciation: only issues the tutor's notes mention or that are unmistakable.
-- suggested_focus: choose the single most useful next focus given recurring errors, weaknesses, time since topics were practised, and Montréal daily-life usefulness. "next_practice" must be a concrete 5–10 minute speaking task. "after" says how to reassess.
+- units_practiced: for each syllabus unit (ids from "Syllabus units in play") that was genuinely worked on: "introduced" if the tutor presented it for the first time, "practiced_ok" if the learner produced the target mostly correctly, "struggled" if they clearly could not. Never invent ids.
+- suggested_focus: the program normally continues in order. Set unit_id only to pull a listed pending unit forward when the evidence clearly calls for it (a recurring error that unit addresses, or the learner asked for it); otherwise unit_id = "". current_focus/reason describe the pedagogical reason; "next_practice" must be a concrete 5–10 minute speaking task; "after" says how to reassess.
 - summary_for_learner: 3–6 short, encouraging, concrete bullets in English (the app shows them after the call). No scores.
 - profile_notes: durable personal facts the learner shared (job, neighbourhood, interests). Empty if none.
 - topics: 2–5 short topic labels.`;

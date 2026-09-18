@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { getLearnerStore } from "@/lib/learner";
 import { COMPETENCY_KEYS } from "@/lib/learner/schema";
-import { cefrEquivalent, stageOf } from "@/lib/learner/levels";
+import { LEVELS, cefrEquivalent, stageOf } from "@/lib/learner/levels";
+import { findUnit, levelProgress, statusOf, unitsForLevel } from "@/lib/learner/syllabus";
 
 export const dynamic = "force-dynamic";
 
@@ -105,6 +106,62 @@ export default async function ReviewPage() {
             </p>
           </div>
         </div>
+      </section>
+
+      <section>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400 mb-2">Program</h2>
+        {(() => {
+          const level = state.competencies.oral_production.level;
+          const current = state.roadmap.current_unit ? findUnit(state.roadmap.current_unit) : undefined;
+          const shown = new Set([level, ...(current ? [current.level] : [])]);
+          return (
+            <div className="space-y-3 text-sm">
+              <p className="text-zinc-700 dark:text-zinc-300">
+                <span className="font-medium text-zinc-500">Current unit: </span>
+                {current ? `${current.id} · ${current.title}` : "not started (placement first)"}
+              </p>
+              <ul className="space-y-1">
+                {LEVELS.map((l) => {
+                  const { done, total } = levelProgress(l, state.roadmap.units);
+                  const pct = total ? Math.round((100 * done) / total) : 0;
+                  return (
+                    <li key={l} className="flex items-center gap-2">
+                      <span className={`w-28 shrink-0 ${l === level ? "font-medium" : "text-zinc-500"}`}>
+                        niveau {l} <span className="text-zinc-400">≈ {cefrEquivalent(l)}</span>
+                      </span>
+                      <span className="flex-1 h-2 rounded bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
+                        <span className="block h-full bg-zinc-900 dark:bg-zinc-100" style={{ width: `${pct}%` }} />
+                      </span>
+                      <span className="w-12 text-right text-zinc-500">
+                        {done}/{total}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+              {[...shown].sort((a, b) => a - b).map((l) => (
+                <div key={l}>
+                  <p className="text-xs font-medium text-zinc-500 mt-2 mb-1">Units at niveau {l}</p>
+                  <ul className="space-y-0.5">
+                    {unitsForLevel(l).map((u) => {
+                      const st = statusOf(state.roadmap.units, u.id);
+                      const isCurrent = u.id === state.roadmap.current_unit;
+                      return (
+                        <li key={u.id} className={`flex gap-2 ${st === "done" ? "text-zinc-400 line-through" : isCurrent ? "font-medium" : ""}`}>
+                          <span className="w-16 shrink-0 font-mono text-xs text-zinc-400 pt-0.5">{u.id}</span>
+                          <span>
+                            {u.title}
+                            {isCurrent ? " ← now" : st === "in_progress" ? " (in progress)" : ""}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
       </section>
 
       <section>
