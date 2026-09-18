@@ -11,6 +11,7 @@ import type { LearnerStore, SessionRecord } from "./store";
  *  - client.agents.blocks.update(label, { agent_id, value })     -> APIPromise<BlockResponse>
  *  - client.agents.passages.create(agentId, { text })            -> APIPromise<Passage[]>
  *  - client.agents.passages.list(agentId, { limit, ascending })  -> APIPromise<Passage[]>
+ *  - client.agents.delete(agentId)                               -> APIPromise<unknown>
  */
 
 const QUEBEC_TUTOR_TAG = "quebec-french-tutor";
@@ -222,6 +223,18 @@ export class LettaLearnerStore implements LearnerStore {
       records.push({ session_id: match[1], date: match[2], markdown });
     }
     return records.slice(0, limit);
+  }
+
+  async reset(): Promise<void> {
+    await this.init();
+    try {
+      await this.client.agents.delete(this.agentId);
+    } catch (err) {
+      throw new Error(`[Letta] failed to delete agent "${this.agentName}": ${err instanceof Error ? err.message : String(err)}`);
+    }
+    // Force the next init() to look up (and re-create) the agent from scratch.
+    this._agentId = null;
+    this.initPromise = null;
   }
 }
 

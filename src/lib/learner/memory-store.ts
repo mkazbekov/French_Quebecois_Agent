@@ -29,4 +29,9 @@ export class MemoryLearnerStore implements LearnerStore {
   async recentSessionRecords(limit: number): Promise<SessionRecord[]> {
     return this.records.slice(0, limit);
   }
+
+  async reset(): Promise<void> {
+    this.state = defaultLearnerState("");
+    this.records = [];
+  }
 }

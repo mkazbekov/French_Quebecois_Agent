@@ -72,4 +72,29 @@ describe("FileLearnerStore", () => {
     expect(records[0].session_id).toBe("s2");
     expect(records[1].session_id).toBe("s1");
   });
+
+  it("reset() wipes the profile back to fresh, un-onboarded defaults", async () => {
+    const store = new FileLearnerStore({ dataDir, learnerId: "frank" });
+    await store.init();
+    const state = await store.load();
+    state.profile.name = "Frank";
+    state.profile.onboarded_at = new Date().toISOString();
+    state.profile.sessions_completed = 3;
+    await store.save({ profile: state.profile });
+    await store.addSessionRecord({ session_id: "s1", date: "2026-01-01T00:00:00.000Z", markdown: "first" });
+
+    await store.reset();
+
+    const reloaded = await store.load();
+    expect(reloaded.profile.name).toBe("");
+    expect(reloaded.profile.onboarded_at).toBeNull();
+    expect(reloaded.profile.sessions_completed).toBe(0);
+    expect(await store.recentSessionRecords(10)).toEqual([]);
+
+    // save() after reset works (init recreates the file with defaults)
+    const fresh = await store.load();
+    fresh.profile.name = "Frank Again";
+    await store.save({ profile: fresh.profile });
+    expect((await store.load()).profile.name).toBe("Frank Again");
+  });
 });

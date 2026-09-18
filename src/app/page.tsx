@@ -13,24 +13,42 @@ import { SummaryCard } from "@/components/SummaryCard";
 
 type LanguageMode = "auto" | "english_support" | "french_only";
 
+type ProfilePhase = "loading" | "error" | "ready";
+
 export default function Home() {
   const { status, error, transcript, summary, provider, start, end, sendText, reset } = useTutorSession();
   const [learnerState, setLearnerState] = useState<LearnerState | null>(null);
   const [storeKind, setStoreKind] = useState<string | null>(null);
   const [selectedMode, setSelectedMode] = useState<SessionMode>("auto");
   const [languageModeError, setLanguageModeError] = useState<string | null>(null);
+  const [profilePhase, setProfilePhase] = useState<ProfilePhase>("loading");
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [retryToken, setRetryToken] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
     fetch("/api/learner")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+        return res.json();
+      })
       .then((data: { state: LearnerState; storeKind: string }) => {
+        if (cancelled) return;
         setLearnerState(data.state);
         setStoreKind(data.storeKind);
+        setProfilePhase("ready");
       })
-      .catch(() => {
-        // header falls back to placeholders
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        // Only the very first load blocks on an error card; a mid-session
+        // refresh failure just keeps the last known state.
+        setProfileError(err instanceof Error ? err.message : "Couldn't load your profile.");
+        setProfilePhase((phase) => (phase === "loading" ? "error" : phase));
       });
-  }, [status]);
+    return () => {
+      cancelled = true;
+    };
+  }, [status, retryToken]);
 
   const isActive = status !== "idle" && status !== "done" && status !== "error";
   const isConnected = status === "listening" || status === "speaking";
@@ -75,7 +93,25 @@ export default function Home() {
       <TutorHeader state={learnerState} onChange={setLearnerState} disabled={isActive} />
 
       <main className="flex-1 w-full max-w-xl mx-auto flex flex-col items-center gap-8">
-        {learnerState && learnerState.profile.onboarded_at === null ? (
+        {profilePhase === "loading" ? (
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 py-10">Loading your profile…</p>
+        ) : profilePhase === "error" ? (
+          <div className="w-full max-w-sm rounded-xl border border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-950/40 p-6 text-center space-y-3">
+            <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Couldn&apos;t load your profile</h2>
+            {profileError && <p className="text-sm text-red-700 dark:text-red-300">{profileError}</p>}
+            <button
+              type="button"
+              onClick={() => {
+                setProfilePhase("loading");
+                setProfileError(null);
+                setRetryToken((t) => t + 1);
+              }}
+              className="rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 px-4 py-1.5 text-sm font-medium"
+            >
+              Retry
+            </button>
+          </div>
+        ) : learnerState && learnerState.profile.onboarded_at === null ? (
           <Onboarding state={learnerState} onChange={setLearnerState} />
         ) : status === "done" && summary ? (
           <SummaryCard summary={summary} onStartAnother={reset} />

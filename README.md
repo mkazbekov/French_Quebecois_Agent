@@ -96,6 +96,14 @@ After that the tutor adjusts your level from evidence, one step per session, and
 name, pick a different level (or an exact one of the 12), or **Retake the level test**,
 which makes your next call a placement chat again without erasing your progress.
 
+### Start over as a new learner
+
+Open **Profile** on the main page and press **Delete profile & start over** to wipe
+your saved name, level, progress and mistakes and go through onboarding again.
+The same thing from the command line: `npm run reset:profile` (add `--yes` to skip
+the confirmation). `LEARNER_ID` in `.env` picks which profile is deleted; if
+`npm run dev` is running, restart it afterwards.
+
 ## Everyday use
 
 ```bash

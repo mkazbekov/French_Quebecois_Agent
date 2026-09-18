@@ -82,6 +82,7 @@ setup and everyday flow.
 | `npm run setup` | add / replace the Gemini key in `.env` |
 | `npm run typecheck` / `npm run lint` / `npm test` / `npm run build` | must all pass before finishing any task |
 | `npm run verify:persistence` | writes state, re-reads from a child process; use it to prove Letta works |
+| `npm run reset:profile` | deletes the current learner's stored profile (Letta agent or file); confirms unless `--yes` |
 | `npm run check:gemini` / `check:review` / `check:realtime` | live provider checks (no microphone needed) |
 
 ## Layout
@@ -91,7 +92,7 @@ src/app/page.tsx                 the single screen (client); Onboarding until pr
 src/app/review/page.tsx          Review Mistakes (server component)
 src/app/api/realtime/session     POST: learner state → instructions → ek_ key
 src/app/api/session/end          POST: evidence → review → merge → persist → summary
-src/app/api/learner              GET: state + storeKind; PATCH: onboarding | name | language_mode | starting_level | placement:"test"
+src/app/api/learner              GET: state + storeKind; PATCH: onboarding | name | language_mode | starting_level | placement:"test"; DELETE: wipe the learner (back to onboarding)
 scripts/setup.mjs                first-run Gemini key setup (npm run setup, predev)
 src/hooks/useTutorSession.ts     realtime lifecycle, note_evidence tool, crash recovery
 src/lib/learner/                 schema, stores, merge, render, defaults, levels, syllabus, spacing, placement

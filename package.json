@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "verify:persistence": "tsx scripts/verify-persistence.ts",
+    "reset:profile": "tsx --tsconfig tsconfig.json scripts/reset-profile.ts",
     "check:review": "tsx --tsconfig tsconfig.json scripts/live-review-check.mts",
     "check:realtime": "tsx --tsconfig tsconfig.json scripts/live-realtime-check.mts",
     "check:gemini": "tsx --tsconfig tsconfig.json scripts/check-gemini-protocol.mts",

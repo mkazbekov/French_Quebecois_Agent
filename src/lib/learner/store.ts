@@ -33,4 +33,10 @@ export interface LearnerStore {
 
   /** Most recent session records, newest first. */
   recentSessionRecords(limit: number): Promise<SessionRecord[]>;
+
+  /**
+   * Delete everything stored for this learner (profile, documents, session
+   * records). The next load() returns fresh defaults with onboarded_at null.
+   */
+  reset(): Promise<void>;
 }

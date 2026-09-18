@@ -12,6 +12,14 @@ export async function GET() {
   return NextResponse.json({ state, storeKind: store.kind });
 }
 
+/** Wipe the learner's stored profile and history; the next GET returns fresh defaults. */
+export async function DELETE() {
+  const store = await getLearnerStore();
+  await store.reset();
+  const state = await store.load();
+  return NextResponse.json({ state, storeKind: store.kind });
+}
+
 const LevelOrTestSchema = z.union([z.number().int().min(1).max(12), z.literal("test")]);
 
 const PatchBodySchema = z.union([

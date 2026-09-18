@@ -110,4 +110,9 @@ export class FileLearnerStore implements LearnerStore {
     const data = await this.readFile();
     return data.sessions.slice(0, limit);
   }
+
+  async reset(): Promise<void> {
+    await fs.rm(this.filePath, { force: true });
+    this.initialized = false;
+  }
 }

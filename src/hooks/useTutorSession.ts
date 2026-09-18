@@ -21,6 +21,15 @@ interface PendingSession {
   evidence: SessionEvidence;
 }
 
+/** Clear any crash-recovery evidence mirrored to localStorage (e.g. before resetting the profile). */
+export function clearPendingSession(): void {
+  try {
+    window.localStorage.removeItem(PENDING_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export interface UseTutorSessionResult {
   status: TutorStatus;
   error: string | null;

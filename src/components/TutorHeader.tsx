@@ -19,22 +19,24 @@ export function TutorHeader({
   return (
     <header className="w-full max-w-xl mx-auto flex flex-col items-center gap-1 text-center px-4 pt-8">
       <h1 className="text-2xl font-semibold tracking-tight">French Tutor</h1>
-      {name && <p className="text-sm text-zinc-500 dark:text-zinc-400">Salut, {name}</p>}
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">
-        Estimated level: <span className="font-medium text-zinc-700 dark:text-zinc-300">{level}</span>
-      </p>
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">
-        Current focus: <span className="font-medium text-zinc-700 dark:text-zinc-300">{focus}</span>
-      </p>
-      <Link
-        href="/review"
-        className="mt-2 text-xs text-zinc-400 underline decoration-dotted hover:text-zinc-600 dark:hover:text-zinc-200"
-      >
-        Review mistakes
-      </Link>
       {state && state.profile.onboarded_at !== null && (
-        // keyed by name so the input re-seeds when the saved name changes
-        <ProfileSettings key={state.profile.name} state={state} onChange={onChange} disabled={disabled} />
+        <>
+          {name && <p className="text-sm text-zinc-500 dark:text-zinc-400">Salut, {name}</p>}
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Estimated level: <span className="font-medium text-zinc-700 dark:text-zinc-300">{level}</span>
+          </p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Current focus: <span className="font-medium text-zinc-700 dark:text-zinc-300">{focus}</span>
+          </p>
+          <Link
+            href="/review"
+            className="mt-2 text-xs text-zinc-400 underline decoration-dotted hover:text-zinc-600 dark:hover:text-zinc-200"
+          >
+            Review mistakes
+          </Link>
+          {/* keyed by name so the input re-seeds when the saved name changes */}
+          <ProfileSettings key={state.profile.name} state={state} onChange={onChange} disabled={disabled} />
+        </>
       )}
     </header>
   );
