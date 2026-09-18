@@ -25,10 +25,11 @@ export async function POST(req: Request) {
   const provider = env.VOICE_PROVIDER;
   const keyCheck = provider === "gemini" ? "GEMINI_API_KEY" : "OPENAI_API_KEY";
   if (!process.env[keyCheck]) {
-    return NextResponse.json(
-      { error: `${keyCheck} is not set. Copy .env.example to .env and add your key.` },
-      { status: 500 },
-    );
+    const message =
+      provider === "gemini"
+        ? "No Gemini API key yet. Run `npm run setup` in the project folder (or put GEMINI_API_KEY in .env — free key at https://aistudio.google.com/apikey), then restart `npm run dev`."
+        : "No OpenAI API key yet. Put OPENAI_API_KEY in .env (paid key at https://platform.openai.com/api-keys), then restart `npm run dev`.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 
   const store = await getLearnerStore();

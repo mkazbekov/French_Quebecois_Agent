@@ -81,7 +81,7 @@ export function renderLearnerMarkdown(state: LearnerState): string {
     section(
       "Profile",
       [
-        `Name: ${p.name}`,
+        `Name: ${p.name.trim() ? p.name : "(not given yet)"}`,
         `Native languages: ${p.native_languages.join(", ")}`,
         `Goals: ${p.goals.join("; ")}`,
         `Sessions completed: ${p.sessions_completed}`,

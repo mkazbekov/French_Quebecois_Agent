@@ -52,7 +52,21 @@ export const ErrorCategorySchema = z.enum(ERROR_CATEGORIES);
 // Documents
 // ---------------------------------------------------------------------------
 
-export const ProfileSchema = z.object({
+/**
+ * How the learner's starting level was set.
+ *  pending       new learner, no placement done yet; the next auto call is a placement chat
+ *  tested        the placement call ran and set levels from observed evidence
+ *  self_selected the learner picked a starting level themselves instead of taking the placement
+ */
+export const PlacementSchema = z.object({
+  status: z.enum(["pending", "tested", "self_selected"]),
+  level: LevelSchema.nullable(),
+  set_at: z.string().nullable(),
+});
+export type Placement = z.infer<typeof PlacementSchema>;
+
+/** Stored profiles before this field existed get a placement inferred from sessions_completed. */
+const ProfileObjectSchema = z.object({
   name: z.string(),
   native_languages: z.array(z.string()),
   goals: z.array(z.string()),
@@ -72,8 +86,20 @@ export const ProfileSchema = z.object({
   first_session_at: z.string().nullable().default(null),
   last_session_at: z.string().nullable().default(null),
   notes: z.array(z.string()).default([]),
+  placement: PlacementSchema,
 });
-export type Profile = z.infer<typeof ProfileSchema>;
+export const ProfileSchema = z.preprocess((v) => {
+  if (v && typeof v === "object" && !("placement" in v)) {
+    const obj = v as Record<string, unknown>;
+    const sessionsCompleted = typeof obj.sessions_completed === "number" ? obj.sessions_completed : 0;
+    return {
+      ...obj,
+      placement: { status: sessionsCompleted > 0 ? "tested" : "pending", level: null, set_at: null },
+    };
+  }
+  return v;
+}, ProfileObjectSchema);
+export type Profile = z.infer<typeof ProfileObjectSchema>;
 
 export const CompetencySchema = z.object({
   level: StoredLevelSchema,
@@ -180,6 +206,8 @@ export const UnitProgressSchema = z.object({
   next_review: z.string().nullable().default(null),
   /** Current review interval in days (grows while reviews go well). */
   interval_days: z.number().int().nonnegative().default(0),
+  /** true when this unit was marked done because it's below the learner's starting level, not practised. */
+  credited: z.boolean().default(false),
 });
 export type UnitProgress = z.infer<typeof UnitProgressSchema>;
 

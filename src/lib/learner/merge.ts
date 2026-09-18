@@ -1,4 +1,5 @@
 import { clampLevel, formatLevel, type Level } from "./levels";
+import { PLACEMENT_CONFIDENCE, creditUnitsBelow } from "./placement";
 import { ERROR_INTERVAL_DAYS, UNIT_FIRST_INTERVAL_DAYS, UNIT_MAX_INTERVAL_DAYS, addDays, vocabIntervalDays } from "./spacing";
 import { findUnit, matchUnitForError, pendingUnits, type SyllabusUnit } from "./syllabus";
 import {
@@ -143,6 +144,12 @@ export function applyReviewDelta(
   // -------------------------------------------------------------------
   const competencyChanges: Array<{ key: CompetencyKey; from: Level; to: Level }> = [];
 
+  // This session IS the learner's placement when it's an assessment and the
+  // *input* state had no placement yet: levels move directly to what was
+  // observed instead of the usual one-step-per-session cap.
+  const isPlacementSession = evidence.mode === "assessment" && state.profile.placement.status === "pending";
+  const placementObservedLevels: number[] = [];
+
   for (const obs of delta.competencies) {
     if (obs.evidence_strength < 1) continue;
     const comp = s.competencies[obs.competency];
@@ -154,29 +161,56 @@ export function applyReviewDelta(
     comp.strengths = dedupeKeepNewest(comp.strengths, obs.strengths, 6);
     comp.weaknesses = dedupeKeepNewest(comp.weaknesses, obs.weaknesses, 6);
 
-    // Levels are integers on the 12-level Échelle québécoise; move at most one level per session.
-    const indices = comp.recent_observations;
-    const current = comp.level;
-    if (comp.evidence_count >= 3 && comp.recent_observations.length >= 2) {
-      const target = medianIndex(indices);
-      const diff = target - current;
-      const step = diff === 0 ? 0 : diff > 0 ? 1 : -1;
-      comp.level = clampLevel(current + step);
-    }
+    if (isPlacementSession) {
+      // Placement: this session sets the level directly; no one-step cap.
+      comp.level = clampLevel(obs.observed_level);
+      comp.confidence = Math.max(comp.confidence, PLACEMENT_CONFIDENCE);
+      placementObservedLevels.push(comp.level);
+    } else {
+      // Levels are integers on the 12-level Échelle québécoise; move at most one level per session.
+      const indices = comp.recent_observations;
+      const current = comp.level;
+      if (comp.evidence_count >= 3 && comp.recent_observations.length >= 2) {
+        const target = medianIndex(indices);
+        const diff = target - current;
+        const step = diff === 0 ? 0 : diff > 0 ? 1 : -1;
+        comp.level = clampLevel(current + step);
+      }
 
-    const spread = Math.max(...indices) - Math.min(...indices);
-    let confidence = Math.min(1, 0.15 + 0.1 * comp.evidence_count);
-    if (spread > 2) confidence *= 0.7;
-    comp.confidence = confidence;
+      const spread = Math.max(...indices) - Math.min(...indices);
+      let confidence = Math.min(1, 0.15 + 0.1 * comp.evidence_count);
+      if (spread > 2) confidence *= 0.7;
+      comp.confidence = confidence;
+    }
 
     if (comp.level !== before) competencyChanges.push({ key: obs.competency, from: before, to: comp.level });
   }
-  // Confidence decays for competencies this session said nothing about (floor 0.1).
+
   const observedKeys = new Set(delta.competencies.filter((o) => o.evidence_strength >= 1).map((o) => o.competency));
-  for (const key of Object.keys(s.competencies) as CompetencyKey[]) {
-    if (observedKeys.has(key)) continue;
-    const comp = s.competencies[key];
-    comp.confidence = Math.max(0.1, Math.round((comp.confidence - CONFIDENCE_DECAY_PER_SESSION) * 100) / 100);
+
+  if (isPlacementSession) {
+    if (placementObservedLevels.length > 0) {
+      // Competencies the call didn't cover take the median of what was observed; confidence unchanged.
+      const medianLevel = clampLevel(medianIndex(placementObservedLevels));
+      for (const key of Object.keys(s.competencies) as CompetencyKey[]) {
+        if (observedKeys.has(key)) continue;
+        const comp = s.competencies[key];
+        const before = comp.level;
+        comp.level = medianLevel;
+        if (comp.level !== before) competencyChanges.push({ key, from: before, to: comp.level });
+      }
+      // The program should start from the placed level, not fill in every lower-level unit one by one.
+      s.roadmap.units = creditUnitsBelow(s.roadmap.units, s.competencies.oral_production.level);
+      s.profile.placement = { status: "tested", level: s.competencies.oral_production.level, set_at: nowIso };
+    }
+    // Nothing observed at all: placement stays pending, next auto call is a placement again.
+  } else {
+    // Confidence decays for competencies this session said nothing about (floor 0.1).
+    for (const key of Object.keys(s.competencies) as CompetencyKey[]) {
+      if (observedKeys.has(key)) continue;
+      const comp = s.competencies[key];
+      comp.confidence = Math.max(0.1, Math.round((comp.confidence - CONFIDENCE_DECAY_PER_SESSION) * 100) / 100);
+    }
   }
 
   // -------------------------------------------------------------------
@@ -289,7 +323,7 @@ export function applyReviewDelta(
     if (!findUnit(ru.unit_id)) continue;
     let rec = s.roadmap.units.find((u) => u.id === ru.unit_id);
     if (!rec) {
-      rec = { id: ru.unit_id, status: "not_started", ok: 0, struggled: 0, last_practiced: null, next_review: null, interval_days: 0 };
+      rec = { id: ru.unit_id, status: "not_started", ok: 0, struggled: 0, last_practiced: null, next_review: null, interval_days: 0, credited: false };
       s.roadmap.units.push(rec);
     }
     const wasDone = rec.status === "done";

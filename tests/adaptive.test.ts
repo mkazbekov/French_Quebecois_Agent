@@ -44,6 +44,7 @@ function placed(): LearnerState {
   s.profile.sessions_completed = 3;
   s.competencies.oral_production.confidence = 0.5;
   s.competencies.oral_comprehension.confidence = 0.5;
+  s.profile.placement = { status: "tested", level: s.competencies.oral_production.level, set_at: NOW.toISOString() };
   return s;
 }
 

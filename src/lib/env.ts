@@ -61,10 +61,10 @@ export const env = {
     return opt("LETTA_MODEL", "openai/gpt-5.6-luna");
   },
   get LEARNER_ID() {
-    return opt("LEARNER_ID", "mirza");
+    return opt("LEARNER_ID", "learner");
   },
   get LEARNER_NAME() {
-    return opt("LEARNER_NAME", "Mirza");
+    return opt("LEARNER_NAME", "");
   },
   get DATA_DIR() {
     return opt("DATA_DIR", "./data");

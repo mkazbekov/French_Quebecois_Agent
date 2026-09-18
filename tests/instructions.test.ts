@@ -9,6 +9,9 @@ function stateWithSessions(n: number): LearnerState {
   // A learner who has been placed: enough confidence that auto mode follows the cycle.
   state.competencies.oral_production.confidence = 0.5;
   state.competencies.oral_comprehension.confidence = 0.5;
+  if (n > 0) {
+    state.profile.placement = { status: "tested", level: state.competencies.oral_production.level, set_at: "2026-01-01T00:00:00.000Z" };
+  }
   return state;
 }
 

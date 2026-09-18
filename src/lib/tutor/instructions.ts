@@ -79,16 +79,19 @@ export const LOW_CONFIDENCE = 0.25;
 
 export function resolveMode(requested: SessionMode, state: LearnerState, now: Date = new Date()): Exclude<SessionMode, "auto"> {
   if (requested !== "auto") return requested;
+  // No placement yet: every auto call is a placement chat until one lands.
+  if (state.profile.placement.status === "pending") return "assessment";
   const n = state.profile.sessions_completed;
-  // First call is a placement across the four competencies.
-  if (n === 0) return "assessment";
   const lastMode = state.progress.entries[0]?.mode;
   // Weak spots first: a drill when recurring errors are due, never two drills in a row.
   if (lastMode !== "remediation" && recurringDue(state, now).length >= REMEDIATION_MIN_RECURRING) return "remediation";
   // Stale picture of the learner: re-check the level before continuing the program.
   const c = state.competencies;
   if (lastMode !== "assessment" && Math.min(c.oral_production.confidence, c.oral_comprehension.confidence) < LOW_CONFIDENCE) return "assessment";
-  return AUTO_CYCLE[(n - 1) % AUTO_CYCLE.length];
+  // A self-selected learner never had a placement call, so their cycle starts at index n;
+  // everyone else's first cycle entry is the session right after the placement call (index n-1).
+  const cycleIndex = state.profile.placement.status === "self_selected" ? n : n - 1;
+  return AUTO_CYCLE[Math.max(0, cycleIndex) % AUTO_CYCLE.length];
 }
 
 function levelLabel(state: LearnerState): string {
@@ -162,6 +165,11 @@ function dueLines(state: LearnerState, now: Date): string {
   return lines.length ? lines.join("\n") : "(nothing due today)";
 }
 
+function placementNote(state: LearnerState, resolved: Exclude<SessionMode, "auto">): string {
+  if (resolved !== "assessment" || state.profile.placement.status !== "pending") return "";
+  return "\nThis is the learner's PLACEMENT call: you don't know their real level yet, the levels shown above are only a default starting guess. Start with easy tasks, then climb quickly — if a task at one level is easy for them, jump several levels rather than climbing one at a time. It is fine, and good, to end up well above the default estimate for a strong learner.";
+}
+
 function recentSessions(records: SessionRecord[]): string {
   if (!records.length) return "This is the learner's first session with you.";
   return records
@@ -185,9 +193,10 @@ export function buildTutorInstructions({ state, mode, recentRecords, now = new D
   const resolved = resolveMode(mode, state, now);
   const stage = resolveLanguageStage(state);
   const p = state.profile;
+  const hasName = p.name.trim().length > 0;
   const daysSince = p.last_session_at ? Math.round((now.getTime() - new Date(p.last_session_at).getTime()) / 86_400_000) : null;
 
-  const instructions = `You are a warm, patient personal French tutor based in Montréal. You are on a voice call with ${p.name}. This is a spoken conversation: keep turns short (one or two sentences), ask one question at a time, and leave space for the learner to talk. The learner should speak more than you.
+  const instructions = `You are a warm, patient personal French tutor based in Montréal. You are on a voice call with ${hasName ? p.name : "a new learner whose name you don't know yet"}. This is a spoken conversation: keep turns short (one or two sentences), ask one question at a time, and leave space for the learner to talk. The learner should speak more than you.
 
 PATIENCE AND TURN-TAKING (most important)
 - After you ask a question, STOP and wait. Do not add a second question, an example answer, or a hint. Silence is normal: the learner is thinking and translating, which takes time. Wait quietly.
@@ -217,9 +226,10 @@ TEACHING STYLE
 - If the learner clearly did not understand, rephrase more simply instead of repeating louder.
 
 ${MODE_GUIDANCE[resolved]}
+${placementNote(state, resolved)}
 
 LEARNER
-- Name: ${p.name}. Sessions so far: ${p.sessions_completed}${daysSince !== null ? ` (last one ${daysSince} day${daysSince === 1 ? "" : "s"} ago)` : ""}.
+- Name: ${hasName ? p.name : "unknown — ask for it naturally early in the call (e.g. « Comment tu t'appelles ? ») and remember it."} Sessions so far: ${p.sessions_completed}${daysSince !== null ? ` (last one ${daysSince} day${daysSince === 1 ? "" : "s"} ago)` : ""}.
 - Goals: ${p.goals.join("; ")}
 ${p.notes.length ? `- Things they've told you: ${p.notes.slice(-8).join("; ")}` : ""}
 
@@ -254,7 +264,7 @@ EVIDENCE LOGGING
 You have a tool called note_evidence. Call it silently (never mention it) whenever you notice something worth remembering: a grammar error, a vocabulary gap, a word the learner used well, a comprehension problem, a reliably audible pronunciation issue, or good use of a Québec expression. Keep calling it throughout the call; the learner's progress record depends on it. Do not let tool calls interrupt the flow of your speech. This tool has nothing to do with ending the call; see ENDING below for that.
 
 OPENING
-Start the call yourself with a short friendly greeting that uses the learner's name${p.sessions_completed > 0 ? " and, if natural, one small reference to the last session" : ""}. ${stage === "english_support" ? "Greet in French, then say the same thing in English, and ask one very easy question in French with its English meaning." : stage === "mixed" ? "Greet in French and ask one easy question in French; add a short English hint only if the question uses new words." : "Greet in French and ask one easy opening question in French."} Then wait for the answer, however long it takes.
+Start the call yourself with a short friendly greeting${hasName ? " that uses the learner's name" : ""}${p.sessions_completed > 0 ? " and, if natural, one small reference to the last session" : ""}. ${!hasName ? "You don't know their name yet: ask for it naturally right after your greeting (e.g. « Comment tu t'appelles ? ») and use it once they answer, before moving on to the first real question. " : ""}${stage === "english_support" ? "Greet in French, then say the same thing in English, and ask one very easy question in French with its English meaning." : stage === "mixed" ? "Greet in French and ask one easy question in French; add a short English hint only if the question uses new words." : "Greet in French and ask one easy opening question in French."} Then wait for the answer, however long it takes.
 
 ENDING
 You have a tool called end_call. If the learner clearly wants to end the call — in any language: "on arrête", "je dois y aller", "bye", "I have to go", "stop the call", and similar — say one short warm goodbye in French, then call end_call. In a role-play, the character saying "au revoir" is NOT the learner ending the call; stay in character (or step out briefly to check) rather than hanging up. If you are not sure whether they want to stop, ask "On arrête là pour aujourd'hui ?" and wait for a clear answer before calling end_call. Never call end_call for any other reason. Do not summarise the session; the app does that.`;

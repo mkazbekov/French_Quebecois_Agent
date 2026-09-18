@@ -30,7 +30,7 @@ and stored in one Letta memory block with the same label:
 
 | block          | content                                             |
 | -------------- | --------------------------------------------------- |
-| profile        | name, languages, goals, preferences, session count  |
+| profile        | name, languages, goals, preferences, session count, placement |
 | competencies   | 4 competencies: level (Échelle québécoise 1–12), confidence, evidence, notes |
 | errors         | recurring error registry (ERROR-001 …)              |
 | vocabulary     | known / shaky / target words, Québec items          |
@@ -51,6 +51,19 @@ approximate CEFR equivalent (1–2 A1 … 11–12 C2) shown wherever a level is 
 Stored documents still accept the pre-2026-09-18 CEFR strings and migrate them on
 parse (`StoredLevelSchema` in `schema.ts`). `merge.ts` moves a level by at most one
 step per session toward the median of recent observations.
+
+**Placement** (`profile.placement`, `src/lib/learner/placement.ts`): status
+`pending` → `tested` | `self_selected`. While pending, every `auto` call is an
+`assessment`; when such a call is reviewed, `merge.ts` sets each observed
+competency directly to the observed level (no one-step cap), gives unobserved ones
+the median, and marks the placement `tested`. Before the first finished session
+the learner can instead pick a level (`PATCH /api/learner {starting_level}`,
+`setStartingLevel`) or go back to the test (`{placement: "test"}`); both return 409
+after session 1. Either way, syllabus units below the starting level are recorded
+as `done` with `credited: true` so the program starts at that level instead of
+filling every lower-level gap; confidence starts at `PLACEMENT_CONFIDENCE` (0.35,
+above `LOW_CONFIDENCE`). Old profiles without the field migrate to `tested` when
+they have sessions, `pending` otherwise.
 
 ## Program (syllabus)
 
@@ -81,8 +94,8 @@ DUE FOR REVIEW block built by `dueItems`.
 
 ## Session modes
 
-`resolveMode` in `src/lib/tutor/instructions.ts`: the first call is `assessment`
-(placement across the four competencies), then `auto` cycles
+`resolveMode` in `src/lib/tutor/instructions.ts`: while the placement is pending
+the call is `assessment` (placement across the four competencies), then `auto` cycles
 guided → lesson → quebec → guided → lesson → assessment. `lesson` is an explicit
 grammar-point + vocabulary mini-lesson inside a conversation; `assessment` asks the
 learner to read the on-screen transcript and to type answers so that written

@@ -7,6 +7,7 @@ import { TutorHeader } from "@/components/TutorHeader";
 import { MicOrb } from "@/components/MicOrb";
 import { ModeChips } from "@/components/ModeChips";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { StartingLevel } from "@/components/StartingLevel";
 import { TranscriptPanel } from "@/components/TranscriptPanel";
 import { SummaryCard } from "@/components/SummaryCard";
 
@@ -139,6 +140,10 @@ export default function Home() {
             )}
 
             <ModeChips selected={selectedMode} onSelect={setSelectedMode} disabled={isActive} />
+
+            {!isActive && learnerState && learnerState.profile.sessions_completed === 0 && (
+              <StartingLevel state={learnerState} onChange={setLearnerState} disabled={isActive} />
+            )}
 
             <LanguageToggle
               value={learnerState?.profile.preferences.language_mode ?? "auto"}

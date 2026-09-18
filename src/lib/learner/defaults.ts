@@ -18,7 +18,7 @@ export function defaultLearnerState(name: string): LearnerState {
   return {
     profile: {
       name,
-      native_languages: ["English", "Russian", "Uzbek", "Karakalpak"],
+      native_languages: ["English"],
       goals: ["Practical spoken Montréal / Québec French for daily life"],
       preferences: { explanation_language: "en", correction_intensity: "light", language_mode: "auto" },
       sessions_completed: 0,
@@ -26,6 +26,7 @@ export function defaultLearnerState(name: string): LearnerState {
       first_session_at: null,
       last_session_at: null,
       notes: [],
+      placement: { status: "pending", level: null, set_at: null },
     },
     competencies: {
       oral_production: emptyCompetency(2),

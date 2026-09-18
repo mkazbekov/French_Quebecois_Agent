@@ -8,30 +8,92 @@ reviewed and your learner profile is updated so the next call picks up where you
 npm run dev  →  open http://localhost:3000  →  Start Conversation  →  talk
 ```
 
-Voice and review run on **Google Gemini** by default (Gemini Live for the call,
-Gemini Flash for the end-of-call review), which is free-tier eligible. Learner memory
-lives in **Letta**. OpenAI Realtime is available as an alternative voice backend for
-paid accounts.
+It runs on your own computer with your own **free Google Gemini API key**: Gemini Live
+for the call, Gemini Flash for the end-of-call review. No paid account is needed.
 
-## First-time setup
+## Quick start (5 minutes)
+
+You need **[Node.js](https://nodejs.org) 20.9 or newer** (the LTS installer is fine),
+a microphone, and a recent Chrome, Edge or Firefox.
+
+**1. Download the project.** Either clone it:
+
+```bash
+git clone https://github.com/mkazbekov/French_Quebecois_Agent.git
+cd French_Quebecois_Agent
+```
+
+or on GitHub press **Code → Download ZIP**, unzip it, and open a terminal in that folder.
+
+**2. Install and start.**
 
 ```bash
 npm install
-cp .env.example .env
+npm run dev
 ```
 
-Then edit `.env`:
+The first time, `npm run dev` asks for your Gemini API key (see below), checks it with
+Google, and saves it in a local `.env` file. It also asks what the tutor should call you
+(press Enter to skip). After that, `npm run dev` just starts the tutor.
 
-| variable         | required    | what it is                                                                                   |
-| ---------------- | ----------- | -------------------------------------------------------------------------------------------- |
-| `GEMINI_API_KEY` | yes         | Google Gemini key from https://aistudio.google.com/apikey. Voice + review, free tier.         |
-| `LETTA_API_KEY`  | recommended | Letta Cloud key from https://app.letta.com. Your learner memory lives here.                   |
-| `LETTA_BASE_URL` | no          | Self-hosted Letta server instead of Letta Cloud (e.g. `http://localhost:8283`).               |
-| `OPENAI_API_KEY` | no          | Only if you want the OpenAI Realtime backend (`VOICE_PROVIDER=openai`, paid).                 |
+**3. Open http://localhost:3000**, choose where to start (see
+[Your starting level](#your-starting-level)), and press **Start Conversation**.
 
-With a Gemini key alone the whole tutor runs at no cost. Without a Letta key the app
-still works, but memory is kept in a local JSON file under `./data/`. The page footer
-shows which voice provider and memory backend are active.
+### Getting your free Gemini API key
+
+1. Go to **https://aistudio.google.com/apikey** and sign in with any Google account.
+2. Click **Create API key** (accept the terms if asked; pick or create any project).
+3. Copy the key and paste it when `npm run dev` or `npm run setup` asks for it.
+
+That's all. To replace the key later, run `npm run setup` again. You can also edit
+`.env` by hand (`GEMINI_API_KEY=...`); it is git-ignored and never leaves your machine.
+The key stays on the local server: the browser only ever gets a short-lived, single-use
+token for each call.
+
+The free tier is enough for daily practice. If Google reports a quota or region error,
+check the key's limits in AI Studio; the error is shown on the page.
+
+### Optional extras
+
+Everything below is optional. `.env.example` lists every setting with a comment.
+
+| variable         | what it does                                                                                     |
+| ---------------- | ------------------------------------------------------------------------------------------------ |
+| `LETTA_API_KEY`  | Keep your learner memory in [Letta Cloud](https://app.letta.com) instead of `./data/` on this computer. |
+| `LETTA_BASE_URL` | Use a self-hosted Letta server instead (e.g. `http://localhost:8283`).                          |
+| `OPENAI_API_KEY` | Use OpenAI Realtime for the voice (`VOICE_PROVIDER=openai`, paid account).                      |
+| `LEARNER_NAME`   | What the tutor calls you (set by setup).                                                         |
+| `LEARNER_ID`     | Keeps separate learners apart on one machine / Letta account (set by setup).                     |
+
+Without Letta, progress is saved in `./data/` on your computer and survives restarts.
+The page footer shows which voice provider and memory backend are active.
+
+### Troubleshooting
+
+- **"No Gemini API key yet"** on the page: run `npm run setup`, then restart `npm run dev`.
+- **The tutor can't hear you**: allow the microphone for `localhost` in the browser's
+  site settings, and check the right input device is selected in your OS.
+- **`npm run dev` doesn't ask for the key** (for example in some IDE terminals): run
+  `npm run setup` in a normal terminal once.
+- **Port 3000 in use**: `npm run dev -- -p 3001`, then open http://localhost:3001.
+
+## Your starting level
+
+Before your first call the main page asks **Where should we start?** You can:
+
+- **Take the placement test** (the default, nothing to click). Your first call is a
+  relaxed placement chat: the tutor starts easy, climbs until things get hard, and has
+  you type and read a little. When you hang up, your level in each competency is set
+  directly from what it observed (from niveau 1 to 12), and the program starts there.
+- **Pick your level yourself.** Choose *Total beginner*, *I know the basics*, *Everyday
+  conversations*, *Comfortable* or *Advanced*, or open **Pick an exact level** to read
+  the description of each of the 12 levels and choose one. Your first call then starts
+  the program at that level (guided practice on its first unit), and earlier units are
+  counted as done.
+
+You can change your mind (or switch back to the test) until your first call is saved.
+After that the tutor adjusts your level from evidence, one step per session, and the
+**Level Check** chip runs a progress check any time.
 
 ## Everyday use
 
@@ -63,9 +125,9 @@ You don't have to wait: the session is kept in the browser first, so you can clo
 tab and it will be reviewed the next time you open the app. If the review fails, the
 same retry happens automatically.
 
-Nothing else to configure. Your very first call is a friendly **placement**: the tutor
-probes all four competencies (listening, speaking, reading, writing) so it knows where
-to start. After that, calls rotate automatically through practice, a lesson, a Québec
+Nothing else to configure. Your very first call is a friendly **placement** (unless you
+picked your level): the tutor probes all four competencies (listening, speaking,
+reading, writing) so it knows where to start. After that, calls rotate automatically through practice, a lesson, a Québec
 role-play, practice, a lesson, and a level check.
 
 **Text box.** Under the transcript there is a text field. The tutor will sometimes ask
@@ -142,7 +204,8 @@ Progress is tracked on the **Échelle québécoise des niveaux de compétence en
 | 9–10               | avancé        | C1     |
 | 11–12              | avancé        | C2     |
 
-Levels only ever move one step per session, and only once there is enough evidence.
+After placement (or your own pick), levels only ever move one step per session, and
+only once there is enough evidence.
 Profiles saved before this scale existed (CEFR strings) are migrated on load.
 
 ## How it works
@@ -167,7 +230,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md). Short version:
 
 | command                       | purpose                                                                    |
 | ----------------------------- | -------------------------------------------------------------------------- |
-| `npm run dev`                 | start the tutor at http://localhost:3000                                   |
+| `npm run dev`                 | start the tutor at http://localhost:3000 (asks for a key the first time)   |
+| `npm run setup`               | add or replace your Gemini API key and name in `.env`                      |
 | `npm run build && npm start`  | production build / serve                                                   |
 | `npm test`                    | unit tests (merge rules, stores, levels, prompt builder, two-session loop) |
 | `npm run typecheck`           | TypeScript                                                                 |

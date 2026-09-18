@@ -53,7 +53,15 @@ setup and everyday flow.
   `resolveMode`, and confidence decay in `merge.ts` are deterministic. The reviewer
   only supplies `unit_id` per error. Change thresholds in one place
   (`REMEDIATION_MIN_RECURRING`, `LOW_CONFIDENCE`, interval constants), with tests.
-- **Every session teaches and assesses.** First call is a placement (`assessment`);
+- **Placement is code.** `profile.placement` (pending | tested | self_selected):
+  a pending placement makes the auto call an `assessment`, and only that review may
+  jump levels past the one-step rule (`merge.ts`). The only other level override is
+  the learner's own pick before session 1 (`placement.ts`, `PATCH /api/learner`).
+  Units below the starting level are `credited`, not practised.
+- **Onboarding is `npm install && npm run dev`.** `predev` runs `scripts/setup.mjs
+  --if-needed` (silent when a key exists; asks for the Gemini key + name otherwise).
+  Keep it zero-dependency and never block a non-interactive `npm run dev`.
+- **Every session teaches and assesses.** First call is a placement (`assessment`) unless the learner picked a level;
   then `auto` cycles guided → lesson → quebec → guided → lesson → assessment. The
   `lesson` mode teaches one grammar point + 3–5 words; `assessment` covers all four
   competencies (typed answers and reading the on-screen transcript give the written
@@ -63,7 +71,8 @@ setup and everyday flow.
 
 | command | purpose |
 | --- | --- |
-| `npm run dev` | start the tutor |
+| `npm run dev` | start the tutor (asks for the Gemini key the first time) |
+| `npm run setup` | add / replace the Gemini key and learner name in `.env` |
 | `npm run typecheck` / `npm run lint` / `npm test` / `npm run build` | must all pass before finishing any task |
 | `npm run verify:persistence` | writes state, re-reads from a child process; use it to prove Letta works |
 | `npm run check:gemini` / `check:review` / `check:realtime` | live provider checks (no microphone needed) |
@@ -71,13 +80,14 @@ setup and everyday flow.
 ## Layout
 
 ```text
-src/app/page.tsx                 the single screen (client)
+src/app/page.tsx                 the single screen (client); StartingLevel shows before session 1
 src/app/review/page.tsx          Review Mistakes (server component)
 src/app/api/realtime/session     POST: learner state → instructions → ek_ key
 src/app/api/session/end          POST: evidence → review → merge → persist → summary
-src/app/api/learner              GET: state + storeKind; PATCH: language_mode preference
+src/app/api/learner              GET: state + storeKind; PATCH: language_mode | starting_level | placement:"test"
+scripts/setup.mjs                first-run key/name setup (npm run setup, predev)
 src/hooks/useTutorSession.ts     realtime lifecycle, note_evidence tool, crash recovery
-src/lib/learner/                 schema, stores, merge, render, defaults, levels, syllabus, spacing
+src/lib/learner/                 schema, stores, merge, render, defaults, levels, syllabus, spacing, placement
 src/lib/voice/                   VoiceSession contract + gemini/openai implementations
 src/lib/tutor/instructions.ts    tutor prompt builder (pedagogy lives here)
 src/lib/tutor/gemini-setup.ts    Live API setup message, tool declaration, URLs
@@ -107,8 +117,10 @@ tests/                           vitest; merge rules, stores, levels, syllabus, 
 Built 2026-09-17; Gemini Live made the default 2026-09-17; patience, the 12-level
 Échelle québécoise, lesson/level-check modes, four-competency assessment, the
 fixed syllabus program, and the adaptive layer (error→unit mapping, spaced review,
-remediation drills, confidence decay) added 2026-09-18. Verified on this machine at
-that point: typecheck, lint, 52 tests,
+remediation drills, confidence decay) added 2026-09-18. Also 2026-09-18: one-command
+onboarding (`npm run setup` / `predev`, blank LEARNER_* defaults) and placement
+(real level jump on the placement call, or a self-picked starting level). Verified on this machine at
+that point: typecheck, lint, 71 tests,
 production build, `npm run check:gemini-setup` (Live API accepts the new VAD
 config), and earlier Letta persistence across processes against the real Letta
 Cloud agent. The OpenAI backend is optional; `check:realtime` / `check:review`

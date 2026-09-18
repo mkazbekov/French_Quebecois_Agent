@@ -71,6 +71,9 @@ describe("two sessions", () => {
 
     // --- session 1 end ---
     const before = await store.load();
+    // This test exercises the persistence loop, not placement; seed a learner
+    // who was already placed so a "free" first session doesn't force mode "assessment".
+    before.profile.placement = { status: "tested", level: 2, set_at: "2026-09-17T09:00:00.000Z" };
     const now = new Date("2026-09-17T10:12:30.000Z");
     const { state: after, summary } = applyReviewDelta(before, delta1, evidence("s1"), now);
     await store.save(after);
