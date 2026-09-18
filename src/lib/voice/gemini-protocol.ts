@@ -51,6 +51,10 @@ export interface GeminiLiveProtocolCallbacks {
   onSetupComplete(): void;
   onDisconnected(reason: string): void;
   onError(message: string): void;
+  /** The model called the end_call tool; the tool response has already been sent. */
+  onEndCallRequested(): void;
+  /** The current model turn finished (fired alongside onTranscript's turnComplete case). */
+  onTurnComplete(): void;
 }
 
 export class GeminiLiveProtocol {
@@ -193,6 +197,7 @@ export class GeminiLiveProtocol {
       this.curTurnHasAudio = false;
       this.callbacks.onActivity("listening");
       this.callbacks.onTranscript([...this.turns]);
+      this.callbacks.onTurnComplete();
     }
 
     const toolCall = msg.toolCall as { functionCalls?: GeminiFunctionCall[] } | undefined;
@@ -201,8 +206,13 @@ export class GeminiLiveProtocol {
         if (fc.name === "note_evidence") {
           const parsed = LiveEvidenceSchema.safeParse(fc.args ?? {});
           if (parsed.success) this.callbacks.onEvidence(parsed.data);
+          this.sendToolResponse(fc.id, fc.name, { result: "noted" });
+        } else if (fc.name === "end_call") {
+          this.sendToolResponse(fc.id, fc.name, { result: "ok" });
+          this.callbacks.onEndCallRequested();
+        } else {
+          this.sendToolResponse(fc.id, fc.name, { result: "noted" });
         }
-        this.sendToolResponse(fc.id, fc.name, { result: "noted" });
       }
     }
 

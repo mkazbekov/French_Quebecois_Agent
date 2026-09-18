@@ -1,6 +1,12 @@
 import { OpenAIRealtimeWebRTC, RealtimeAgent, RealtimeSession, tool } from "@openai/agents/realtime";
+import { z } from "zod";
 import { LiveEvidenceSchema, type TranscriptTurn } from "@/lib/learner/schema";
 import type { VoiceSession, VoiceSessionDeps } from "./types";
+
+/** Grace period after playback stops before hanging up. */
+const END_CALL_DRAIN_MS = 400;
+/** Hang up no later than this after end_call arrives, even with no stopped event. */
+const END_CALL_SAFETY_MS = 8000;
 
 function extractUserText(content: unknown): string {
   if (!Array.isArray(content)) return "";
@@ -61,6 +67,10 @@ export class OpenAIVoiceSession implements VoiceSession {
   private readonly typedTexts = new Set<string>();
   private connected = false;
   private closedByUs = false;
+  private endPending = false;
+  private endFired = false;
+  private endDrainTimer: ReturnType<typeof setTimeout> | null = null;
+  private endSafetyTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(deps: VoiceSessionDeps, params: OpenAIVoiceSessionParams) {
     this.deps = deps;
@@ -82,10 +92,21 @@ export class OpenAIVoiceSession implements VoiceSession {
       },
     });
 
+    const endCall = tool({
+      name: "end_call",
+      description:
+        "Hang up the call. Call it only right after you have said goodbye because the learner clearly wants to stop.",
+      parameters: z.object({}),
+      execute: async () => {
+        this.handleEndCallRequested();
+        return "ok";
+      },
+    });
+
     const agent = new RealtimeAgent({
       name: "Tutrice",
       instructions,
-      tools: [noteEvidence],
+      tools: [noteEvidence, endCall],
     });
 
     const session = new RealtimeSession(agent, {
@@ -123,6 +144,10 @@ export class OpenAIVoiceSession implements VoiceSession {
         handlers.onActivity("speaking");
       } else if (e.type === "output_audio_buffer.stopped" || e.type === "output_audio_buffer.cleared") {
         handlers.onActivity("listening");
+        if (e.type === "output_audio_buffer.stopped" && this.endPending && !this.endFired) {
+          if (this.endDrainTimer) clearTimeout(this.endDrainTimer);
+          this.endDrainTimer = setTimeout(() => this.fireEndRequested(), END_CALL_DRAIN_MS);
+        }
       } else if (e.type === "input_audio_buffer.speech_started") {
         handlers.onActivity("listening");
       }
@@ -152,11 +177,30 @@ export class OpenAIVoiceSession implements VoiceSession {
   close(): void {
     if (this.closedByUs) return;
     this.closedByUs = true;
+    if (this.endDrainTimer) clearTimeout(this.endDrainTimer);
+    if (this.endSafetyTimer) clearTimeout(this.endSafetyTimer);
     try {
       this.session?.close();
     } catch {
       // ignore
     }
     this.session = null;
+  }
+
+  /** Fires onEndRequested exactly once, clearing any pending timers. */
+  private fireEndRequested(): void {
+    if (this.endFired) return;
+    this.endFired = true;
+    if (this.endDrainTimer) clearTimeout(this.endDrainTimer);
+    if (this.endSafetyTimer) clearTimeout(this.endSafetyTimer);
+    this.endDrainTimer = null;
+    this.endSafetyTimer = null;
+    this.deps.handlers.onEndRequested();
+  }
+
+  private handleEndCallRequested(): void {
+    if (this.endPending || this.endFired) return;
+    this.endPending = true;
+    this.endSafetyTimer = setTimeout(() => this.fireEndRequested(), END_CALL_SAFETY_MS);
   }
 }

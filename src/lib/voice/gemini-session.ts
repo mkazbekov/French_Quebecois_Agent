@@ -5,6 +5,10 @@ import type { VoiceSession, VoiceSessionDeps } from "./types";
 const CAPTURE_SAMPLE_RATE = 16000;
 const PLAYBACK_SAMPLE_RATE = 24000;
 const CAPTURE_CHUNK_SAMPLES = 1600; // ~100ms at 16kHz
+/** Grace period after scheduled playback drains before hanging up. */
+const END_CALL_DRAIN_MS = 400;
+/** Hang up no later than this after end_call arrives, even with no turnComplete. */
+const END_CALL_SAFETY_MS = 8000;
 
 // Runs on the audio rendering thread. Buffers incoming Float32 samples and
 // posts ~100ms Int16 PCM chunks back to the main thread.
@@ -69,6 +73,10 @@ export class GeminiVoiceSession implements VoiceSession {
   private scheduled: AudioBufferSourceNode[] = [];
 
   private closed = false;
+  private endPending = false;
+  private endFired = false;
+  private endDrainTimer: ReturnType<typeof setTimeout> | null = null;
+  private endSafetyTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(deps: VoiceSessionDeps, params: GeminiVoiceSessionParams) {
     this.deps = deps;
@@ -84,7 +92,34 @@ export class GeminiVoiceSession implements VoiceSession {
       },
       onDisconnected: (reason) => this.deps.handlers.onDisconnected(reason),
       onError: (message) => this.deps.handlers.onError(message),
+      onEndCallRequested: () => this.handleEndCallRequested(),
+      onTurnComplete: () => this.handleTurnComplete(),
     });
+  }
+
+  /** Fires onEndRequested exactly once, clearing any pending timers. */
+  private fireEndRequested(): void {
+    if (this.endFired) return;
+    this.endFired = true;
+    if (this.endDrainTimer) clearTimeout(this.endDrainTimer);
+    if (this.endSafetyTimer) clearTimeout(this.endSafetyTimer);
+    this.endDrainTimer = null;
+    this.endSafetyTimer = null;
+    this.deps.handlers.onEndRequested();
+  }
+
+  private handleEndCallRequested(): void {
+    if (this.endPending || this.endFired) return;
+    this.endPending = true;
+    this.endSafetyTimer = setTimeout(() => this.fireEndRequested(), END_CALL_SAFETY_MS);
+  }
+
+  private handleTurnComplete(): void {
+    if (!this.endPending || this.endFired) return;
+    const ctx = this.playCtx;
+    const remainingMs = ctx ? Math.max(0, (this.nextStartTime - ctx.currentTime) * 1000) : 0;
+    if (this.endDrainTimer) clearTimeout(this.endDrainTimer);
+    this.endDrainTimer = setTimeout(() => this.fireEndRequested(), remainingMs + END_CALL_DRAIN_MS);
   }
 
   async connect(): Promise<void> {
@@ -111,6 +146,8 @@ export class GeminiVoiceSession implements VoiceSession {
   close(): void {
     if (this.closed) return;
     this.closed = true;
+    if (this.endDrainTimer) clearTimeout(this.endDrainTimer);
+    if (this.endSafetyTimer) clearTimeout(this.endSafetyTimer);
     this.protocol.close();
     this.stopPlayback();
 

@@ -45,7 +45,23 @@ Then:
 2. Press **Start Conversation** (allow the microphone the first time)
 3. Talk. The tutor greets you first, then waits for you. Take your time: pauses while
    you think or search for a word are expected, and the tutor is tuned not to jump in.
-4. Press **End Conversation** when you're done. A short summary appears and your progress is saved.
+4. End the call whenever you like (see below). A short summary appears and your progress is saved.
+
+**Ending a call.** Any of these hangs up:
+
+- **Say so.** "On arrête", "je dois y aller", "bye", "I have to go". The tutor says a
+  short goodbye and the call hangs up by itself once the goodbye has finished playing.
+  Saying "au revoir" to a character in a role-play does not end the call. If the tutor
+  isn't sure, it asks "On arrête là pour aujourd'hui ?".
+- **Press End Conversation**, or press **Esc**.
+- **Cancel** while it is still connecting. The same red button, or Esc, stops it and
+  nothing is saved.
+
+The microphone and audio stop immediately. A "Call ended, saving your progress" screen
+replaces the call while the review runs, which can take up to a minute or two.
+You don't have to wait: the session is kept in the browser first, so you can close the
+tab and it will be reviewed the next time you open the app. If the review fails, the
+same retry happens automatically.
 
 Nothing else to configure. Your very first call is a friendly **placement**: the tutor
 probes all four competencies (listening, speaking, reading, writing) so it knows where

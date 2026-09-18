@@ -52,6 +52,9 @@ export function useTutorSession(): UseTutorSessionResult {
   const modeRef = useRef<SessionMode>("auto");
   const activeRef = useRef(false);
   const endingRef = useRef(false);
+  const startingRef = useRef(false);
+  const cancelledRef = useRef(false);
+  const endRef = useRef<() => Promise<void>>(async () => {});
 
   const mirrorPending = useCallback((disconnected: boolean, endedAt?: string) => {
     try {
@@ -82,8 +85,8 @@ export function useTutorSession(): UseTutorSessionResult {
     mediaStreamRef.current = null;
   }, []);
 
-  const postEnd = useCallback(async (disconnected: boolean): Promise<SessionSummary | null> => {
-    const endedAt = new Date().toISOString();
+  const postEnd = useCallback(async (disconnected: boolean, endedAtOverride?: string): Promise<SessionSummary | null> => {
+    const endedAt = endedAtOverride ?? new Date().toISOString();
     const evidence: SessionEvidence = {
       session_id: sessionIdRef.current,
       mode: modeRef.current,
@@ -114,10 +117,23 @@ export function useTutorSession(): UseTutorSessionResult {
   }, []);
 
   const end = useCallback(async () => {
-    if (endingRef.current || !activeRef.current) return;
+    if (endingRef.current) return;
+    if (!activeRef.current) {
+      // Not connected yet: cancel an in-flight start (mic request or connect).
+      if (startingRef.current) {
+        cancelledRef.current = true;
+        teardown();
+        setStatus("idle");
+      }
+      return;
+    }
     endingRef.current = true;
     activeRef.current = false;
     setStatus("ending");
+    const endedAt = new Date().toISOString();
+    // Mirror the pending session before the wait/teardown so closing the tab
+    // during the review is safe; on-mount recovery will post it next time.
+    mirrorPending(false, endedAt);
     // Give the server a moment to deliver the transcription of the last utterance.
     try {
       voiceRef.current?.mute(true);
@@ -126,17 +142,20 @@ export function useTutorSession(): UseTutorSessionResult {
     }
     await new Promise((r) => setTimeout(r, 1200));
     teardown();
-    const s = await postEnd(false);
+    const s = await postEnd(false, endedAt);
     if (s) setSummary(s);
     setStatus("done");
     endingRef.current = false;
-  }, [postEnd, teardown]);
+  }, [postEnd, teardown, mirrorPending]);
 
-  const startingRef = useRef(false);
+  useEffect(() => {
+    endRef.current = end;
+  }, [end]);
 
   const start = useCallback(async (requestedMode: SessionMode) => {
     if (startingRef.current || activeRef.current) return;
     startingRef.current = true;
+    cancelledRef.current = false;
     setError(null);
     setSummary(null);
     setTranscript([]);
@@ -155,9 +174,17 @@ export function useTutorSession(): UseTutorSessionResult {
           : `Could not access the microphone: ${err instanceof Error ? err.message : String(err)}`,
       );
       startingRef.current = false;
+      cancelledRef.current = false;
       return;
     }
     mediaStreamRef.current = stream;
+    if (cancelledRef.current) {
+      teardown();
+      setStatus("idle");
+      startingRef.current = false;
+      cancelledRef.current = false;
+      return;
+    }
 
     setStatus("connecting");
     try {
@@ -169,6 +196,10 @@ export function useTutorSession(): UseTutorSessionResult {
       const data = (await res.json()) as StartSessionResponse & { error?: string; detail?: string };
       if (!res.ok) {
         throw new Error(data.error ?? `Server returned ${res.status}`);
+      }
+      if (cancelledRef.current) {
+        setStatus("idle");
+        return;
       }
 
       sessionIdRef.current = data.sessionId;
@@ -210,19 +241,33 @@ export function useTutorSession(): UseTutorSessionResult {
           onError: (message) => {
             console.error("voice session error", message);
           },
+          onEndRequested: () => {
+            void endRef.current();
+          },
         },
       });
       voiceRef.current = voice;
 
       await voice.connect();
+      if (cancelledRef.current) {
+        teardown();
+        setStatus("idle");
+        return;
+      }
       activeRef.current = true;
       setStatus("listening");
     } catch (err) {
-      setStatus("error");
-      setError(err instanceof Error ? err.message : String(err));
-      teardown();
+      if (cancelledRef.current) {
+        teardown();
+        setStatus("idle");
+      } else {
+        setStatus("error");
+        setError(err instanceof Error ? err.message : String(err));
+        teardown();
+      }
     } finally {
       startingRef.current = false;
+      cancelledRef.current = false;
     }
   }, [postEnd, teardown]);
 

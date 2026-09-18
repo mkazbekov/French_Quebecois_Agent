@@ -52,6 +52,8 @@ async function main() {
     onError: (message) => {
       console.error("error:", message);
     },
+    onEndCallRequested: () => {},
+    onTurnComplete: () => {},
   });
 
   const url = geminiLiveUrlForApiKey(apiKey!);

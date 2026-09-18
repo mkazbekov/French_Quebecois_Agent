@@ -33,6 +33,16 @@ export const NOTE_EVIDENCE_TOOL = {
   },
 } as const;
 
+export const END_CALL_TOOL = {
+  name: "end_call",
+  description:
+    "Hang up the call. Call it only right after you have said goodbye because the learner clearly wants to stop.",
+  parameters: {
+    type: "OBJECT",
+    properties: {},
+  },
+} as const;
+
 export interface GeminiSetupInput {
   model: string;
   voice: string;
@@ -48,7 +58,7 @@ export function buildGeminiLiveSetup({ model, voice, instructions }: GeminiSetup
         speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } },
       },
       systemInstruction: { parts: [{ text: instructions }] },
-      tools: [{ functionDeclarations: [NOTE_EVIDENCE_TOOL] }],
+      tools: [{ functionDeclarations: [NOTE_EVIDENCE_TOOL, END_CALL_TOOL] }],
       inputAudioTranscription: {},
       outputAudioTranscription: {},
       // Patience: the tutor must not take the turn while the learner is still

@@ -18,6 +18,8 @@ export interface VoiceSessionHandlers {
   onDisconnected(reason: string): void;
   /** Non-fatal problem worth surfacing. */
   onError(message: string): void;
+  /** Fired once the tutor's goodbye has finished playing. */
+  onEndRequested(): void;
 }
 
 export interface VoiceSession {
