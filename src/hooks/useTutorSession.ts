@@ -1,15 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { OpenAIRealtimeWebRTC, RealtimeAgent, RealtimeSession, tool } from "@openai/agents/realtime";
-import {
-  LiveEvidenceSchema,
-  type LiveEvidence,
-  type SessionEvidence,
-  type SessionMode,
-  type SessionSummary,
-  type TranscriptTurn,
-} from "@/lib/learner/schema";
+import { createVoiceSession } from "@/lib/voice";
+import type { StartSessionResponse, VoiceSession } from "@/lib/voice/types";
+import type { LiveEvidence, SessionEvidence, SessionMode, SessionSummary, TranscriptTurn } from "@/lib/learner/schema";
 
 export type TutorStatus =
   | "idle"
@@ -27,63 +21,13 @@ interface PendingSession {
   evidence: SessionEvidence;
 }
 
-interface StartSessionResponse {
-  sessionId: string;
-  startedAt: string;
-  clientSecret: { value: string; expiresAt: number };
-  model: string;
-  voice: string;
-  instructions: string;
-  mode: SessionMode;
-}
-
-function extractUserText(content: unknown): string {
-  if (!Array.isArray(content)) return "";
-  for (const part of content) {
-    if (part && typeof part === "object") {
-      const p = part as Record<string, unknown>;
-      if (p.type === "input_audio" && typeof p.transcript === "string") return p.transcript;
-      if (p.type === "input_text" && typeof p.text === "string") return p.text;
-    }
-  }
-  return "";
-}
-
-function extractAssistantText(content: unknown): string {
-  if (!Array.isArray(content)) return "";
-  for (const part of content) {
-    if (part && typeof part === "object") {
-      const p = part as Record<string, unknown>;
-      if (p.type === "output_audio" && typeof p.transcript === "string") return p.transcript;
-      if (p.type === "output_text" && typeof p.text === "string") return p.text;
-    }
-  }
-  return "";
-}
-
-function deriveTranscript(history: unknown[]): TranscriptTurn[] {
-  const turns: TranscriptTurn[] = [];
-  for (const item of history) {
-    if (!item || typeof item !== "object") continue;
-    const it = item as Record<string, unknown>;
-    if (it.type !== "message") continue;
-    if (it.role === "user") {
-      const text = extractUserText(it.content);
-      if (text) turns.push({ role: "user", text });
-    } else if (it.role === "assistant") {
-      const text = extractAssistantText(it.content);
-      if (text) turns.push({ role: "assistant", text });
-    }
-  }
-  return turns;
-}
-
 export interface UseTutorSessionResult {
   status: TutorStatus;
   error: string | null;
   transcript: TranscriptTurn[];
   summary: SessionSummary | null;
   mode: SessionMode;
+  provider: "openai" | "gemini" | null;
   start(mode: SessionMode): Promise<void>;
   end(): Promise<void>;
   sendText(text: string): void;
@@ -96,8 +40,9 @@ export function useTutorSession(): UseTutorSessionResult {
   const [transcript, setTranscript] = useState<TranscriptTurn[]>([]);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [mode, setMode] = useState<SessionMode>("auto");
+  const [provider, setProvider] = useState<"openai" | "gemini" | null>(null);
 
-  const sessionRef = useRef<RealtimeSession | null>(null);
+  const voiceRef = useRef<VoiceSession | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioElRef = useRef<HTMLAudioElement | null>(null);
   const evidenceRef = useRef<LiveEvidence[]>([]);
@@ -128,11 +73,11 @@ export function useTutorSession(): UseTutorSessionResult {
 
   const teardown = useCallback(() => {
     try {
-      sessionRef.current?.close();
+      voiceRef.current?.close();
     } catch {
       // ignore
     }
-    sessionRef.current = null;
+    voiceRef.current = null;
     mediaStreamRef.current?.getTracks().forEach((t) => t.stop());
     mediaStreamRef.current = null;
   }, []);
@@ -175,7 +120,7 @@ export function useTutorSession(): UseTutorSessionResult {
     setStatus("ending");
     // Give the server a moment to deliver the transcription of the last utterance.
     try {
-      sessionRef.current?.mute(true);
+      voiceRef.current?.mute(true);
     } catch {
       // ignore
     }
@@ -209,6 +154,7 @@ export function useTutorSession(): UseTutorSessionResult {
           ? "Microphone access was denied. Allow microphone access and try again."
           : `Could not access the microphone: ${err instanceof Error ? err.message : String(err)}`,
       );
+      startingRef.current = false;
       return;
     }
     mediaStreamRef.current = stream;
@@ -229,6 +175,7 @@ export function useTutorSession(): UseTutorSessionResult {
       startedAtRef.current = data.startedAt;
       modeRef.current = data.mode;
       setMode(data.mode);
+      setProvider(data.provider);
 
       if (!audioElRef.current) {
         const audioEl = document.createElement("audio");
@@ -236,81 +183,40 @@ export function useTutorSession(): UseTutorSessionResult {
         audioElRef.current = audioEl;
       }
 
-      const noteEvidence = tool({
-        name: "note_evidence",
-        description:
-          "Silently record one piece of learning evidence about the learner (error, vocabulary gap, good usage, comprehension or pronunciation issue).",
-        parameters: LiveEvidenceSchema,
-        execute: async (input) => {
-          evidenceRef.current = [...evidenceRef.current, input];
-          return "noted";
-        },
-      });
-
-      const agent = new RealtimeAgent({
-        name: "Tutrice",
-        instructions: data.instructions,
-        tools: [noteEvidence],
-      });
-
-      const session = new RealtimeSession(agent, {
-        transport: new OpenAIRealtimeWebRTC({ mediaStream: stream, audioElement: audioElRef.current }),
-        model: data.model,
-        config: {
-          outputModalities: ["audio"],
-          audio: {
-            input: {
-              transcription: { model: "gpt-4o-transcribe", language: "fr" },
-              turnDetection: {
-                type: "semantic_vad",
-                eagerness: "medium",
-                createResponse: true,
-                interruptResponse: true,
-              },
-            },
-            output: { voice: data.voice },
+      const voice = createVoiceSession(data, {
+        mediaStream: stream,
+        audioElement: audioElRef.current,
+        handlers: {
+          onTranscript: (turns) => {
+            transcriptRef.current = turns;
+            setTranscript(turns);
+          },
+          onActivity: (activity) => {
+            setStatus((prev) => (prev === "ending" || prev === "done" ? prev : activity));
+          },
+          onEvidence: (evidence) => {
+            evidenceRef.current = [...evidenceRef.current, evidence];
+          },
+          onDisconnected: () => {
+            if (!activeRef.current) return;
+            activeRef.current = false;
+            setStatus("ending");
+            teardown();
+            void postEnd(true).then((s) => {
+              if (s) setSummary(s);
+              setStatus("done");
+            });
+          },
+          onError: (message) => {
+            console.error("voice session error", message);
           },
         },
       });
-      sessionRef.current = session;
+      voiceRef.current = voice;
 
-      session.on("history_updated", (history) => {
-        const turns = deriveTranscript(history);
-        transcriptRef.current = turns;
-        setTranscript(turns);
-      });
-
-      session.on("error", (e) => {
-        console.error("realtime session error", e);
-      });
-
-      session.on("transport_event", (e) => {
-        if (e.type === "output_audio_buffer.started") {
-          setStatus((prev) => (prev === "ending" || prev === "done" ? prev : "speaking"));
-        } else if (e.type === "output_audio_buffer.stopped" || e.type === "output_audio_buffer.cleared") {
-          setStatus((prev) => (prev === "ending" || prev === "done" ? prev : "listening"));
-        } else if (e.type === "input_audio_buffer.speech_started") {
-          setStatus((prev) => (prev === "ending" || prev === "done" ? prev : "listening"));
-        }
-      });
-
-      session.transport.on("connection_change", (connStatus) => {
-        if (connStatus === "disconnected" && activeRef.current) {
-          activeRef.current = false;
-          setStatus("ending");
-          teardown();
-          void postEnd(true).then((s) => {
-            if (s) setSummary(s);
-            setStatus("done");
-          });
-        }
-      });
-
-      await session.connect({ apiKey: data.clientSecret.value });
+      await voice.connect();
       activeRef.current = true;
       setStatus("listening");
-      if (session.transport.requestResponse) session.transport.requestResponse();
-      else session.transport.sendEvent({ type: "response.create" });
     } catch (err) {
       setStatus("error");
       setError(err instanceof Error ? err.message : String(err));
@@ -321,8 +227,8 @@ export function useTutorSession(): UseTutorSessionResult {
   }, [postEnd, teardown]);
 
   const sendText = useCallback((text: string) => {
-    if (!sessionRef.current || !activeRef.current) return;
-    sessionRef.current.sendMessage(text);
+    if (!voiceRef.current || !activeRef.current) return;
+    voiceRef.current.sendText(text);
   }, []);
 
   const reset = useCallback(() => {
@@ -377,5 +283,5 @@ export function useTutorSession(): UseTutorSessionResult {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { status, error, transcript, summary, mode, start, end, sendText, reset };
+  return { status, error, transcript, summary, mode, provider, start, end, sendText, reset };
 }

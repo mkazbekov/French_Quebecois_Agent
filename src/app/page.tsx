@@ -10,7 +10,7 @@ import { TranscriptPanel } from "@/components/TranscriptPanel";
 import { SummaryCard } from "@/components/SummaryCard";
 
 export default function Home() {
-  const { status, error, transcript, summary, start, end, sendText, reset } = useTutorSession();
+  const { status, error, transcript, summary, provider, start, end, sendText, reset } = useTutorSession();
   const [learnerState, setLearnerState] = useState<LearnerState | null>(null);
   const [storeKind, setStoreKind] = useState<string | null>(null);
   const [selectedMode, setSelectedMode] = useState<SessionMode>("auto");
@@ -87,6 +87,7 @@ export default function Home() {
 
       <footer className="text-[11px] text-zinc-400 dark:text-zinc-600 pb-4">
         Memory: {storeKind ?? "…"}
+        {provider ? ` · Voice: ${provider}` : ""}
       </footer>
     </div>
   );

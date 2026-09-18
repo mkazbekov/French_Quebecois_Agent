@@ -12,9 +12,12 @@ setup and everyday flow.
 - **Zero-friction UX.** Normal use is `npm run dev` → open http://localhost:3000 →
   press Start Conversation → talk. Never add setup screens, provider pickers,
   agent selection, or per-session configuration.
-- **Real realtime voice.** Browser mic ↔ OpenAI Realtime via `@openai/agents-realtime`
-  (WebRTC, ephemeral `ek_` keys minted by `src/app/api/realtime/session/route.ts`).
-  Never replace with record → upload → transcribe.
+- **Real realtime voice.** Browser mic ↔ a `VoiceSession` (`src/lib/voice/`):
+  Gemini Live (raw WebSocket + Web Audio, ephemeral `auth_tokens/…`) or OpenAI
+  Realtime (`@openai/agents-realtime`, WebRTC, ephemeral `ek_`). Credentials are
+  minted by `src/app/api/realtime/session/route.ts`. Never replace with
+  record → upload → transcribe. Gemini is the default because its Live API is
+  free-tier; keep both backends working.
 - **One canonical learner store.** `LearnerStore` (`src/lib/learner/store.ts`).
   Letta (`letta-store.ts`) when `LETTA_API_KEY`/`LETTA_BASE_URL` is set, else the
   local JSON `file-store.ts`. Never write learner state anywhere else, never both.
@@ -36,6 +39,7 @@ setup and everyday flow.
 | `npm run dev` | start the tutor |
 | `npm run typecheck` / `npm run lint` / `npm test` / `npm run build` | must all pass before finishing any task |
 | `npm run verify:persistence` | writes state, re-reads from a child process; use it to prove Letta works |
+| `npm run check:gemini` / `check:review` / `check:realtime` | live provider checks (no microphone needed) |
 
 ## Layout
 
@@ -47,8 +51,10 @@ src/app/api/session/end          POST: evidence → review → merge → persist
 src/app/api/learner              GET: state + storeKind
 src/hooks/useTutorSession.ts     realtime lifecycle, note_evidence tool, crash recovery
 src/lib/learner/                 schema, stores, merge, render, defaults
+src/lib/voice/                   VoiceSession contract + gemini/openai implementations
 src/lib/tutor/instructions.ts    tutor prompt builder (pedagogy lives here)
-src/lib/tutor/review.ts          structured session review
+src/lib/tutor/gemini-setup.ts    Live API setup message, tool declaration, URLs
+src/lib/tutor/review.ts          structured session review (gemini | openai)
 tests/                           vitest; merge rules, stores, prompt, two-session loop
 ```
 

@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
+import { z } from "zod";
 import { env } from "@/lib/env";
 import { ReviewDeltaSchema, type LearnerState, type ReviewDelta, type SessionEvidence } from "@/lib/learner/schema";
 
@@ -7,6 +8,9 @@ import { ReviewDeltaSchema, type LearnerState, type ReviewDelta, type SessionEvi
  * Session review: turns the temporary evidence of one conversation into a
  * structured ReviewDelta. The model only *observes*; merge.ts decides how the
  * learner state changes. Keep this file free of persistence logic.
+ *
+ * Providers: Gemini (REST, free tier) or OpenAI (Responses API). Chosen by
+ * env.REVIEW_PROVIDER; both produce the same zod-validated ReviewDelta.
  */
 
 export const MIN_USER_TURNS_FOR_REVIEW = 2;
@@ -61,9 +65,18 @@ Principles
 - profile_notes: durable personal facts the learner shared (job, neighbourhood, interests). Empty if none.
 - topics: 2–5 short topic labels.`;
 
+function userPrompt(state: LearnerState, evidence: SessionEvidence): string {
+  return `CURRENT LEARNER MODEL\n${compactState(state)}\n\nSESSION EVIDENCE\n${renderEvidence(evidence)}`;
+}
+
 export interface ReviewSessionOptions {
+  provider?: "gemini" | "openai";
+  /** OpenAI only */
   client?: OpenAI;
+  /** OpenAI model */
   model?: string;
+  /** Gemini fallback list, first that answers wins */
+  models?: string[];
 }
 
 export async function reviewSession(
@@ -71,24 +84,78 @@ export async function reviewSession(
   evidence: SessionEvidence,
   opts: ReviewSessionOptions = {},
 ): Promise<ReviewDelta> {
+  const provider = opts.provider ?? env.REVIEW_PROVIDER;
+  return provider === "gemini" ? reviewWithGemini(state, evidence, opts) : reviewWithOpenAI(state, evidence, opts);
+}
+
+async function reviewWithOpenAI(state: LearnerState, evidence: SessionEvidence, opts: ReviewSessionOptions): Promise<ReviewDelta> {
   const client = opts.client ?? new OpenAI({ apiKey: env.OPENAI_API_KEY });
   const model = opts.model ?? env.OPENAI_REVIEW_MODEL;
-
   const response = await client.responses.parse({
     model,
     input: [
       { role: "system", content: REVIEWER_SYSTEM },
-      {
-        role: "user",
-        content: `CURRENT LEARNER MODEL\n${compactState(state)}\n\nSESSION EVIDENCE\n${renderEvidence(evidence)}`,
-      },
+      { role: "user", content: userPrompt(state, evidence) },
     ],
     text: { format: zodTextFormat(ReviewDeltaSchema, "review_delta") },
   });
-
   const parsed = response.output_parsed;
   if (!parsed) throw new Error("Session review returned no structured output");
   return ReviewDeltaSchema.parse(parsed);
+}
+
+const GEMINI_RETRYABLE = new Set([429, 500, 503]);
+
+/**
+ * Gemini Developer API via REST (no SDK). Tries each model in order; on
+ * overload (503/429/500) or invalid output moves to the next model, then
+ * retries the whole list once after a short pause.
+ */
+async function reviewWithGemini(state: LearnerState, evidence: SessionEvidence, opts: ReviewSessionOptions): Promise<ReviewDelta> {
+  const models = opts.models ?? env.GEMINI_REVIEW_MODELS;
+  const schema = z.toJSONSchema(ReviewDeltaSchema, { target: "draft-7" });
+  const body = JSON.stringify({
+    systemInstruction: { parts: [{ text: REVIEWER_SYSTEM }] },
+    contents: [{ parts: [{ text: userPrompt(state, evidence) }] }],
+    generationConfig: { responseMimeType: "application/json", responseJsonSchema: schema, temperature: 0.2 },
+  });
+
+  let lastError = "no models configured";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    for (const model of models) {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: "POST",
+        headers: { "x-goog-api-key": env.GEMINI_API_KEY, "Content-Type": "application/json" },
+        body,
+      });
+      if (!res.ok) {
+        lastError = `Gemini ${model} returned ${res.status}: ${(await res.text()).slice(0, 200)}`;
+        if (GEMINI_RETRYABLE.has(res.status)) continue;
+        throw new Error(lastError);
+      }
+      const data = (await res.json()) as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
+      const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("");
+      if (!text) {
+        lastError = `Gemini ${model} returned no text`;
+        continue;
+      }
+      let json: unknown;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        lastError = `Gemini ${model} returned non-JSON output`;
+        continue;
+      }
+      const parsed = ReviewDeltaSchema.safeParse(json);
+      if (!parsed.success) {
+        lastError = `Gemini ${model} output failed validation: ${parsed.error.issues[0]?.message ?? "unknown"}`;
+        continue;
+      }
+      return parsed.data;
+    }
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  throw new Error(`Session review failed: ${lastError}`);
 }
 
 export function hasEnoughForReview(evidence: SessionEvidence): boolean {
