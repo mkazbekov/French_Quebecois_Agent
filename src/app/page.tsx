@@ -164,6 +164,14 @@ export default function Home() {
               </button>
             )}
 
+            {!isActive && status === "idle" && learnerState?.profile.sessions_completed === 0 && (
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-500 text-center max-w-sm">
+                Your browser will ask to use your microphone — click <strong>Allow</strong>.
+                <br />
+                Turn your sound on or plug in headphones: the tutor speaks first.
+              </p>
+            )}
+
             {isActive && (
               <div className="w-full max-w-sm flex flex-col items-center gap-1.5">
                 <button

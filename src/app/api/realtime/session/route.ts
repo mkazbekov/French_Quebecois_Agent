@@ -4,6 +4,7 @@ import { env } from "@/lib/env";
 import { getLearnerStore } from "@/lib/learner";
 import { SessionModeSchema } from "@/lib/learner/schema";
 import { buildTutorInstructions } from "@/lib/tutor/instructions";
+import { describeGeminiError, isGeminiKeyRejection } from "@/lib/tutor/gemini-errors";
 import type { StartSessionResponse } from "@/lib/voice/types";
 
 export const runtime = "nodejs";
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
   if (!process.env[keyCheck]) {
     const message =
       provider === "gemini"
-        ? "No Gemini API key yet. Run `npm run setup` in the project folder (or put GEMINI_API_KEY in .env — free key at https://aistudio.google.com/apikey), then restart `npm run dev`."
+        ? "No Gemini API key is set up yet. Close the tutor window, then double-click Start Tutor again — it will ask for your key (free at https://aistudio.google.com/apikey). Developers: `npm run setup`."
         : "No OpenAI API key yet. Put OPENAI_API_KEY in .env (paid key at https://platform.openai.com/api-keys), then restart `npm run dev`.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -74,10 +75,30 @@ async function mintGeminiToken(): Promise<string> {
       newSessionExpireTime: new Date(now + 2 * 60_000).toISOString(),
     }),
   });
-  if (!res.ok) throw new Error(`Gemini token request failed (${res.status}): ${(await res.text()).slice(0, 300)}`);
+  if (!res.ok) throw new Error(await friendlyGeminiError(res));
   const data = (await res.json()) as { name?: string };
   if (!data.name) throw new Error("Gemini token response had no token");
   return data.name;
+}
+
+/**
+ * Turn a failed Gemini REST response into a message a non-technical learner
+ * can act on. Never includes the API key; keeps the raw status/reason short
+ * for debugging. A 400 is only treated as a bad key when the body actually
+ * blames the key (isGeminiKeyRejection) — other 400s are request/schema
+ * problems, not something a new key would fix.
+ */
+async function friendlyGeminiError(res: Response): Promise<string> {
+  const bodyText = await res.text().catch(() => "");
+  const detail = describeGeminiError(res.status, bodyText);
+
+  if (res.status === 429) {
+    return `Gemini's free quota is used up for now — wait a minute (or until tomorrow for the daily limit) and try again. ${detail}`;
+  }
+  if (isGeminiKeyRejection(res.status, bodyText)) {
+    return `Google rejected your Gemini API key (it may be mistyped, deleted, or restricted). Close the tutor window and double-click Start Tutor again — it will check the key and ask for a new one. ${detail}`;
+  }
+  return `Gemini token request failed ${detail}`;
 }
 
 async function mintOpenAISecret(instructions: string): Promise<string> {

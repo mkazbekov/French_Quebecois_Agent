@@ -12,17 +12,30 @@ function opt(name: string, fallback: string): string {
   return process.env[name] || fallback;
 }
 
+/**
+ * Auto-pick: gemini unless only an OpenAI key is configured. With NEITHER key
+ * set (a brand-new install, before setup has run) this must still resolve to
+ * "gemini" — that's the free, zero-friction default the launcher sets up —
+ * not "openai", which would show a "put a paid key in .env" error to someone
+ * who was never asked for one.
+ */
+function autoPickProvider(): "gemini" | "openai" {
+  const hasGemini = Boolean(process.env.GEMINI_API_KEY);
+  const hasOpenAI = Boolean(process.env.OPENAI_API_KEY);
+  return !hasGemini && hasOpenAI ? "openai" : "gemini";
+}
+
 export const env = {
-  /** "gemini" | "openai". Auto: gemini when GEMINI_API_KEY is set (free tier), else openai. */
+  /** "gemini" | "openai". Auto: see autoPickProvider(). */
   get VOICE_PROVIDER(): "gemini" | "openai" {
     const v = process.env.VOICE_PROVIDER;
     if (v === "gemini" || v === "openai") return v;
-    return process.env.GEMINI_API_KEY ? "gemini" : "openai";
+    return autoPickProvider();
   },
   get REVIEW_PROVIDER(): "gemini" | "openai" {
     const v = process.env.REVIEW_PROVIDER;
     if (v === "gemini" || v === "openai") return v;
-    return process.env.GEMINI_API_KEY ? "gemini" : "openai";
+    return autoPickProvider();
   },
   get GEMINI_API_KEY() {
     return req("GEMINI_API_KEY");

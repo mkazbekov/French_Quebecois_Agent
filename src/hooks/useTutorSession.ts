@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createVoiceSession } from "@/lib/voice";
+import { micErrorMessage } from "@/lib/voice/mic-errors";
 import type { StartSessionResponse, VoiceSession } from "@/lib/voice/types";
 import type { LiveEvidence, SessionEvidence, SessionMode, SessionSummary, TranscriptTurn } from "@/lib/learner/schema";
 
@@ -178,9 +179,10 @@ export function useTutorSession(): UseTutorSessionResult {
     } catch (err) {
       setStatus("error");
       setError(
-        err instanceof Error && err.name === "NotAllowedError"
-          ? "Microphone access was denied. Allow microphone access and try again."
-          : `Could not access the microphone: ${err instanceof Error ? err.message : String(err)}`,
+        micErrorMessage(err, {
+          hasMediaDevices: typeof navigator !== "undefined" && !!navigator.mediaDevices,
+          port: typeof window !== "undefined" ? window.location.port : "",
+        }),
       );
       startingRef.current = false;
       cancelledRef.current = false;

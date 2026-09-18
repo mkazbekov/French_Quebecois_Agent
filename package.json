@@ -9,6 +9,7 @@
     "predev": "node scripts/setup.mjs --if-needed",
     "setup": "node scripts/setup.mjs",
     "dev": "next dev",
+    "start:app": "node scripts/launch.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

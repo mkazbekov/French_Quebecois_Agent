@@ -42,3 +42,6 @@ next-env.d.ts
 
 !.env.example
 /data/
+
+# portable Node.js downloaded by the "Start Tutor" launchers
+/.runtime/

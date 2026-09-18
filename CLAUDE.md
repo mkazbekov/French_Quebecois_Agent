@@ -11,7 +11,12 @@ setup and everyday flow.
 
 ## Non-negotiables
 
-- **Zero-friction UX.** Normal use is `npm run dev` → open http://localhost:3000 →
+- **Zero-friction UX.** Learners install with one pasted line (`install-windows.ps1` /
+  `install-mac.sh`) and then double-click the **Quebec French Tutor** Desktop icon, which
+  runs `Start Tutor (Windows).bat` / `Start Tutor (Mac).command` → `scripts/launch.mjs`
+  (portable Node if needed, key check, `npm ci`, `next dev -H 127.0.0.1`, open browser).
+  Keep the launchers working on both OSes; README's install sections describe them
+  step by step with screenshots in `docs/images/`. Developer use is `npm run dev` → open http://localhost:3000 →
   press Start Conversation → talk. The only setup screen is the one-time onboarding
   card (`src/components/Onboarding.tsx`: name → level or "find my level"), shown
   while `profile.onboarded_at` is null. Never add provider pickers, agent selection,
@@ -63,7 +68,7 @@ setup and everyday flow.
   the learner's own pick (`placement.ts`, `PATCH /api/learner`), allowed at any time;
   "Retake the level test" sets placement back to pending without erasing progress.
   Units below the chosen level are `credited`, not practised.
-- **Onboarding is `npm install && npm run dev`.** `predev` runs `scripts/setup.mjs
+- **Onboarding is one launcher (or `npm install && npm run dev`).** `predev` runs `scripts/setup.mjs
   --if-needed` (silent when a key exists; asks only for the Gemini key otherwise).
   Keep it zero-dependency and never block a non-interactive `npm run dev`. The
   learner's name and starting level are asked once in the browser and stored in
@@ -93,7 +98,9 @@ src/app/review/page.tsx          Review Mistakes (server component)
 src/app/api/realtime/session     POST: learner state → instructions → ek_ key
 src/app/api/session/end          POST: evidence → review → merge → persist → summary
 src/app/api/learner              GET: state + storeKind; PATCH: onboarding | name | language_mode | starting_level | placement:"test"; DELETE: wipe the learner (back to onboarding)
-scripts/setup.mjs                first-run Gemini key setup (npm run setup, predev)
+scripts/setup.mjs                first-run Gemini key setup (npm run setup, predev, launcher)
+scripts/launch.mjs               one-click launcher behind the Start Tutor scripts (npm run start:app)
+install-*.ps1 / install-mac.sh   one-line installers; Start Tutor (Windows).bat / (Mac).command
 src/hooks/useTutorSession.ts     realtime lifecycle, note_evidence tool, crash recovery
 src/lib/learner/                 schema, stores, merge, render, defaults, levels, syllabus, spacing, placement
 src/lib/voice/                   VoiceSession contract + gemini/openai implementations
@@ -149,6 +156,13 @@ Next session, in order:
 4. If the Live connect fails, check `GEMINI_LIVE_MODEL` (`gemini-3.8-live`), the
    ephemeral-token response shape (`name`) in `src/app/api/realtime/session/route.ts`
    and the setup message shape in `gemini-setup.ts`.
+
+2026-09-18 (later): one-line installers + one-click launchers for Windows and macOS,
+portable Node download, Gemini `AQ.` auth keys (default since May 2026) verified for
+the key check, ephemeral tokens, Live and review. Windows flow verified end to end on
+Windows 11 with Smart App Control on (a browser-downloaded .bat is blocked unless the
+ZIP is unblocked, which is why the installer is the primary path). The macOS scripts
+were verified on Linux/WSL only; a real Mac run is still pending.
 
 After that, candidate improvements (not started): confidence time-decay, Letta
 archival search for older sessions, pronunciation-aware feedback, a true

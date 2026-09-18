@@ -5,6 +5,7 @@ import { env } from "@/lib/env";
 import { describeScale, formatLevel } from "@/lib/learner/levels";
 import { findUnit, formatUnit, pendingUnits } from "@/lib/learner/syllabus";
 import { ReviewDeltaSchema, type LearnerState, type ReviewDelta, type SessionEvidence } from "@/lib/learner/schema";
+import { isGeminiKeyRejection } from "@/lib/tutor/gemini-errors";
 
 /**
  * Session review: turns the temporary evidence of one conversation into a
@@ -138,6 +139,7 @@ async function reviewWithGemini(state: LearnerState, evidence: SessionEvidence, 
   });
 
   let lastError = "no models configured";
+  let lastStatus = 0;
   for (let attempt = 0; attempt < 2; attempt++) {
     for (const model of models) {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
@@ -146,7 +148,14 @@ async function reviewWithGemini(state: LearnerState, evidence: SessionEvidence, 
         body,
       });
       if (!res.ok) {
-        lastError = `Gemini ${model} returned ${res.status}: ${(await res.text()).slice(0, 200)}`;
+        const bodyText = await res.text();
+        if (isGeminiKeyRejection(res.status, bodyText)) {
+          throw new Error(
+            "Google rejected your Gemini API key (it may be mistyped, deleted, or restricted). Close the tutor window and double-click Start Tutor again — it will check the key and ask for a new one.",
+          );
+        }
+        lastError = `Gemini ${model} returned ${res.status}: ${bodyText.slice(0, 200)}`;
+        lastStatus = res.status;
         if (GEMINI_RETRYABLE.has(res.status)) continue;
         throw new Error(lastError);
       }
@@ -171,6 +180,9 @@ async function reviewWithGemini(state: LearnerState, evidence: SessionEvidence, 
       return parsed.data;
     }
     await new Promise((r) => setTimeout(r, 1500));
+  }
+  if (lastStatus === 429) {
+    throw new Error("Gemini's free quota is used up for now — wait a minute (or until tomorrow for the daily limit) and try again.");
   }
   throw new Error(`Session review failed: ${lastError}`);
 }

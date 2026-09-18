@@ -1,0 +1,10 @@
+# Keep the one-click launchers' line endings correct regardless of the
+# committer's platform / core.autocrlf setting: Windows batch files need
+# CRLF, and the shell scripts need LF.
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.command text eol=lf
+*.sh text eol=lf
+
+# Not needed to run the tutor; keeps "Download ZIP" small.
+voice-samples/ export-ignore

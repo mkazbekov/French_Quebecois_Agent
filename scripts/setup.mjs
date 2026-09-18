@@ -24,6 +24,7 @@ import { createInterface } from "node:readline";
 import { readFileSync, writeFileSync, existsSync, copyFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { parseEnv, readEnvFile, setEnvVar, verifyGeminiKey, mask } from "./gemini-key.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(scriptDir, "..");
@@ -37,45 +38,7 @@ const envPath =
     : path.join(repoRoot, ".env");
 const envExamplePath = path.join(repoRoot, ".env.example");
 
-const VERIFY_URL = "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1";
 const MAX_ATTEMPTS = 3;
-
-/** Parse a .env-style file into an ordered list of lines plus a key->value map. */
-function parseEnv(text) {
-  const lines = text.split(/\r?\n/);
-  const values = {};
-  for (const line of lines) {
-    const m = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/.exec(line);
-    if (m) values[m[1]] = m[2];
-  }
-  return { lines, values };
-}
-
-function readEnvFile(p) {
-  if (!existsSync(p)) return null;
-  return readFileSync(p, "utf8");
-}
-
-/** Update or append KEY=value in the raw .env text, preserving everything else. */
-function setEnvVar(text, key, value) {
-  const lines = text.split(/\r?\n/);
-  const re = new RegExp(`^${key}=`);
-  let found = false;
-  const next = lines.map((line) => {
-    if (re.test(line)) {
-      found = true;
-      return `${key}=${value}`;
-    }
-    return line;
-  });
-  if (!found) {
-    // Drop a single trailing empty line before appending, then restore it.
-    if (next.length && next[next.length - 1] === "") next.pop();
-    next.push(`${key}=${value}`);
-    next.push("");
-  }
-  return next.join("\n");
-}
 
 /** A line reader that queues every 'line' event as it arrives, so buffered
  * piped input isn't lost while we're busy doing something else (like
@@ -110,27 +73,6 @@ function makeLineReader(rl) {
   }
 
   return { ask, isClosed: () => closed };
-}
-
-function mask(key) {
-  if (!key) return "(empty)";
-  return key.slice(0, 4) + "…";
-}
-
-async function verifyGeminiKey(key) {
-  try {
-    const res = await fetch(VERIFY_URL, {
-      headers: { "x-goog-api-key": key },
-      signal: AbortSignal.timeout(10000),
-    });
-    if (res.ok) return { ok: true };
-    if (res.status === 400 || res.status === 401 || res.status === 403) {
-      return { ok: false, rejected: true };
-    }
-    return { ok: false, rejected: false };
-  } catch {
-    return { ok: false, rejected: false };
-  }
 }
 
 function printNonInteractiveHint() {
@@ -183,7 +125,9 @@ async function main() {
     console.log("  1. Open https://aistudio.google.com/apikey");
     console.log("  2. Sign in with a Google account");
     console.log('  3. Click "Create API key" and copy it');
+    console.log("     (new keys start with \"AQ.\"; older keys start with \"AIza\" — either works)");
     console.log("");
+    console.log("(To paste: right-click in this window, or press Ctrl+V — on a Mac, Cmd+V — then press Enter.)");
 
     let savedKey = null;
     let outOfInput = false;
@@ -248,7 +192,8 @@ async function main() {
     if (ifNeeded) {
       console.log("Starting the tutor…");
     } else {
-      console.log("All set. Run npm run dev and open http://localhost:3000 — it'll ask for your name and level the first time.");
+      console.log("All set. Your key is saved. Start the tutor with the \"Start Tutor\" launcher");
+      console.log("(double-click it), or run npm run dev — it'll ask for your name and level the first time.");
     }
   } finally {
     rl.close();
