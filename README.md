@@ -1,39 +1,109 @@
-# Québec French Voice Tutor
+<p align="center">
+  <img src="docs/images/banner.svg" alt="Québec French Voice Tutor: talk out loud, get answered in real Montréal French" width="100%">
+</p>
 
-A spoken-French tutor that you talk to out loud. Press one button, speak, and the tutor
-answers in natural Montréal French. When you hang up, the call is reviewed and your
-progress is saved, so the next call picks up where you left off.
+<p align="center">
+  <b>Press one button, speak French out loud, and a patient tutor answers in natural Québec French.</b><br>
+  It remembers your level, your mistakes and your progress from one call to the next.
+</p>
 
-It runs on your own computer with a **free Google Gemini API key**. You don't need a paid
-account, Git, or any programming tools.
+<p align="center">
+  <img alt="Free with a Gemini API key" src="https://img.shields.io/badge/cost-free%20Gemini%20key-22c55e?style=for-the-badge">
+  <img alt="Windows and macOS" src="https://img.shields.io/badge/runs%20on-Windows%20%7C%20macOS-0a3fa8?style=for-the-badge">
+  <img alt="No coding needed" src="https://img.shields.io/badge/coding-not%20needed-f59e0b?style=for-the-badge">
+</p>
 
-![The tutor during a call](docs/images/conversation.png)
+<p align="center">
+  <a href="#how-to-use-it"><b>How to use it</b></a> ·
+  <a href="#step-1--get-your-free-gemini-api-key"><b>Install</b></a> ·
+  <a href="#troubleshooting"><b>Troubleshooting</b></a> ·
+  <a href="#using-the-tutor"><b>Features</b></a> ·
+  <a href="#for-developers"><b>Developers</b></a>
+</p>
 
-**Contents**
+## What it does
 
-1. [What you need](#what-you-need)
-2. [Get your free Gemini API key](#step-1--get-your-free-gemini-api-key) (both Windows and Mac)
-3. [Install and start on Windows](#step-2-windows--install-and-start)
-4. [Install and start on macOS](#step-2-macos--install-and-start)
-   (or [with Git](#alternative-windows-or-mac--if-you-already-use-git))
-5. [Your first conversation](#step-3--your-first-conversation)
-6. [Every day after that](#every-day-after-that)
-7. [Troubleshooting](#troubleshooting)
-8. [Using the tutor](#using-the-tutor)
-9. [For developers](#for-developers)
+- 🎙️ **Real conversation.** You speak, it answers out loud, straight away. No typing, no recording and uploading.
+- 🍁 **Québec French.** Montréal accent and expressions: *dépanneur*, *tantôt*, *pis*, *il fait frette*.
+- 🧠 **Remembers you.** Your level, recurring mistakes and new words carry over to the next call.
+- 📈 **A real program.** A 12-level syllabus (Échelle québécoise), lessons, role-plays and level checks.
+- 🐢 **Patient.** Waits through your pauses. Beginners get English help; French-only comes later.
+- 🔒 **Private.** Runs on your computer. Only the call itself goes to Google's Gemini.
+
+## Get started in 3 steps
+
+| | Step | Time | Guide |
+| :-: | --- | :-: | --- |
+| **1** | 🔑 Get a free Gemini API key | 2 min | [Step 1](#step-1--get-your-free-gemini-api-key) |
+| **2** | 💻 Paste one line to install | 5 min | [Windows](#step-2-windows--install-and-start) · [Mac](#step-2-macos--install-and-start) |
+| **3** | 🗣️ Double-click the Desktop icon and talk | now | [How to use it](#how-to-use-it) |
+
+You don't need a paid account, Git, or any programming tools.
+
+---
+
+## How to use it
+
+Once it's installed, this is all you do. Every time.
+
+<table>
+  <tr>
+    <th width="25%">1. Open it</th>
+    <th width="25%">2. Press Start</th>
+    <th width="25%">3. Talk</th>
+    <th width="25%">4. Hang up</th>
+  </tr>
+  <tr>
+    <td valign="top">Double-click <b>Quebec French Tutor</b> on your Desktop. A window opens, then your browser.</td>
+    <td valign="top">Press the big <b>Start Conversation</b> button. The tutor greets you.</td>
+    <td valign="top">When the circle is <b>green</b>, speak. Take your time; it waits through pauses.</td>
+    <td valign="top">Say <i>"on arrête"</i> or press <b>End Conversation</b>. Your progress is saved.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/windows-running.png" alt="The tutor window after double-clicking the icon"></td>
+    <td><img src="docs/images/ready.png" alt="The Start Conversation button"></td>
+    <td><img src="docs/images/conversation.png" alt="A conversation with the transcript"></td>
+    <td><img src="docs/images/summary.png" alt="The summary after a call"></td>
+  </tr>
+</table>
+
+**The circle tells you who's talking:**
+
+| Circle | Means | You… |
+| --- | --- | --- |
+| 🔵 **Blue** (*Speaking…*) | the tutor is talking | listen |
+| 🟢 **Green** (*Listening…*) | your turn | answer out loud, in French or English |
+
+**Handy things to say during a call:**
+
+| Say | What happens |
+| --- | --- |
+| *"Explain in English"* | the tutor switches to English to explain |
+| *"On continue en français"* | back to French |
+| *"On arrête"* / *"I have to go"* | the tutor says goodbye and the call ends |
+
+**When you're done for the day,** close the tutor window (the one that opened when you
+double-clicked the icon). Your progress is already saved.
+
+> [!TIP]
+> Wear **headphones**: the tutor then can't hear itself. And you can type instead of
+> speaking at any time, in the box under the transcript.
+
+Your very first call has two extra one-time questions (your name and level). See
+[Your first conversation](#step-3--your-first-conversation) for a walk-through with pictures.
 
 ---
 
 ## What you need
 
-- A **Windows 10/11** PC or a **Mac** (macOS 12 or newer, Apple Silicon or Intel).
-- An **internet connection**, and about **1 GB of free disk space**. The first start
+- ✅ A **Windows 10/11** PC or a **Mac** (macOS 12 or newer, Apple Silicon or Intel).
+- ✅ An **internet connection**, and about **1 GB of free disk space**. The first start
   downloads a few hundred MB; later starts need the internet only for the calls.
-- A **microphone** and **speakers or headphones**. A laptop's built-in ones work;
+- ✅ A **microphone** and **speakers or headphones**. A laptop's built-in ones work;
   headphones stop the tutor from hearing itself.
-- **Google Chrome** or **Microsoft Edge**. These are the browsers we tested; see
+- ✅ **Google Chrome** or **Microsoft Edge**. These are the browsers we tested; see
   [Browsers](#browsers).
-- A **Google account** (Gmail) to get the free API key.
+- ✅ A **Google account** (Gmail) to get the free API key.
 
 You do **not** need to install Node.js, Git or Python. The installer downloads a private
 copy of Node.js (the engine that runs the tutor) inside the tutor's own folder, only if
@@ -50,7 +120,7 @@ is a password-like code that lets the tutor use Gemini on your behalf. It is fre
 1. Open **<https://aistudio.google.com/apikey>** in your browser.
 2. **Sign in** with your Google account.
 
-   ![Google sign-in page](docs/images/aistudio-sign-in.png)
+   <img src="docs/images/aistudio-sign-in.png" alt="Google sign-in page" width="600">
 
 3. The first time, Google AI Studio asks you to accept its terms: tick the box(es) and
    continue. If a cookie banner appears, click **Agree** or **No thanks** (either is fine).
@@ -58,25 +128,26 @@ is a password-like code that lets the tutor use Gemini on your behalf. It is fre
    called *Default Gemini API Key*. You can use it (skip to step 7), or make a new one:
    click **Create API key** at the top right.
 
-   ![The API Keys page in Google AI Studio](docs/images/aistudio-api-keys.png)
+   <img src="docs/images/aistudio-api-keys.png" alt="The API Keys page in Google AI Studio" width="600">
 
 5. In the **Create a new key** box, type any name (for example `French tutor`), leave the
    project as it is (*Default Gemini Project*), and click **Create key**.
 
-   ![Create a new key dialog](docs/images/aistudio-create-key.png)
+   <img src="docs/images/aistudio-create-key.png" alt="Create a new key dialog" width="600">
 
 6. The **API key details** window shows your key (blurred in this picture).
 7. Click **Copy key**. For an existing key, click the copy icon (two overlapping
    squares) in its row. The key is now on your clipboard and ready to paste in step 2.
 
-   ![API key details with the Copy key button](docs/images/aistudio-key-created.png)
+   <img src="docs/images/aistudio-key-created.png" alt="API key details with the Copy key button" width="600">
 
 **What the key looks like.** New keys are about 50 characters long and start with `AQ.`
 (Google switched to this format in May 2026). Older keys start with `AIza`. Both work.
 
-**Keep it private.** Anyone with your key can use your free Gemini quota. Don't post it
-online or send it to anyone. The tutor stores it only in a file called `.env` inside the
-tutor's folder on your computer, and it never leaves your computer except to talk to Google.
+> [!WARNING]
+> **Keep your key private.** Anyone with it can use your free Gemini quota. Don't post it
+> online or send it to anyone. The tutor stores it only in a file called `.env` inside the
+> tutor's folder on your computer, and it never leaves your computer except to talk to Google.
 
 **Is it really free?** Yes. The Gemini API has a free tier (the *Billing Tier* column says
 **Free tier**) that is enough for daily practice. You don't need to click *Set up billing*.
@@ -85,9 +156,7 @@ tutor's folder on your computer, and it never leaves your computer except to tal
 
 ## Step 2 (Windows) — Install and start
 
-This takes about 5 minutes the first time.
-
-### Install
+⏱️ About 5 minutes the first time.
 
 1. Click the **Start** button, type **PowerShell**, and press **Enter**. A blue or black
    window opens.
@@ -101,11 +170,11 @@ This takes about 5 minutes the first time.
    folder (`C:\Users\<you>\Quebec French Tutor`). It also puts a **Quebec French Tutor**
    icon on your Desktop and in the Start menu. Then it opens the tutor in a new window.
 
-   ![What the installer prints when it's done](docs/images/windows-install.png)
+   <img src="docs/images/windows-install.png" alt="What the installer prints when it's done" width="600">
 
 3. The new **Quebec French Tutor** window gets Node.js (if needed), then asks for your key:
 
-   ![The launcher asking for the Gemini API key](docs/images/windows-key-prompt.png)
+   <img src="docs/images/windows-key-prompt.png" alt="The launcher asking for the Gemini API key" width="600">
 
    **Paste your key** (right-click in the window, or press **Ctrl+V**) and press **Enter**.
    The characters you paste stay visible; that's normal. The launcher checks the key with
@@ -114,14 +183,18 @@ This takes about 5 minutes the first time.
    bar; just wait). When it says **The tutor is running**, your browser opens at
    **<http://localhost:3000>**.
 
-   ![The launcher once the tutor is running](docs/images/windows-running.png)
+   <img src="docs/images/windows-running.png" alt="The launcher once the tutor is running" width="600">
 
-5. **Leave this window open** while you practise; it *is* the tutor. You can minimise it.
-   Continue with [Your first conversation](#step-3--your-first-conversation).
+5. Continue with [Your first conversation](#step-3--your-first-conversation).
 
-You can close the PowerShell window from step 1. You won't need it again.
+> [!IMPORTANT]
+> **Leave the Quebec French Tutor window open** while you practise; it *is* the tutor.
+> You can minimise it. You can close the PowerShell window from step 1; you won't need it again.
 
-### Alternative: download the ZIP instead
+<details>
+<summary><b>Alternative: download the ZIP instead</b> (more steps)</summary>
+
+<br>
 
 The pasted line above is the easiest way: it avoids Windows' security prompts and makes
 the Desktop icon for you. Use the ZIP only if you can't use PowerShell. It needs one
@@ -130,7 +203,7 @@ extra Windows step, and you start the tutor from the folder instead of a Desktop
 1. On <https://github.com/mkazbekov/French_Quebecois_Agent> click the green **Code**
    button, then **Download ZIP**.
 
-   ![GitHub Code menu with Download ZIP](docs/images/github-download-zip.png)
+   <img src="docs/images/github-download-zip.png" alt="GitHub Code menu with Download ZIP" width="600">
 
 2. **Important: unblock the ZIP first.** Open your **Downloads** folder, right-click
    **French_Quebecois_Agent-main.zip**, choose **Properties**, tick **Unblock** at the
@@ -138,19 +211,19 @@ extra Windows step, and you start the tutor from the folder instead of a Desktop
    refuses to run the launcher (*"An Application Control policy has blocked this file"*),
    and other PCs may show a *"Windows protected your PC"* or security warning first.
 
-   ![The Unblock checkbox in the ZIP's Properties](docs/images/windows-unblock.png)
+   <img src="docs/images/windows-unblock.png" alt="The Unblock checkbox in the ZIP's Properties" width="320">
 
 3. Right-click the ZIP again, choose **Extract All…**, then **Extract**.
 4. In the extracted folder, double-click **Start Tutor (Windows).bat**. From step 3 on,
    it's the same as the installer above. Next time, double-click the same file again.
 
+</details>
+
 ---
 
 ## Step 2 (macOS) — Install and start
 
-This takes about 5 minutes the first time.
-
-### Install
+⏱️ About 5 minutes the first time.
 
 1. Press **⌘ Command + Space**, type **Terminal**, and press **Return**. A window opens.
 2. Copy this whole line, paste it into Terminal (**⌘ Command + V**), and press **Return**:
@@ -167,11 +240,13 @@ This takes about 5 minutes the first time.
 4. The first start installs the tutor's components (1–3 minutes, with no progress bar;
    just wait). When it says **The tutor is running**, your browser opens at
    **<http://localhost:3000>**.
-5. **Leave the Terminal window open** while you practise; it *is* the tutor. You can
-   minimise it. Continue with [Your first conversation](#step-3--your-first-conversation).
+5. Continue with [Your first conversation](#step-3--your-first-conversation).
 
-The Terminal window shows the same messages as the Windows screenshots above.
+> [!IMPORTANT]
+> **Leave the Terminal window open** while you practise; it *is* the tutor. You can
+> minimise it. It shows the same messages as the Windows screenshots above.
 
+> [!NOTE]
 > **Tested so far:** the macOS installer and launcher were run end to end on Linux, which
 > uses the same script code apart from the Node.js download. They have not yet been run
 > on a real Mac. If anything differs on yours, please open an issue.
@@ -180,7 +255,10 @@ The Terminal window shows the same messages as the Windows screenshots above.
 downloaded with a browser (*"Apple could not verify … is free of malware"*). Files the
 installer downloads itself are not blocked, so the Desktop icon just works.
 
-### Alternative: download the ZIP instead
+<details>
+<summary><b>Alternative: download the ZIP instead</b> (more steps)</summary>
+
+<br>
 
 The Terminal line above is easier. The ZIP route needs a trip to System Settings to let
 the launcher run, and it doesn't make a Desktop icon.
@@ -194,6 +272,8 @@ the launcher run, and it doesn't make a Desktop icon.
    message about *Start Tutor (Mac).command*, click **Open Anyway**, and confirm with your
    password or Touch ID. You only do this once.
 4. From step 3 of the installer above, it's the same.
+
+</details>
 
 ---
 
@@ -223,13 +303,13 @@ window, not from the internet.
 
 1. **Your name.** Type what the tutor should call you and click **Continue**.
 
-   ![What should I call you?](docs/images/onboarding-name.png)
+   <img src="docs/images/onboarding-name.png" alt="What should I call you?" width="480">
 
 2. **Your level.** Pick the button closest to your French. If you're unsure, click
    **Not sure — find my level**: your first call is then a short, relaxed placement chat
    that works it out for you.
 
-   ![How's your French?](docs/images/onboarding-level.png)
+   <img src="docs/images/onboarding-level.png" alt="How's your French?" width="480">
 
    You're asked these two things only once. Both are saved, and you can change them
    later under **Profile**.
@@ -237,13 +317,13 @@ window, not from the internet.
    Headphones work best.
 4. Press **Start Conversation**.
 
-   ![Ready to start](docs/images/ready.png)
+   <img src="docs/images/ready.png" alt="Ready to start" width="480">
 
 5. **Allow the microphone.** The browser asks to use your microphone. Click
    **Allow while visiting the site** (Chrome) or **Allow** (Edge). If you have more than
    one microphone, pick the right one in the drop-down menu first.
 
-   ![Chrome asking for microphone permission](docs/images/mic-permission.png)
+   <img src="docs/images/mic-permission.png" alt="Chrome asking for microphone permission" width="520">
 
    **On a Mac, the first time only**, macOS also asks *"Google Chrome would like to access
    the microphone"*. Click **Allow** (or **OK**).
@@ -254,29 +334,26 @@ window, not from the internet.
    Your words appear in a green bubble on the right, and the tutor replies. Take your
    time: the tutor waits through pauses.
 
-   ![A working conversation with the transcript](docs/images/conversation.png)
+   <img src="docs/images/conversation.png" alt="A working conversation with the transcript" width="480">
 
-**It works if** you heard the greeting *and* your own words appeared in a green bubble.
-If either is missing, see [Troubleshooting](#troubleshooting).
+   ✅ **It works if** you heard the greeting *and* your own words appeared in a green
+   bubble. If either is missing, see [Troubleshooting](#troubleshooting).
 
 8. **Hang up** when you're done: press **End Conversation**, press **Esc**, or just say
    *"on arrête"* / *"I have to go"*. A short summary appears and your progress is saved.
    The first review can take up to a minute. You can close the tab; nothing is lost.
 
-   ![The summary after a call](docs/images/summary.png)
+   <img src="docs/images/summary.png" alt="The summary after a call" width="520">
+
+🎉 **That's it.** From now on, just follow [How to use it](#how-to-use-it).
 
 ---
 
-## Every day after that
+## Stopping, updating and uninstalling
 
-- **Windows:** double-click **Quebec French Tutor** on your Desktop (or find it in the
-  Start menu). **Mac:** double-click **Quebec French Tutor** on your Desktop.
-- A window opens, and the browser opens the tutor after a few seconds. It remembers your
-  name, level and progress.
-- Press **Start Conversation** and talk.
-- **To stop the tutor**, close that window. On a Mac, if Terminal asks
-  *"Do you want to terminate running processes?"*, click **Terminate**. Your progress is
-  already saved.
+**Stopping:** close the tutor window. On a Mac, if Terminal asks *"Do you want to
+terminate running processes?"*, click **Terminate**. Your progress is already saved.
+On Windows the icon is also in the Start menu.
 
 If the browser tab was closed but the window is still open, just open
 <http://localhost:3000> again. Double-clicking the icon while the tutor is already
@@ -295,11 +372,16 @@ end of the key's row, choose **Delete key**, then **Delete**.
 
 ## Troubleshooting
 
-### The browser says the microphone is blocked
+Click a problem to see the fix.
+
+<details>
+<summary>🎤 <b>The browser says the microphone is blocked</b></summary>
+
+<br>
 
 The page shows: *"The browser blocked the microphone…"*
 
-![Microphone blocked message](docs/images/mic-blocked.png)
+<img src="docs/images/mic-blocked.png" alt="Microphone blocked message" width="480">
 
 - **Chrome / Edge:** click the icon at the left end of the address bar (next to
   `localhost:3000`), set **Microphone** to **Allow**, and press **Retry**. If there is no
@@ -311,7 +393,12 @@ The page shows: *"The browser blocked the microphone…"*
 - **Windows:** open **Settings → Privacy & security → Microphone**, and switch on
   **Microphone access** and **Let desktop apps access your microphone**.
 
-### "No microphone was found" or the tutor can't hear you
+</details>
+
+<details>
+<summary>🔇 <b>"No microphone was found" or the tutor can't hear you</b></summary>
+
+<br>
 
 - Plug in your headset or microphone and press **Retry**.
 - Make sure the right microphone is selected. In Chrome/Edge, click the icon left of the
@@ -324,7 +411,12 @@ The page shows: *"The browser blocked the microphone…"*
 - If the message says the microphone is *used by another app*, close Zoom, Teams, etc.
   and press **Retry**.
 
-### I can't hear the tutor
+</details>
+
+<details>
+<summary>🔈 <b>I can't hear the tutor</b></summary>
+
+<br>
 
 - The transcript shows the tutor's words but you hear nothing: check that your
   computer isn't muted and that the browser tab isn't muted (right-click the tab; if it
@@ -335,9 +427,14 @@ The page shows: *"The browser blocked the microphone…"*
 - Bluetooth headphones sometimes switch to a low-quality "headset" mode when the
   microphone is on. If the sound is bad, use the computer's built-in microphone.
 
-### "Google rejected your Gemini API key"
+</details>
 
-![Rejected key message](docs/images/bad-key.png)
+<details>
+<summary>🔑 <b>"Google rejected your Gemini API key"</b></summary>
+
+<br>
+
+<img src="docs/images/bad-key.png" alt="Rejected key message" width="480">
 
 The key was mistyped, deleted, or restricted. Close the tutor window and start it again
 from the Desktop icon: the launcher checks the key every time and asks for a new one if
@@ -352,16 +449,31 @@ Common key mistakes:
 - **Wrong kind of key.** It must come from Google AI Studio (aistudio.google.com), not
   from another Google Cloud product.
 
-### "No Gemini API key is set up yet"
+</details>
+
+<details>
+<summary>🔑 <b>"No Gemini API key is set up yet"</b></summary>
+
+<br>
 
 Close the tutor window and start it again; the launcher asks for the key.
 
-### "Gemini's free quota is used up for now"
+</details>
+
+<details>
+<summary>⏳ <b>"Gemini's free quota is used up for now"</b></summary>
+
+<br>
 
 The free tier has per-minute and per-day limits. Wait a minute, or until the next day.
 You can see your limits on the AI Studio **Rate Limit** page.
 
-### The launcher window shows an error and stays open
+</details>
+
+<details>
+<summary>⚠️ <b>The launcher window shows an error and stays open</b></summary>
+
+<br>
 
 Read the last lines; they say what went wrong. The most common causes:
 
@@ -372,10 +484,17 @@ Read the last lines; they say what went wrong. The most common causes:
 - **A folder name containing `&`** (Windows only). Move the folder somewhere without `&`
   in its path.
 
-### The browser opened something else, or the page doesn't load
+</details>
+
+<details>
+<summary>🌐 <b>The browser opened something else, or the page doesn't load</b></summary>
+
+<br>
 
 If another program already uses port 3000, the tutor picks the next free one (3001,
 3002…). Use the exact address printed in the tutor window after *The tutor is running at*.
+
+</details>
 
 ### Browsers
 
@@ -411,23 +530,26 @@ practice, a lesson, a Québec role-play, practice, a lesson, and a level check.
 you to *type* an answer (that is how it assesses your writing) or to *read* what it just
 said on screen (reading). You can also type any time instead of speaking.
 
-**Mode buttons** (optional, under the Start button) choose the style of the next call:
+**Mode buttons** (optional, under the Start button) choose the style of the next call.
+If you don't pick one, the tutor chooses for you.
 
-- **Free Conversation**: fluency first, light corrections.
-- **Guided Practice**: the conversation is steered toward your current focus.
-- **Lesson**: one grammar point explained and drilled, three to five new words, then used live.
-- **Québec Mode**: role-play of one Montréal situation (dépanneur, STM, landlord, winter…).
-- **Correction Mode**: explicit one-line corrections after each clear error.
-- **Level Check**: checks your level in all four skills; no score is announced.
-- **Drill My Errors**: a targeted drill on your recurring errors.
+| Button | What the call is like |
+| --- | --- |
+| 💬 **Free Conversation** | fluency first, light corrections |
+| 🧭 **Guided Practice** | the conversation is steered toward your current focus |
+| 📘 **Lesson** | one grammar point explained and drilled, three to five new words, then used live |
+| 🍁 **Québec Mode** | role-play of one Montréal situation (dépanneur, STM, landlord, winter…) |
+| ✏️ **Correction Mode** | explicit one-line corrections after each clear error |
+| 📊 **Level Check** | checks your level in all four skills; no score is announced |
+| 🎯 **Drill My Errors** | a targeted drill on your recurring errors |
 
 **Language switch** (how much English the tutor uses):
 
-- **Auto** (default): follows your level. At niveau 1–2 the tutor is fully bilingual and
-  teaches French in small steps. At niveau 3–4 it leads in French with English on
-  standby. From niveau 5 it stays in French.
-- **English help**: keep the bilingual style regardless of level.
-- **French only**: French all the way, English only for a rare quick gloss.
+| Setting | English used |
+| --- | --- |
+| **Auto** (default) | follows your level. At niveau 1–2 the tutor is fully bilingual and teaches French in small steps. At niveau 3–4 it leads in French with English on standby. From niveau 5 it stays in French. |
+| **English help** | keeps the bilingual style regardless of level |
+| **French only** | French all the way, English only for a rare quick gloss |
 
 You can also just ask the tutor out loud ("explain in English", "on continue en français").
 
@@ -435,7 +557,7 @@ You can also just ask the tutor out loud ("explain in English", "on continue en 
 the program, recurring errors, vocabulary being recycled, grammar points, and the
 current focus.
 
-![The Review mistakes page after a first call](docs/images/review.png)
+<img src="docs/images/review.png" alt="The Review mistakes page after a first call" width="620">
 
 **Profile** (under the header) lets you change your name, pick a different level, or
 **Retake the level test** (your next call becomes a placement chat; progress is kept).
