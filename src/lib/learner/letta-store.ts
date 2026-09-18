@@ -43,7 +43,6 @@ export interface LettaLearnerStoreOptions {
   apiKey?: string;
   baseURL?: string;
   learnerId: string;
-  learnerName: string;
   model: string;
 }
 
@@ -57,7 +56,6 @@ export class LettaLearnerStore implements LearnerStore {
 
   private readonly client: Letta;
   private readonly learnerId: string;
-  private readonly learnerName: string;
   private readonly model: string;
   private readonly baseURL: string | undefined;
   private readonly agentName: string;
@@ -68,7 +66,6 @@ export class LettaLearnerStore implements LearnerStore {
 
   constructor(opts: LettaLearnerStoreOptions) {
     this.learnerId = opts.learnerId;
-    this.learnerName = opts.learnerName;
     this.model = opts.model;
     this.baseURL = opts.baseURL;
     this.agentName = `french-tutor-${opts.learnerId}`;
@@ -110,7 +107,7 @@ export class LettaLearnerStore implements LearnerStore {
         description: "Long-term learner memory for a Québec French voice tutor. Memory blocks are JSON documents owned by the tutor app.",
         memory_blocks: LEARNER_DOCUMENTS.map((label) => ({
           label,
-          value: JSON.stringify(defaultLearnerState(this.learnerName)[label], null, 1),
+          value: JSON.stringify(defaultLearnerState("")[label], null, 1),
           description: BLOCK_DESCRIPTIONS[label],
           limit: BLOCK_LIMITS[label],
         })),
@@ -147,7 +144,7 @@ export class LettaLearnerStore implements LearnerStore {
     } catch (err) {
       throw new Error(`[Letta] failed to list memory blocks: ${err instanceof Error ? err.message : String(err)}`);
     }
-    const defaults = defaultLearnerState(this.learnerName);
+    const defaults = defaultLearnerState("");
     const state = {} as LearnerState;
 
     for (const label of LEARNER_DOCUMENTS) {

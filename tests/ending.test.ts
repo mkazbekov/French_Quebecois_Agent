@@ -24,7 +24,7 @@ describe("Gemini setup message", () => {
 
 describe("tutor instructions ending guidance", () => {
   it("mentions end_call and the role-play caveat", () => {
-    const state = defaultLearnerState("Mirza");
+    const state = defaultLearnerState("Sam");
     const { instructions } = buildTutorInstructions({ state, mode: "free", recentRecords: [] });
     expect(instructions).toContain("end_call");
     expect(instructions.toLowerCase()).toContain("role-play");

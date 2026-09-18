@@ -27,6 +27,7 @@ export function defaultLearnerState(name: string): LearnerState {
       last_session_at: null,
       notes: [],
       placement: { status: "pending", level: null, set_at: null },
+      onboarded_at: null,
     },
     competencies: {
       oral_production: emptyCompetency(2),

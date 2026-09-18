@@ -40,7 +40,7 @@ function delta(overrides: Partial<ReviewDelta> = {}): ReviewDelta {
 }
 
 function placed(): LearnerState {
-  const s = defaultLearnerState("Mirza");
+  const s = defaultLearnerState("Sam");
   s.profile.sessions_completed = 3;
   s.competencies.oral_production.confidence = 0.5;
   s.competencies.oral_comprehension.confidence = 0.5;

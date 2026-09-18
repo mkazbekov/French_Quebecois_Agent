@@ -87,17 +87,27 @@ const ProfileObjectSchema = z.object({
   last_session_at: z.string().nullable().default(null),
   notes: z.array(z.string()).default([]),
   placement: PlacementSchema,
+  /** Set once the learner finishes the first-run name/level onboarding; null until then. */
+  onboarded_at: z.string().nullable(),
 });
 export const ProfileSchema = z.preprocess((v) => {
-  if (v && typeof v === "object" && !("placement" in v)) {
-    const obj = v as Record<string, unknown>;
-    const sessionsCompleted = typeof obj.sessions_completed === "number" ? obj.sessions_completed : 0;
-    return {
-      ...obj,
-      placement: { status: sessionsCompleted > 0 ? "tested" : "pending", level: null, set_at: null },
-    };
+  if (!v || typeof v !== "object") return v;
+  const obj = v as Record<string, unknown>;
+  const sessionsCompleted = typeof obj.sessions_completed === "number" ? obj.sessions_completed : 0;
+  let next = obj;
+  if (!("placement" in obj)) {
+    next = { ...next, placement: { status: sessionsCompleted > 0 ? "tested" : "pending", level: null, set_at: null } };
   }
-  return v;
+  if (!("onboarded_at" in obj)) {
+    // Profiles stored before onboarding existed: a named profile that already completed a
+    // session was clearly not onboarded through this flow, so don't make it repeat onboarding.
+    // Anyone else (blank name, or never finished a session) goes through onboarding once.
+    const name = typeof obj.name === "string" ? obj.name.trim() : "";
+    const wasOnboarded = name.length > 0 && sessionsCompleted > 0;
+    const onboardedAt = wasOnboarded ? (obj.last_session_at || obj.first_session_at || "migrated") : null;
+    next = { ...next, onboarded_at: onboardedAt };
+  }
+  return next;
 }, ProfileObjectSchema);
 export type Profile = z.infer<typeof ProfileObjectSchema>;
 

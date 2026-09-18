@@ -46,7 +46,7 @@ describe("Échelle québécoise levels", () => {
 
 describe("tutor prompt pedagogy", () => {
   it("tells the tutor to wait, to teach grammar and vocabulary, and which level to push toward", () => {
-    const state = defaultLearnerState("Mirza");
+    const state = defaultLearnerState("Sam");
     const { instructions, mode } = buildTutorInstructions({ state, mode: "auto", recentRecords: [] });
     expect(mode).toBe("assessment");
     expect(instructions).toContain("PATIENCE AND TURN-TAKING");
@@ -58,7 +58,7 @@ describe("tutor prompt pedagogy", () => {
   });
 
   it("has a lesson mode that walks grammar then vocabulary", () => {
-    const state = defaultLearnerState("Mirza");
+    const state = defaultLearnerState("Sam");
     const { instructions } = buildTutorInstructions({ state, mode: "lesson", recentRecords: [] });
     expect(instructions).toContain("MODE: Lesson");
     expect(instructions).toContain("Grammar point");
@@ -66,7 +66,7 @@ describe("tutor prompt pedagogy", () => {
   });
 
   it("does not offer a next level at the top of the scale", () => {
-    const state = defaultLearnerState("Mirza");
+    const state = defaultLearnerState("Sam");
     state.competencies.oral_production.level = 12;
     const { instructions } = buildTutorInstructions({ state, mode: "free", recentRecords: [] });
     expect(instructions).toContain("niveau 12 (≈ C2)");

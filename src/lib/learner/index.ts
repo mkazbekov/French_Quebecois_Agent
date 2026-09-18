@@ -14,10 +14,9 @@ export function getLearnerStore(): Promise<LearnerStore> {
             apiKey: env.LETTA_API_KEY,
             baseURL: env.LETTA_BASE_URL,
             learnerId: env.LEARNER_ID,
-            learnerName: env.LEARNER_NAME,
             model: env.LETTA_MODEL,
           })
-        : new FileLearnerStore({ dataDir: env.DATA_DIR, learnerId: env.LEARNER_ID, learnerName: env.LEARNER_NAME });
+        : new FileLearnerStore({ dataDir: env.DATA_DIR, learnerId: env.LEARNER_ID });
       await store.init();
       const agentInfo = store instanceof LettaLearnerStore ? ` agent=${store.agentId}` : "";
       console.log(`[learner-store] using ${store.kind}${agentInfo}`);

@@ -167,6 +167,9 @@ function dueLines(state: LearnerState, now: Date): string {
 
 function placementNote(state: LearnerState, resolved: Exclude<SessionMode, "auto">): string {
   if (resolved !== "assessment" || state.profile.placement.status !== "pending") return "";
+  if (state.profile.sessions_completed > 0) {
+    return "\nThis is a LEVEL RE-CHECK the learner asked for, not a first placement: the levels shown above are their previous estimate, not a blank slate. Start near them, then move up or down freely based on what you actually hear this call — don't assume the old estimate is still right in either direction.";
+  }
   return "\nThis is the learner's PLACEMENT call: you don't know their real level yet, the levels shown above are only a default starting guess. Start with easy tasks, then climb quickly — if a task at one level is easy for them, jump several levels rather than climbing one at a time. It is fine, and good, to end up well above the default estimate for a strong learner.";
 }
 

@@ -103,3 +103,36 @@ export function resetToPlacementTest(state: LearnerState): LearnerState {
     profile: { ...state.profile, placement: { status: "pending", level: null, set_at: null } },
   };
 }
+
+/** Trim, collapse internal whitespace, cap length. Used for every learner-supplied name. */
+export function normalizeName(raw: string): string {
+  return raw.trim().replace(/\s+/g, " ").slice(0, 40);
+}
+
+/**
+ * Learner asks to retake the level test, at any point in their journey.
+ * Before their first session there's nothing to lose, so it's a full reset
+ * (same as resetToPlacementTest). After that, wipe only the placement status:
+ * merge.ts already lets a pending-placement assessment move levels freely,
+ * and resolveMode already makes the next auto call an assessment, so
+ * competencies/roadmap/units stay exactly as they are until that call runs.
+ */
+export function retakePlacement(state: LearnerState): LearnerState {
+  if (state.profile.sessions_completed === 0) return resetToPlacementTest(state);
+  return { ...state, profile: { ...state.profile, placement: { status: "pending", level: null, set_at: null } } };
+}
+
+/**
+ * First-run onboarding: name, then either a picked level or "test" (find my
+ * level via the placement chat). Called once from the /api/learner PATCH
+ * route; sets onboarded_at so the app stops showing onboarding.
+ */
+export function completeOnboarding(
+  state: LearnerState,
+  input: { name: string; level: number | "test" },
+  now: Date,
+): LearnerState {
+  const named: LearnerState = { ...state, profile: { ...state.profile, name: normalizeName(input.name) } };
+  const placed = input.level === "test" ? retakePlacement(named) : setStartingLevel(named, input.level, now);
+  return { ...placed, profile: { ...placed.profile, onboarded_at: now.toISOString() } };
+}

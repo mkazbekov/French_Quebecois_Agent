@@ -18,7 +18,7 @@ function evidence(id: string): SessionEvidence {
     started_at: "2026-09-17T10:00:00.000Z",
     ended_at: "2026-09-17T10:12:00.000Z",
     transcript: [
-      { role: "assistant", text: "Salut Mirza ! Qu'est-ce que t'as fait hier ?" },
+      { role: "assistant", text: "Salut Sam ! Qu'est-ce que t'as fait hier ?" },
       { role: "user", text: "Hier j'ai allé au travail en métro." },
       { role: "assistant", text: "Ah, tu es allé au travail en métro. Quelle ligne ?" },
       { role: "user", text: "La ligne orange, avec une correspondance." },
@@ -66,7 +66,7 @@ const delta1: ReviewDelta = {
 
 describe("two sessions", () => {
   it("second session's instructions use evidence persisted from the first", async () => {
-    const store = new MemoryLearnerStore("Mirza");
+    const store = new MemoryLearnerStore("Sam");
     await store.init();
 
     // --- session 1 end ---

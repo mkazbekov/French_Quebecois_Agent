@@ -117,16 +117,6 @@ function mask(key) {
   return key.slice(0, 4) + "…";
 }
 
-function slugify(name) {
-  const slug = name
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return slug || "learner";
-}
-
 async function verifyGeminiKey(key) {
   try {
     const res = await fetch(VERIFY_URL, {
@@ -254,31 +244,11 @@ async function main() {
       console.log(`Saved GEMINI_API_KEY (${mask(savedKey)}) to .env`);
     }
 
-    const { values } = parseEnv(text);
-    if (!values.LEARNER_NAME?.trim()) {
-      console.log("");
-      const nameRaw = await ask("What should the tutor call you? (press Enter to skip) ");
-      if (interrupted) {
-        console.log("\nSetup cancelled after saving your key.");
-        process.exitCode = 0;
-        return;
-      }
-      const name = (nameRaw ?? "").trim();
-      if (name) {
-        text = setEnvVar(text, "LEARNER_NAME", name);
-        if (!parseEnv(text).values.LEARNER_ID?.trim()) {
-          text = setEnvVar(text, "LEARNER_ID", slugify(name));
-        }
-        writeFileSync(envPath, text, "utf8");
-        console.log(`Saved LEARNER_NAME=${name}`);
-      }
-    }
-
     console.log("");
     if (ifNeeded) {
       console.log("Starting the tutor…");
     } else {
-      console.log("All set. Run npm run dev and open http://localhost:3000");
+      console.log("All set. Run npm run dev and open http://localhost:3000 — it'll ask for your name and level the first time.");
     }
   } finally {
     rl.close();

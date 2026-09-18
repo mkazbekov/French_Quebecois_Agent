@@ -33,11 +33,12 @@ npm run dev
 ```
 
 The first time, `npm run dev` asks for your Gemini API key (see below), checks it with
-Google, and saves it in a local `.env` file. It also asks what the tutor should call you
-(press Enter to skip). After that, `npm run dev` just starts the tutor.
+Google, and saves it in a local `.env` file. After that, `npm run dev` just starts the tutor.
 
-**3. Open http://localhost:3000**, choose where to start (see
-[Your starting level](#your-starting-level)), and press **Start Conversation**.
+**3. Open http://localhost:3000.** The first time, the page asks two quick things:
+what the tutor should call you, and how good your French is (or "Not sure — find my
+level"; see [Your starting level](#your-starting-level)). Then press **Start Conversation**.
+You won't be asked again; both are saved with your progress.
 
 ### Getting your free Gemini API key
 
@@ -62,8 +63,7 @@ Everything below is optional. `.env.example` lists every setting with a comment.
 | `LETTA_API_KEY`  | Keep your learner memory in [Letta Cloud](https://app.letta.com) instead of `./data/` on this computer. |
 | `LETTA_BASE_URL` | Use a self-hosted Letta server instead (e.g. `http://localhost:8283`).                          |
 | `OPENAI_API_KEY` | Use OpenAI Realtime for the voice (`VOICE_PROVIDER=openai`, paid account).                      |
-| `LEARNER_NAME`   | What the tutor calls you (set by setup).                                                         |
-| `LEARNER_ID`     | Keeps separate learners apart on one machine / Letta account (set by setup).                     |
+| `LEARNER_ID`     | Keeps separate learners' progress apart on one machine / Letta account (default `learner`).     |
 
 Without Letta, progress is saved in `./data/` on your computer and survives restarts.
 The page footer shows which voice provider and memory backend are active.
@@ -79,21 +79,22 @@ The page footer shows which voice provider and memory backend are active.
 
 ## Your starting level
 
-Before your first call the main page asks **Where should we start?** You can:
+On first launch, right after your name, the page asks **How's your French?** You can:
 
-- **Take the placement test** (the default, nothing to click). Your first call is a
-  relaxed placement chat: the tutor starts easy, climbs until things get hard, and has
-  you type and read a little. When you hang up, your level in each competency is set
-  directly from what it observed (from niveau 1 to 12), and the program starts there.
-- **Pick your level yourself.** Choose *Total beginner*, *I know the basics*, *Everyday
-  conversations*, *Comfortable* or *Advanced*, or open **Pick an exact level** to read
-  the description of each of the 12 levels and choose one. Your first call then starts
-  the program at that level (guided practice on its first unit), and earlier units are
-  counted as done.
+- **Pick your level.** Choose *Total beginner*, *I know the basics*, *Everyday
+  conversations*, *Comfortable* or *Advanced*. The program starts at that level
+  (guided practice on its first unit), and earlier units are counted as done.
+- **Not sure — find my level.** Your first call is a relaxed placement chat: the tutor
+  starts easy, climbs until things get hard, and has you type and read a little. When
+  you hang up, your level in each competency (niveau 1 to 12) is set directly from what
+  it observed, and the program starts there.
 
-You can change your mind (or switch back to the test) until your first call is saved.
 After that the tutor adjusts your level from evidence, one step per session, and the
 **Level Check** chip runs a progress check any time.
+
+**Changing your name or level later.** Open **Profile** on the main page: edit your
+name, pick a different level (or an exact one of the 12), or **Retake the level test**,
+which makes your next call a placement chat again without erasing your progress.
 
 ## Everyday use
 
@@ -231,7 +232,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md). Short version:
 | command                       | purpose                                                                    |
 | ----------------------------- | -------------------------------------------------------------------------- |
 | `npm run dev`                 | start the tutor at http://localhost:3000 (asks for a key the first time)   |
-| `npm run setup`               | add or replace your Gemini API key and name in `.env`                      |
+| `npm run setup`               | add or replace your Gemini API key in `.env`                               |
 | `npm run build && npm start`  | production build / serve                                                   |
 | `npm test`                    | unit tests (merge rules, stores, levels, prompt builder, two-session loop) |
 | `npm run typecheck`           | TypeScript                                                                 |

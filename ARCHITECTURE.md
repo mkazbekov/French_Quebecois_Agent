@@ -56,14 +56,24 @@ step per session toward the median of recent observations.
 `pending` → `tested` | `self_selected`. While pending, every `auto` call is an
 `assessment`; when such a call is reviewed, `merge.ts` sets each observed
 competency directly to the observed level (no one-step cap), gives unobserved ones
-the median, and marks the placement `tested`. Before the first finished session
-the learner can instead pick a level (`PATCH /api/learner {starting_level}`,
-`setStartingLevel`) or go back to the test (`{placement: "test"}`); both return 409
-after session 1. Either way, syllabus units below the starting level are recorded
+the median, and marks the placement `tested`. The learner can instead pick a level
+at any time (`PATCH /api/learner {starting_level}`, `setStartingLevel`: practised
+units are kept, credited ones are recomputed) or retake the test
+(`{placement: "test"}`, `retakePlacement`: before session 1 it resets to defaults,
+after that it only sets the placement back to pending). Either way, syllabus units below the chosen level are recorded
 as `done` with `credited: true` so the program starts at that level instead of
 filling every lower-level gap; confidence starts at `PLACEMENT_CONFIDENCE` (0.35,
 above `LOW_CONFIDENCE`). Old profiles without the field migrate to `tested` when
 they have sessions, `pending` otherwise.
+
+**Onboarding** (`profile.onboarded_at`): null until the learner finishes the
+one-time card on the main page (`src/components/Onboarding.tsx`) — their name, then a
+level pick or "find my level" (placement pending) — sent as one
+`PATCH /api/learner {onboarding: {name, level}}`. The name lives only in
+`profile.name`; `.env` holds no personal data. Old profiles that already have a name
+and at least one session migrate to onboarded; everyone else sees the card once.
+Name and level can be changed later from the Profile panel (`{name}`,
+`{starting_level}`, `{placement: "test"}`).
 
 ## Program (syllabus)
 

@@ -16,23 +16,23 @@ afterEach(() => {
 
 describe("FileLearnerStore", () => {
   it("creates the file on init and loads default state", async () => {
-    const store = new FileLearnerStore({ dataDir, learnerId: "alice", learnerName: "Alice" });
+    const store = new FileLearnerStore({ dataDir, learnerId: "alice" });
     await store.init();
     expect(fs.existsSync(path.join(dataDir, "learner-alice.json"))).toBe(true);
     const state = await store.load();
-    expect(state.profile.name).toBe("Alice");
+    expect(state.profile.name).toBe("");
     expect(state.profile.sessions_completed).toBe(0);
   });
 
   it("round-trips a save", async () => {
-    const store = new FileLearnerStore({ dataDir, learnerId: "bob", learnerName: "Bob" });
+    const store = new FileLearnerStore({ dataDir, learnerId: "bob" });
     await store.init();
     const state = await store.load();
     state.profile.sessions_completed = 5;
     state.profile.notes.push("likes hockey");
     await store.save({ profile: state.profile });
 
-    const store2 = new FileLearnerStore({ dataDir, learnerId: "bob", learnerName: "Bob" });
+    const store2 = new FileLearnerStore({ dataDir, learnerId: "bob" });
     const reloaded = await store2.load();
     expect(reloaded.profile.sessions_completed).toBe(5);
     expect(reloaded.profile.notes).toContain("likes hockey");
@@ -48,9 +48,9 @@ describe("FileLearnerStore", () => {
         sessions: [],
       }),
     );
-    const store = new FileLearnerStore({ dataDir, learnerId: "carol", learnerName: "Carol" });
+    const store = new FileLearnerStore({ dataDir, learnerId: "carol" });
     const state = await store.load();
-    expect(state.profile.name).toBe("Carol");
+    expect(state.profile.name).toBe("");
     expect(state.profile.sessions_completed).toBe(0);
   });
 
@@ -58,13 +58,13 @@ describe("FileLearnerStore", () => {
     const filePath = path.join(dataDir, "learner-dave.json");
     fs.mkdirSync(dataDir, { recursive: true });
     fs.writeFileSync(filePath, "{ not valid json");
-    const store = new FileLearnerStore({ dataDir, learnerId: "dave", learnerName: "Dave" });
+    const store = new FileLearnerStore({ dataDir, learnerId: "dave" });
     const state = await store.load();
-    expect(state.profile.name).toBe("Dave");
+    expect(state.profile.name).toBe("");
   });
 
   it("keeps session records newest first and caps at 200", async () => {
-    const store = new FileLearnerStore({ dataDir, learnerId: "erin", learnerName: "Erin" });
+    const store = new FileLearnerStore({ dataDir, learnerId: "erin" });
     await store.init();
     await store.addSessionRecord({ session_id: "s1", date: "2026-01-01T00:00:00.000Z", markdown: "first" });
     await store.addSessionRecord({ session_id: "s2", date: "2026-01-02T00:00:00.000Z", markdown: "second" });

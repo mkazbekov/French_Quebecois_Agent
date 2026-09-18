@@ -56,7 +56,7 @@ describe("syllabus content", () => {
 
 describe("program progression (merge)", () => {
   it("starts at the first unit and follows program order across sessions", () => {
-    let state: LearnerState = defaultLearnerState("Mirza");
+    let state: LearnerState = defaultLearnerState("Sam");
     ({ state } = applyReviewDelta(state, delta(), evidence(), NOW));
     expect(state.roadmap.current_unit).toBe("L1-F01");
 
@@ -70,7 +70,7 @@ describe("program progression (merge)", () => {
   });
 
   it("does not mark a unit done while struggles outweigh successes", () => {
-    let state: LearnerState = defaultLearnerState("Mirza");
+    let state: LearnerState = defaultLearnerState("Sam");
     const practiced = (outcome: "practiced_ok" | "struggled") => delta({ units_practiced: [{ unit_id: "L1-F01", outcome }] });
     ({ state } = applyReviewDelta(state, practiced("practiced_ok"), evidence(), NOW));
     ({ state } = applyReviewDelta(state, practiced("struggled"), evidence(), NOW));
@@ -85,7 +85,7 @@ describe("program progression (merge)", () => {
   });
 
   it("lets the reviewer pull a pending unit forward but ignores unknown or finished ids", () => {
-    let state: LearnerState = defaultLearnerState("Mirza");
+    let state: LearnerState = defaultLearnerState("Sam");
     ({ state } = applyReviewDelta(state, delta({ suggested_focus: { unit_id: "L2-G03", current_focus: "", reason: "keeps dropping ne… pas", next_practice: "p", after: "" } }), evidence(), NOW));
     expect(state.roadmap.current_unit).toBe("L2-G03");
     expect(state.roadmap.reason).toBe("keeps dropping ne… pas");
@@ -98,7 +98,7 @@ describe("program progression (merge)", () => {
   });
 
   it("puts the program into the tutor prompt", () => {
-    let state: LearnerState = defaultLearnerState("Mirza");
+    let state: LearnerState = defaultLearnerState("Sam");
     ({ state } = applyReviewDelta(state, delta(), evidence(), NOW));
     const { instructions } = buildTutorInstructions({ state, mode: "lesson", recentRecords: [] });
     expect(instructions).toContain("PROGRAM");

@@ -1,14 +1,25 @@
 import Link from "next/link";
 import { formatLevel } from "@/lib/learner/levels";
 import type { LearnerState } from "@/lib/learner/schema";
+import { ProfileSettings } from "@/components/ProfileSettings";
 
-export function TutorHeader({ state }: { state: LearnerState | null }) {
+export function TutorHeader({
+  state,
+  onChange,
+  disabled,
+}: {
+  state: LearnerState | null;
+  onChange: (next: LearnerState) => void;
+  disabled?: boolean;
+}) {
   const level = state ? formatLevel(state.competencies.oral_production.level) : "…";
   const focus = state?.roadmap.current_focus ?? "…";
+  const name = state?.profile.name.trim();
 
   return (
     <header className="w-full max-w-xl mx-auto flex flex-col items-center gap-1 text-center px-4 pt-8">
       <h1 className="text-2xl font-semibold tracking-tight">French Tutor</h1>
+      {name && <p className="text-sm text-zinc-500 dark:text-zinc-400">Salut, {name}</p>}
       <p className="text-sm text-zinc-500 dark:text-zinc-400">
         Estimated level: <span className="font-medium text-zinc-700 dark:text-zinc-300">{level}</span>
       </p>
@@ -21,6 +32,10 @@ export function TutorHeader({ state }: { state: LearnerState | null }) {
       >
         Review mistakes
       </Link>
+      {state && state.profile.onboarded_at !== null && (
+        // keyed by name so the input re-seeds when the saved name changes
+        <ProfileSettings key={state.profile.name} state={state} onChange={onChange} disabled={disabled} />
+      )}
     </header>
   );
 }

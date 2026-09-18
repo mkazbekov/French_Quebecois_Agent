@@ -7,7 +7,7 @@ import { TutorHeader } from "@/components/TutorHeader";
 import { MicOrb } from "@/components/MicOrb";
 import { ModeChips } from "@/components/ModeChips";
 import { LanguageToggle } from "@/components/LanguageToggle";
-import { StartingLevel } from "@/components/StartingLevel";
+import { Onboarding } from "@/components/Onboarding";
 import { TranscriptPanel } from "@/components/TranscriptPanel";
 import { SummaryCard } from "@/components/SummaryCard";
 
@@ -72,10 +72,12 @@ export default function Home() {
 
   return (
     <div className="flex-1 flex flex-col items-center gap-8 py-10 px-4">
-      <TutorHeader state={learnerState} />
+      <TutorHeader state={learnerState} onChange={setLearnerState} disabled={isActive} />
 
       <main className="flex-1 w-full max-w-xl mx-auto flex flex-col items-center gap-8">
-        {status === "done" && summary ? (
+        {learnerState && learnerState.profile.onboarded_at === null ? (
+          <Onboarding state={learnerState} onChange={setLearnerState} />
+        ) : status === "done" && summary ? (
           <SummaryCard summary={summary} onStartAnother={reset} />
         ) : status === "done" && !summary ? (
           <div className="w-full max-w-sm rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 p-5 text-center space-y-3">
@@ -140,10 +142,6 @@ export default function Home() {
             )}
 
             <ModeChips selected={selectedMode} onSelect={setSelectedMode} disabled={isActive} />
-
-            {!isActive && learnerState && learnerState.profile.sessions_completed === 0 && (
-              <StartingLevel state={learnerState} onChange={setLearnerState} disabled={isActive} />
-            )}
 
             <LanguageToggle
               value={learnerState?.profile.preferences.language_mode ?? "auto"}

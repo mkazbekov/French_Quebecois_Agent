@@ -4,7 +4,7 @@ import { buildTutorInstructions, resolveMode } from "@/lib/tutor/instructions";
 import type { LearnerState } from "@/lib/learner/schema";
 
 function stateWithSessions(n: number): LearnerState {
-  const state = defaultLearnerState("Mirza");
+  const state = defaultLearnerState("Sam");
   state.profile.sessions_completed = n;
   // A learner who has been placed: enough confidence that auto mode follows the cycle.
   state.competencies.oral_production.confidence = 0.5;
@@ -38,9 +38,26 @@ describe("resolveMode", () => {
   });
 });
 
+describe("placement note wording", () => {
+  it("a first placement (no sessions yet) gets the PLACEMENT call wording", () => {
+    const state = defaultLearnerState("Sam");
+    const { instructions } = buildTutorInstructions({ state, mode: "assessment", recentRecords: [] });
+    expect(instructions).toContain("This is the learner's PLACEMENT call");
+    expect(instructions).not.toContain("LEVEL RE-CHECK");
+  });
+
+  it("a retaken placement after sessions gets the LEVEL RE-CHECK wording instead", () => {
+    const state = defaultLearnerState("Sam");
+    state.profile.sessions_completed = 4;
+    const { instructions } = buildTutorInstructions({ state, mode: "assessment", recentRecords: [] });
+    expect(instructions).toContain("LEVEL RE-CHECK");
+    expect(instructions).not.toContain("This is the learner's PLACEMENT call");
+  });
+});
+
 describe("buildTutorInstructions", () => {
   it("includes the learner name, recurring error ids, and the current focus", () => {
-    const state = defaultLearnerState("Mirza");
+    const state = defaultLearnerState("Sam");
     state.errors.items.push({
       id: "ERROR-001",
       category: "grammar",
@@ -59,19 +76,19 @@ describe("buildTutorInstructions", () => {
 
     const { instructions } = buildTutorInstructions({ state, mode: "auto", recentRecords: [] });
 
-    expect(instructions).toContain("Mirza");
+    expect(instructions).toContain("Sam");
     expect(instructions).toContain("ERROR-001");
     expect(instructions).toContain("Ordering food at a restaurant");
   });
 
   it("never contains the literal string 'undefined'", () => {
-    const state = defaultLearnerState("Mirza");
+    const state = defaultLearnerState("Sam");
     const { instructions } = buildTutorInstructions({ state, mode: "auto", recentRecords: [] });
     expect(instructions).not.toContain("undefined");
   });
 
   it("never contains 'undefined' even with populated errors, vocab, grammar and pronunciation", () => {
-    const state = defaultLearnerState("Mirza");
+    const state = defaultLearnerState("Sam");
     state.errors.items.push({
       id: "ERROR-001",
       category: "vocabulary",
@@ -100,14 +117,14 @@ import { defaultLearnerState as mkState } from "@/lib/learner/defaults";
 
 describe("language stage", () => {
   it("beginners get English support by default", () => {
-    const s = mkState("Mirza");
+    const s = mkState("Sam");
     expect(resolveLanguageStage(s)).toBe("english_support");
     const { instructions } = buildTutorInstructions({ state: s, mode: "auto", recentRecords: [] });
     expect(instructions).toContain("LANGUAGE STAGE: English support");
     expect(instructions).toContain("say the same thing in English");
   });
   it("follows the oral level when auto, and the explicit preference otherwise", () => {
-    const s = mkState("Mirza");
+    const s = mkState("Sam");
     s.competencies.oral_production.level = 4;
     expect(resolveLanguageStage(s)).toBe("mixed");
     s.competencies.oral_production.level = 5;

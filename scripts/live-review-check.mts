@@ -9,7 +9,7 @@ const ev: SessionEvidence = {
   started_at: new Date(Date.now() - 6 * 60_000).toISOString(),
   ended_at: new Date().toISOString(),
   transcript: [
-    { role: "assistant", text: "Salut Mirza ! Qu'est-ce que t'as fait hier ?" },
+    { role: "assistant", text: "Salut Sam ! Qu'est-ce que t'as fait hier ?" },
     { role: "user", text: "Hier j'ai allé au travail en métro, ligne orange." },
     { role: "assistant", text: "Ah, t'es allé au travail en métro ! C'était long ?" },
     { role: "user", text: "Non, vingt minutes. Après je... how do you say I bought groceries?" },
@@ -21,7 +21,7 @@ const ev: SessionEvidence = {
 };
 
 const t0 = Date.now();
-const delta = await reviewSession(defaultLearnerState("Mirza"), ev);
+const delta = await reviewSession(defaultLearnerState("Sam"), ev);
 console.log(`provider: ${process.env.REVIEW_PROVIDER || (process.env.GEMINI_API_KEY ? "gemini (auto)" : "openai (auto)")}`);
 console.log(`REVIEW OK in ${Date.now() - t0} ms`);
 console.log(JSON.stringify({ topics: delta.topics, errors: delta.errors.map((e) => `${e.pattern} x${e.occurrences}`), competencies: delta.competencies.map((c) => `${c.competency}=${c.observed_level}/${c.evidence_strength}`), vocab: delta.vocabulary.map((v) => `${v.word}:${v.outcome}${v.register === "quebec" ? "(QC)" : ""}`), units: delta.units_practiced.map((u) => `${u.unit_id}:${u.outcome}`), pull_forward: delta.suggested_focus.unit_id, focus: delta.suggested_focus.current_focus, summary: delta.summary_for_learner }, null, 1));

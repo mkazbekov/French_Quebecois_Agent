@@ -2,16 +2,20 @@
 
 # Québec French Voice Tutor — project guide for Claude
 
-Persistent Québec French voice tutor. One button, real-time spoken French over
-OpenAI Realtime (WebRTC), long-term learner memory in Letta. Read
+Persistent Québec French voice tutor for any learner. One button, real-time spoken
+French over Gemini Live (default) or OpenAI Realtime, long-term learner memory in
+Letta (or a local JSON file). Nothing in the code, prompts or defaults may assume a
+particular user: the learner's name and level come only from their saved profile. Read
 `ARCHITECTURE.md` before changing anything structural; `README.md` has the user
 setup and everyday flow.
 
 ## Non-negotiables
 
 - **Zero-friction UX.** Normal use is `npm run dev` → open http://localhost:3000 →
-  press Start Conversation → talk. Never add setup screens, provider pickers,
-  agent selection, or per-session configuration.
+  press Start Conversation → talk. The only setup screen is the one-time onboarding
+  card (`src/components/Onboarding.tsx`: name → level or "find my level"), shown
+  while `profile.onboarded_at` is null. Never add provider pickers, agent selection,
+  or per-session configuration; name/level edits live in the collapsed Profile panel.
 - **Real realtime voice.** Browser mic ↔ a `VoiceSession` (`src/lib/voice/`):
   Gemini Live (raw WebSocket + Web Audio, ephemeral `auth_tokens/…`) or OpenAI
   Realtime (`@openai/agents-realtime`, WebRTC, ephemeral `ek_`). Credentials are
@@ -56,11 +60,14 @@ setup and everyday flow.
 - **Placement is code.** `profile.placement` (pending | tested | self_selected):
   a pending placement makes the auto call an `assessment`, and only that review may
   jump levels past the one-step rule (`merge.ts`). The only other level override is
-  the learner's own pick before session 1 (`placement.ts`, `PATCH /api/learner`).
-  Units below the starting level are `credited`, not practised.
+  the learner's own pick (`placement.ts`, `PATCH /api/learner`), allowed at any time;
+  "Retake the level test" sets placement back to pending without erasing progress.
+  Units below the chosen level are `credited`, not practised.
 - **Onboarding is `npm install && npm run dev`.** `predev` runs `scripts/setup.mjs
-  --if-needed` (silent when a key exists; asks for the Gemini key + name otherwise).
-  Keep it zero-dependency and never block a non-interactive `npm run dev`.
+  --if-needed` (silent when a key exists; asks only for the Gemini key otherwise).
+  Keep it zero-dependency and never block a non-interactive `npm run dev`. The
+  learner's name and starting level are asked once in the browser and stored in
+  `profile` (never in `.env`); `LEARNER_ID` only separates stores on one machine.
 - **Every session teaches and assesses.** First call is a placement (`assessment`) unless the learner picked a level;
   then `auto` cycles guided → lesson → quebec → guided → lesson → assessment. The
   `lesson` mode teaches one grammar point + 3–5 words; `assessment` covers all four
@@ -72,7 +79,7 @@ setup and everyday flow.
 | command | purpose |
 | --- | --- |
 | `npm run dev` | start the tutor (asks for the Gemini key the first time) |
-| `npm run setup` | add / replace the Gemini key and learner name in `.env` |
+| `npm run setup` | add / replace the Gemini key in `.env` |
 | `npm run typecheck` / `npm run lint` / `npm test` / `npm run build` | must all pass before finishing any task |
 | `npm run verify:persistence` | writes state, re-reads from a child process; use it to prove Letta works |
 | `npm run check:gemini` / `check:review` / `check:realtime` | live provider checks (no microphone needed) |
@@ -80,12 +87,12 @@ setup and everyday flow.
 ## Layout
 
 ```text
-src/app/page.tsx                 the single screen (client); StartingLevel shows before session 1
+src/app/page.tsx                 the single screen (client); Onboarding until profile.onboarded_at is set
 src/app/review/page.tsx          Review Mistakes (server component)
 src/app/api/realtime/session     POST: learner state → instructions → ek_ key
 src/app/api/session/end          POST: evidence → review → merge → persist → summary
-src/app/api/learner              GET: state + storeKind; PATCH: language_mode | starting_level | placement:"test"
-scripts/setup.mjs                first-run key/name setup (npm run setup, predev)
+src/app/api/learner              GET: state + storeKind; PATCH: onboarding | name | language_mode | starting_level | placement:"test"
+scripts/setup.mjs                first-run Gemini key setup (npm run setup, predev)
 src/hooks/useTutorSession.ts     realtime lifecycle, note_evidence tool, crash recovery
 src/lib/learner/                 schema, stores, merge, render, defaults, levels, syllabus, spacing, placement
 src/lib/voice/                   VoiceSession contract + gemini/openai implementations

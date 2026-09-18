@@ -15,7 +15,6 @@ const MAX_SESSIONS = 200;
 export interface FileLearnerStoreOptions {
   dataDir: string;
   learnerId: string;
-  learnerName: string;
 }
 
 /**
@@ -27,14 +26,12 @@ export class FileLearnerStore implements LearnerStore {
 
   private readonly dataDir: string;
   private readonly learnerId: string;
-  private readonly learnerName: string;
   private readonly filePath: string;
   private initialized = false;
 
   constructor(opts: FileLearnerStoreOptions) {
     this.dataDir = opts.dataDir;
     this.learnerId = opts.learnerId;
-    this.learnerName = opts.learnerName;
     this.filePath = path.join(this.dataDir, `learner-${this.learnerId}.json`);
   }
 
@@ -43,7 +40,7 @@ export class FileLearnerStore implements LearnerStore {
     try {
       await fs.access(this.filePath);
     } catch {
-      const initial: FileShape = { version: 1, state: defaultLearnerState(this.learnerName), sessions: [] };
+      const initial: FileShape = { version: 1, state: defaultLearnerState(""), sessions: [] };
       await this.writeAtomic(initial);
     }
     this.initialized = true;
@@ -54,7 +51,7 @@ export class FileLearnerStore implements LearnerStore {
     try {
       raw = await fs.readFile(this.filePath, "utf-8");
     } catch {
-      const initial: FileShape = { version: 1, state: defaultLearnerState(this.learnerName), sessions: [] };
+      const initial: FileShape = { version: 1, state: defaultLearnerState(""), sessions: [] };
       return initial;
     }
     let parsed: unknown;
@@ -62,10 +59,10 @@ export class FileLearnerStore implements LearnerStore {
       parsed = JSON.parse(raw);
     } catch (err) {
       console.warn(`[file-store] corrupt learner file at ${this.filePath}, falling back to defaults:`, err);
-      return { version: 1, state: defaultLearnerState(this.learnerName), sessions: [] };
+      return { version: 1, state: defaultLearnerState(""), sessions: [] };
     }
     const obj = (parsed && typeof parsed === "object" ? parsed : {}) as Partial<FileShape>;
-    const defaults = defaultLearnerState(this.learnerName);
+    const defaults = defaultLearnerState("");
     const rawState = (obj.state && typeof obj.state === "object" ? obj.state : {}) as Record<string, unknown>;
     const state = {} as LearnerState;
     for (const doc of LEARNER_DOCUMENTS) {

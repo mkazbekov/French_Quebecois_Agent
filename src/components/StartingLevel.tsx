@@ -5,12 +5,11 @@ import { LEVELS, LEVEL_DESCRIPTORS, formatLevel } from "@/lib/learner/levels";
 import type { LearnerState } from "@/lib/learner/schema";
 
 /**
- * First-run only: let a new learner either take the placement chat (default)
- * or pick a starting level themselves. Disappears once the first session is
- * finished (page.tsx gates on sessions_completed === 0).
+ * Level picker: pick a starting/new level, or retake the placement chat.
+ * Used inside Onboarding (first run) and ProfileSettings (any time after).
  */
 
-const QUICK_PICKS: { level: number; label: string }[] = [
+export const QUICK_PICKS: { level: number; label: string }[] = [
   { level: 1, label: "Total beginner" },
   { level: 3, label: "I know the basics" },
   { level: 5, label: "Everyday conversations" },
@@ -82,12 +81,10 @@ export function StartingLevel({
     patch({ placement: "test" }, optimistic);
   }
 
-  if (placement.status === "self_selected" && !editing) {
+  if (placement.status !== "pending" && !editing) {
     return (
       <div className="flex flex-col items-center gap-1.5 max-w-sm text-center">
-        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-          Starting at {formatLevel(placement.level ?? 1)}. Your first call starts the program at that level.
-        </p>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">Current level: {formatLevel(state.competencies.oral_production.level)}.</p>
         <div className="flex gap-3">
           <button
             type="button"
@@ -95,7 +92,7 @@ export function StartingLevel({
             onClick={() => setEditing(true)}
             className="text-[11px] text-zinc-500 underline decoration-dotted hover:text-zinc-700 disabled:opacity-50 dark:text-zinc-400 dark:hover:text-zinc-200"
           >
-            change
+            Change level
           </button>
           <button
             type="button"
@@ -103,7 +100,7 @@ export function StartingLevel({
             onClick={takeTest}
             className="text-[11px] text-zinc-500 underline decoration-dotted hover:text-zinc-700 disabled:opacity-50 dark:text-zinc-400 dark:hover:text-zinc-200"
           >
-            Take the placement test instead
+            Retake the level test
           </button>
         </div>
         {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
@@ -116,7 +113,9 @@ export function StartingLevel({
       <span className="text-[11px] text-zinc-400 dark:text-zinc-600">Where should we start?</span>
       <p className="text-xs text-zinc-500 dark:text-zinc-400">
         {placement.status === "pending"
-          ? "Your first call is a relaxed placement chat that finds your level. Or pick a starting point:"
+          ? state.profile.sessions_completed === 0
+            ? "Your first call is a relaxed placement chat that finds your level. Or pick a starting point:"
+            : "Your next call is a level check. Or pick a level yourself:"
           : "Pick a different starting level:"}
       </p>
       <div className="flex flex-wrap justify-center gap-2">

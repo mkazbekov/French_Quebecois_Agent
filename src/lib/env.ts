@@ -63,9 +63,6 @@ export const env = {
   get LEARNER_ID() {
     return opt("LEARNER_ID", "learner");
   },
-  get LEARNER_NAME() {
-    return opt("LEARNER_NAME", "");
-  },
   get DATA_DIR() {
     return opt("DATA_DIR", "./data");
   },
