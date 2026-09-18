@@ -15,16 +15,20 @@ describe("resolveMode", () => {
     expect(resolveMode("correction", stateWithSessions(5))).toBe("correction");
   });
 
-  it("resolves auto to free for the first session", () => {
-    expect(resolveMode("auto", stateWithSessions(0))).toBe("free");
+  it("resolves auto to a placement level check for the first session", () => {
+    expect(resolveMode("auto", stateWithSessions(0))).toBe("assessment");
   });
 
-  it("rotates auto between guided and a quebec session every third session", () => {
-    // n % 3 === 2 -> quebec, otherwise guided (for n > 0)
-    expect(resolveMode("auto", stateWithSessions(1))).toBe("guided");
-    expect(resolveMode("auto", stateWithSessions(2))).toBe("quebec");
-    expect(resolveMode("auto", stateWithSessions(3))).toBe("guided");
-    expect(resolveMode("auto", stateWithSessions(5))).toBe("quebec");
+  it("then cycles practice, lesson, quebec, practice, lesson, level check", () => {
+    expect([1, 2, 3, 4, 5, 6, 7].map((n) => resolveMode("auto", stateWithSessions(n)))).toEqual([
+      "guided",
+      "lesson",
+      "quebec",
+      "guided",
+      "lesson",
+      "assessment",
+      "guided",
+    ]);
   });
 });
 
@@ -94,14 +98,14 @@ describe("language stage", () => {
   });
   it("follows the oral level when auto, and the explicit preference otherwise", () => {
     const s = mkState("Mirza");
-    s.competencies.oral_production.level = "A2";
+    s.competencies.oral_production.level = 4;
     expect(resolveLanguageStage(s)).toBe("mixed");
-    s.competencies.oral_production.level = "B1";
+    s.competencies.oral_production.level = 5;
     expect(resolveLanguageStage(s)).toBe("french_only");
     s.profile.preferences.language_mode = "english_support";
     expect(resolveLanguageStage(s)).toBe("english_support");
     s.profile.preferences.language_mode = "french_only";
-    s.competencies.oral_production.level = "A1";
+    s.competencies.oral_production.level = 2;
     expect(resolveLanguageStage(s)).toBe("french_only");
     expect(buildTutorInstructions({ state: s, mode: "auto", recentRecords: [] }).instructions).toContain("LANGUAGE STAGE: French only");
   });

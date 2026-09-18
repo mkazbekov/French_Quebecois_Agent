@@ -37,6 +37,18 @@ setup and everyday flow.
   (auto | english_support | french_only) and the oral level to one of three prompt
   blocks. Beginners get real English; French-only is earned. Keep the Language
   switch on the main page as the only user-facing control for this.
+- **Levels are the Échelle québécoise (1–12).** `src/lib/learner/levels.ts` owns the
+  scale, descriptors and the CEFR equivalent shown next to every level. Never
+  reintroduce CEFR strings as the stored value; old profiles migrate on parse.
+- **The tutor is patient.** Turn detection (`gemini-setup.ts`, OpenAI `eagerness`)
+  and the PATIENCE block in the prompt exist because the tutor used to talk over the
+  learner. Do not shorten the silence window or make the VAD more eager without a
+  voice test.
+- **Every session teaches and assesses.** First call is a placement (`assessment`);
+  then `auto` cycles guided → lesson → quebec → guided → lesson → assessment. The
+  `lesson` mode teaches one grammar point + 3–5 words; `assessment` covers all four
+  competencies (typed answers and reading the on-screen transcript give the written
+  ones evidence). Keep that rotation in `resolveMode`.
 
 ## Commands
 
@@ -61,46 +73,48 @@ src/lib/voice/                   VoiceSession contract + gemini/openai implement
 src/lib/tutor/instructions.ts    tutor prompt builder (pedagogy lives here)
 src/lib/tutor/gemini-setup.ts    Live API setup message, tool declaration, URLs
 src/lib/tutor/review.ts          structured session review (gemini | openai)
-tests/                           vitest; merge rules, stores, prompt, two-session loop
+tests/                           vitest; merge rules, stores, levels, prompt, two-session loop
 ```
 
 ## Working style
 
-- Fable/lead owns architecture and review; delegate only bounded implementation
-  tasks and review every result. Codex CLI is available (`codex exec`) for
-  independent review passes.
+- **Planning, architecture and review: Fable** (the lead session). Fable reads the
+  docs, decides the design, and reviews every result before it is committed.
+- **Code changes: Sonnet 5 at medium effort.** Delegate bounded implementation
+  tasks (a function, a component, a test file) to a Sonnet 5 subagent with
+  `model: "sonnet"` and medium reasoning effort; give it the exact files and the
+  acceptance check (typecheck / lint / test). Fable does small edits itself.
+- **Codex CLI as needed** (`codex exec`) for an independent review pass or a second
+  opinion on a tricky change.
 - Keep the product simpler than the machinery. If a change makes starting a
   conversation more complicated, it is wrong.
+- Before finishing any task: `npm run typecheck`, `npm run lint`, `npm test`,
+  `npm run build`, and `npm run check:gemini-setup` if the Live setup message changed.
 
 ## State of the project and what the next session must do first
 
-Built 2026-09-17. Verified on this machine: typecheck, lint, 31 tests, production
-build, production smoke test of all routes, **Letta persistence across processes
-against the real Letta Cloud agent** (`npm run verify:persistence` → VERIFIED via
-letta), and minting a real realtime `ek_` key with the exact session config.
-**Blocked at end of that session**: the OpenAI account had no API credits
-(`credit_balance_exhausted`), so `npm run check:realtime` (multi-turn text→speech
-session over WebSocket) and `npm run check:review` (structured review) both
-connected but got no model output. Nothing in the code path failed.
+Built 2026-09-17; Gemini Live made the default 2026-09-17; patience, the 12-level
+Échelle québécoise, lesson/level-check modes and four-competency assessment added
+2026-09-18. Verified on this machine at that point: typecheck, lint, 40 tests,
+production build, `npm run check:gemini-setup` (Live API accepts the new VAD
+config), and earlier Letta persistence across processes against the real Letta
+Cloud agent. The OpenAI backend is optional; `check:realtime` / `check:review`
+with `REVIEW_PROVIDER=openai` still need API credits on that account.
 
 Next session, in order:
 
-1. `.env` already has both keys. Ask the user to confirm OpenAI credits were added
-   (https://platform.openai.com/settings/organization/billing/), then run
-   `npm run check:review` and `npm run check:realtime`; both must print OK.
-2. `npm run verify:persistence` → must print `PERSISTENCE VERIFIED via letta`.
-   If Letta agent creation fails, check `LETTA_MODEL` (default `openai/gpt-5.6-luna`)
-   against `client.models.list()` and the `embedding` handling in `letta-store.ts`.
-3. `npm run dev`, then have the user do the manual voice test: press Start, say
-   "Salut, ça va bien", hear a reply, press End, confirm the summary card and
-   that `/review` shows updated state. Restart the server and start again: the
-   greeting should reference the previous call.
-4. If the realtime connect fails, check first: `OPENAI_REALTIME_MODEL`
-   (`gpt-realtime-2.1`), the transcription model name in both the route and the
-   hook (`gpt-4o-transcribe`), and the `client_secrets` response shape
-   (`value`, `expires_at`) in `src/app/api/realtime/session/route.ts`.
-5. If the review fails, check `OPENAI_REVIEW_MODEL` (`gpt-5.6-luna`) and that
-   `ReviewDeltaSchema` stays strict-compatible (no optional/default fields).
+1. `npm run dev`, then have the user do the manual voice test with Gemini: press
+   Start, wait for the greeting, answer slowly with a pause mid-sentence and confirm
+   the tutor does not jump in. Say "je veux arrêter", press End, confirm the summary
+   card and that `/review` shows levels as `n / 12 · stage · ≈ CEFR`.
+2. If the tutor is still impatient in the voice test, first try
+   `silenceDurationMs` 2000 in `src/lib/tutor/gemini-setup.ts`, then re-run
+   `npm run check:gemini-setup`.
+3. `npm run verify:persistence` → must print `PERSISTENCE VERIFIED via letta`
+   (existing profiles with CEFR strings migrate to numbers on load).
+4. If the Live connect fails, check `GEMINI_LIVE_MODEL` (`gemini-3.8-live`), the
+   ephemeral-token response shape (`name`) in `src/app/api/realtime/session/route.ts`
+   and the setup message shape in `gemini-setup.ts`.
 
 After that, candidate improvements (not started): confidence time-decay, Letta
 archival search for older sessions, pronunciation-aware feedback, a true

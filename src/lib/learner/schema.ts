@@ -8,9 +8,21 @@ import { z } from "zod";
  * remembers. Anything not representable here is not remembered.
  */
 
-export const CEFR_LEVELS = ["A0", "A1", "A1+", "A2", "A2+", "B1", "B1+", "B2", "B2+", "C1"] as const;
-export type CefrLevel = (typeof CEFR_LEVELS)[number];
-export const CefrLevelSchema = z.enum(CEFR_LEVELS);
+/**
+ * Proficiency level on the Échelle québécoise des niveaux de compétence en
+ * français (1–12; see ./levels.ts for descriptors and the CEFR equivalents).
+ */
+export const LevelSchema = z.number().int().min(1).max(12);
+export type { Level } from "./levels";
+
+/** Levels stored before 2026-09-18 were CEFR strings; stored documents still accept them. */
+const LEGACY_CEFR_TO_LEVEL: Record<string, number> = {
+  A0: 1, A1: 2, "A1+": 3, A2: 4, "A2+": 5, B1: 6, "B1+": 7, B2: 8, "B2+": 9, C1: 10, "C1+": 11, C2: 12,
+};
+const StoredLevelSchema = z.preprocess(
+  (v) => (typeof v === "string" && v in LEGACY_CEFR_TO_LEVEL ? LEGACY_CEFR_TO_LEVEL[v] : v),
+  LevelSchema,
+);
 
 export const COMPETENCY_KEYS = [
   "oral_production",
@@ -21,7 +33,7 @@ export const COMPETENCY_KEYS = [
 export type CompetencyKey = (typeof COMPETENCY_KEYS)[number];
 export const CompetencyKeySchema = z.enum(COMPETENCY_KEYS);
 
-export const SESSION_MODES = ["auto", "free", "guided", "correction", "assessment", "quebec"] as const;
+export const SESSION_MODES = ["auto", "free", "guided", "lesson", "correction", "assessment", "quebec"] as const;
 export type SessionMode = (typeof SESSION_MODES)[number];
 export const SessionModeSchema = z.enum(SESSION_MODES);
 
@@ -64,7 +76,7 @@ export const ProfileSchema = z.object({
 export type Profile = z.infer<typeof ProfileSchema>;
 
 export const CompetencySchema = z.object({
-  level: CefrLevelSchema,
+  level: StoredLevelSchema,
   /** 0..1, grows with evidence, decays slowly with time since last assessment. */
   confidence: z.number().min(0).max(1),
   evidence_count: z.number().int().nonnegative(),
@@ -72,7 +84,7 @@ export const CompetencySchema = z.object({
   weaknesses: z.array(z.string()),
   last_assessed: z.string().nullable(),
   /** Rolling window of recent level observations from reviews (max 8). */
-  recent_observations: z.array(CefrLevelSchema).max(8).default([]),
+  recent_observations: z.array(StoredLevelSchema).max(8).default([]),
 });
 export type Competency = z.infer<typeof CompetencySchema>;
 
@@ -224,6 +236,8 @@ export const TranscriptTurnSchema = z.object({
   text: z.string(),
   /** ms since session start, if known */
   at: z.number().nonnegative().optional(),
+  /** true when the learner typed this turn instead of speaking it (written-production evidence). */
+  typed: z.boolean().optional(),
 });
 export type TranscriptTurn = z.infer<typeof TranscriptTurnSchema>;
 
@@ -271,7 +285,8 @@ export const ReviewErrorSchema = z.object({
 
 export const ReviewCompetencyObservationSchema = z.object({
   competency: CompetencyKeySchema,
-  observed_level: CefrLevelSchema,
+  /** Échelle québécoise level 1–12 (see levels.ts). */
+  observed_level: LevelSchema,
   strengths: z.array(z.string()),
   weaknesses: z.array(z.string()),
   /** How much evidence this session provided: 0 none .. 3 strong */

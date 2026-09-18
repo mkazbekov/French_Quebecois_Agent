@@ -92,7 +92,8 @@ async function mintOpenAISecret(instructions: string): Promise<string> {
         audio: {
           input: {
             transcription: { model: "gpt-4o-transcribe", language: "fr" },
-            turn_detection: { type: "semantic_vad", eagerness: "medium", create_response: true, interrupt_response: true },
+            // eagerness "low": wait for the learner to finish rather than jumping in at the first pause.
+            turn_detection: { type: "semantic_vad", eagerness: "low", create_response: true, interrupt_response: true },
           },
           output: { voice: env.OPENAI_REALTIME_VOICE },
         },

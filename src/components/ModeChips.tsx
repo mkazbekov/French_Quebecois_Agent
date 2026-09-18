@@ -1,10 +1,12 @@
 import type { SessionMode } from "@/lib/learner/schema";
 
-const CHIPS: { mode: Exclude<SessionMode, "auto" | "assessment">; label: string }[] = [
+const CHIPS: { mode: Exclude<SessionMode, "auto">; label: string }[] = [
   { mode: "free", label: "Free Conversation" },
   { mode: "guided", label: "Guided Practice" },
+  { mode: "lesson", label: "Lesson" },
   { mode: "quebec", label: "Québec Mode" },
   { mode: "correction", label: "Correction Mode" },
+  { mode: "assessment", label: "Level Check" },
 ];
 
 export function ModeChips({

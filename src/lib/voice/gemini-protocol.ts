@@ -226,7 +226,7 @@ export class GeminiLiveProtocol {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
     if (text !== CALL_START_SENTINEL) {
       this.finalizeUserTurn();
-      this.turns.push({ role: "user", text });
+      this.turns.push({ role: "user", text, typed: true });
       this.callbacks.onTranscript([...this.turns]);
     }
     this.ws.send(

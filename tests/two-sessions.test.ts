@@ -42,8 +42,8 @@ const delta1: ReviewDelta = {
     },
   ],
   competencies: [
-    { competency: "oral_production", observed_level: "A1+", strengths: ["simple past narration"], weaknesses: ["auxiliaries"], evidence_strength: 2 },
-    { competency: "oral_comprehension", observed_level: "A2", strengths: ["follows questions"], weaknesses: [], evidence_strength: 2 },
+    { competency: "oral_production", observed_level: 3, strengths: ["simple past narration"], weaknesses: ["auxiliaries"], evidence_strength: 2 },
+    { competency: "oral_comprehension", observed_level: 4, strengths: ["follows questions"], weaknesses: [], evidence_strength: 2 },
   ],
   vocabulary: [
     { word: "correspondance", meaning: "transfer (métro)", register: "standard", outcome: "used_correctly" },

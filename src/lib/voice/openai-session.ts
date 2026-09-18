@@ -26,7 +26,7 @@ function extractAssistantText(content: unknown): string {
   return "";
 }
 
-function deriveTranscript(history: unknown[]): TranscriptTurn[] {
+function deriveTranscript(history: unknown[], typedTexts: Set<string>): TranscriptTurn[] {
   const turns: TranscriptTurn[] = [];
   for (const item of history) {
     if (!item || typeof item !== "object") continue;
@@ -34,7 +34,7 @@ function deriveTranscript(history: unknown[]): TranscriptTurn[] {
     if (it.type !== "message") continue;
     if (it.role === "user") {
       const text = extractUserText(it.content);
-      if (text) turns.push({ role: "user", text });
+      if (text) turns.push(typedTexts.has(text.trim()) ? { role: "user", text, typed: true } : { role: "user", text });
     } else if (it.role === "assistant") {
       const text = extractAssistantText(it.content);
       if (text) turns.push({ role: "assistant", text });
@@ -57,6 +57,8 @@ export class OpenAIVoiceSession implements VoiceSession {
   private readonly deps: VoiceSessionDeps;
   private readonly params: OpenAIVoiceSessionParams;
   private session: RealtimeSession | null = null;
+  /** Texts the learner typed (vs. spoke), so the transcript can flag written production. */
+  private readonly typedTexts = new Set<string>();
   private connected = false;
   private closedByUs = false;
 
@@ -96,7 +98,7 @@ export class OpenAIVoiceSession implements VoiceSession {
             transcription: { model: "gpt-4o-transcribe", language: "fr" },
             turnDetection: {
               type: "semantic_vad",
-              eagerness: "medium",
+              eagerness: "low",
               createResponse: true,
               interruptResponse: true,
             },
@@ -108,7 +110,7 @@ export class OpenAIVoiceSession implements VoiceSession {
     this.session = session;
 
     session.on("history_updated", (history) => {
-      handlers.onTranscript(deriveTranscript(history));
+      handlers.onTranscript(deriveTranscript(history, this.typedTexts));
     });
 
     session.on("error", (e) => {
@@ -139,6 +141,7 @@ export class OpenAIVoiceSession implements VoiceSession {
   }
 
   sendText(text: string): void {
+    this.typedTexts.add(text.trim());
     this.session?.sendMessage(text);
   }
 

@@ -147,7 +147,7 @@ describe("applyReviewDelta - competencies", () => {
   it("leaves written competencies untouched when there are no observations for them", () => {
     const before = freshState();
     const delta = emptyDelta({
-      competencies: [{ competency: "oral_production", observed_level: "A2", strengths: [], weaknesses: [], evidence_strength: 3 }],
+      competencies: [{ competency: "oral_production", observed_level: 4, strengths: [], weaknesses: [], evidence_strength: 3 }],
     });
     const { state } = applyReviewDelta(before, delta, baseEvidence(), NOW);
     expect(state.competencies.written_production).toEqual(before.competencies.written_production);
@@ -157,7 +157,7 @@ describe("applyReviewDelta - competencies", () => {
   it("ignores observations with evidence_strength 0", () => {
     const before = freshState();
     const delta = emptyDelta({
-      competencies: [{ competency: "oral_production", observed_level: "B2", strengths: ["fluent"], weaknesses: [], evidence_strength: 0 }],
+      competencies: [{ competency: "oral_production", observed_level: 8, strengths: ["fluent"], weaknesses: [], evidence_strength: 0 }],
     });
     const { state } = applyReviewDelta(before, delta, baseEvidence(), NOW);
     expect(state.competencies.oral_production).toEqual(before.competencies.oral_production);
@@ -165,26 +165,26 @@ describe("applyReviewDelta - competencies", () => {
 
   it("does not move level without enough evidence_count / observations", () => {
     const delta = emptyDelta({
-      competencies: [{ competency: "oral_production", observed_level: "B2", strengths: [], weaknesses: [], evidence_strength: 1 }],
+      competencies: [{ competency: "oral_production", observed_level: 8, strengths: [], weaknesses: [], evidence_strength: 1 }],
     });
     const { state } = applyReviewDelta(freshState(), delta, baseEvidence(), NOW);
-    // evidence_count now 1 (<3): level must stay at the default A1.
-    expect(state.competencies.oral_production.level).toBe("A1");
+    // evidence_count now 1 (<3): level must stay at the default level 2.
+    expect(state.competencies.oral_production.level).toBe(2);
     expect(state.competencies.oral_production.evidence_count).toBe(1);
   });
 
-  it("moves level at most one CEFR step toward the median even with a large gap", () => {
+  it("moves level at most one step toward the median even with a large gap", () => {
     let state = freshState();
-    // Three sessions reporting a much higher level than current (A1 -> observed B2 repeatedly).
+    // Three sessions reporting a much higher level than current (2 -> observed 8 repeatedly).
     for (let i = 0; i < 3; i++) {
       const delta = emptyDelta({
-        competencies: [{ competency: "oral_production", observed_level: "B2", strengths: [], weaknesses: [], evidence_strength: 1 }],
+        competencies: [{ competency: "oral_production", observed_level: 8, strengths: [], weaknesses: [], evidence_strength: 1 }],
       });
       ({ state } = applyReviewDelta(state, delta, baseEvidence(), NOW));
     }
-    // evidence_count is now 3, median of observations is B2, but level should have moved
-    // by at most one CEFR index from A1 -> A1+.
-    expect(state.competencies.oral_production.level).toBe("A1+");
+    // evidence_count is now 3, median of observations is 8, but level should have moved
+    // by at most one level from 2 -> 3.
+    expect(state.competencies.oral_production.level).toBe(3);
   });
 });
 

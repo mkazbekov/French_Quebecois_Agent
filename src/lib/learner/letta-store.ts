@@ -29,7 +29,7 @@ const BLOCK_LIMITS: Record<LearnerDocument, number> = {
 
 const BLOCK_DESCRIPTIONS: Record<LearnerDocument, string> = {
   profile: "Learner identity, goals, preferences and session totals.",
-  competencies: "CEFR level, confidence and evidence per competency (oral/written production/comprehension).",
+  competencies: "Échelle québécoise level (1-12, with CEFR equivalent), confidence and evidence per competency (oral/written production/comprehension).",
   errors: "Recurring error registry (ERROR-NNN): pattern, observed vs. preferred form, frequency, status.",
   vocabulary: "Known / shaky / target vocabulary, including Quebec-specific register.",
   grammar: "Grammar points the learner has practiced: status, successes/failures, notes.",

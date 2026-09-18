@@ -1,6 +1,5 @@
+import { clampLevel, type Level } from "./levels";
 import {
-  CEFR_LEVELS,
-  type CefrLevel,
   type CompetencyKey,
   type ErrorRecord,
   type LearnerState,
@@ -32,10 +31,6 @@ function dedupeKeepNewest(existing: string[], incoming: string[], cap: number): 
     order.push(v);
   }
   return order.slice(-cap);
-}
-
-function levelIndex(level: CefrLevel): number {
-  return CEFR_LEVELS.indexOf(level);
 }
 
 function medianIndex(indices: number[]): number {
@@ -125,7 +120,7 @@ export function applyReviewDelta(
   // -------------------------------------------------------------------
   // b. Competencies
   // -------------------------------------------------------------------
-  const competencyChanges: Array<{ key: CompetencyKey; from: CefrLevel; to: CefrLevel }> = [];
+  const competencyChanges: Array<{ key: CompetencyKey; from: Level; to: Level }> = [];
 
   for (const obs of delta.competencies) {
     if (obs.evidence_strength < 1) continue;
@@ -138,13 +133,14 @@ export function applyReviewDelta(
     comp.strengths = dedupeKeepNewest(comp.strengths, obs.strengths, 6);
     comp.weaknesses = dedupeKeepNewest(comp.weaknesses, obs.weaknesses, 6);
 
-    const indices = comp.recent_observations.map(levelIndex);
-    const currentIdx = levelIndex(comp.level);
+    // Levels are integers on the 12-level Échelle québécoise; move at most one level per session.
+    const indices = comp.recent_observations;
+    const current = comp.level;
     if (comp.evidence_count >= 3 && comp.recent_observations.length >= 2) {
       const target = medianIndex(indices);
-      const diff = target - currentIdx;
+      const diff = target - current;
       const step = diff === 0 ? 0 : diff > 0 ? 1 : -1;
-      comp.level = CEFR_LEVELS[currentIdx + step];
+      comp.level = clampLevel(current + step);
     }
 
     const spread = Math.max(...indices) - Math.min(...indices);
@@ -283,7 +279,7 @@ export function applyReviewDelta(
   const deltaParts: string[] = [];
   if (newErrorCount > 0) deltaParts.push(plural(newErrorCount, "new error"));
   if (recurringTouchedCount > 0) deltaParts.push(`${recurringTouchedCount} recurring`);
-  for (const c of competencyChanges) deltaParts.push(`${c.key} ${c.from}→${c.to}`);
+  for (const c of competencyChanges) deltaParts.push(`${c.key} niveau ${c.from}→${c.to}`);
   const deltaSentence = deltaParts.length ? deltaParts.join(", ") : "steady session, no major changes";
 
   const progressEntry: ProgressEntry = {

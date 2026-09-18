@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { env } from "@/lib/env";
+import { describeScale, formatLevel } from "@/lib/learner/levels";
 import { ReviewDeltaSchema, type LearnerState, type ReviewDelta, type SessionEvidence } from "@/lib/learner/schema";
 
 /**
@@ -28,7 +29,7 @@ function compactState(state: LearnerState): string {
     .slice(0, 40);
   return [
     `Learner: ${state.profile.name}; sessions completed: ${state.profile.sessions_completed}`,
-    `Levels: oral_production ${c.oral_production.level}, oral_comprehension ${c.oral_comprehension.level}, written_production ${c.written_production.level}, written_comprehension ${c.written_comprehension.level}`,
+    `Levels: oral_production ${formatLevel(c.oral_production.level)}, oral_comprehension ${formatLevel(c.oral_comprehension.level)}, written_production ${formatLevel(c.written_production.level)}, written_comprehension ${formatLevel(c.written_comprehension.level)}`,
     `Current focus: ${state.roadmap.current_focus} — ${state.roadmap.reason}`,
     `Roadmap queue: ${state.roadmap.queue.join(" | ") || "(empty)"}`,
     `Recent topics: ${state.roadmap.recent_topics.join(", ") || "(none)"}`,
@@ -40,7 +41,7 @@ function compactState(state: LearnerState): string {
 
 function renderEvidence(ev: SessionEvidence): string {
   const transcript = ev.transcript
-    .map((t) => `${t.role === "user" ? "LEARNER" : "TUTOR"}: ${t.text.trim()}`)
+    .map((t) => `${t.role === "user" ? (t.typed ? "LEARNER (typed)" : "LEARNER") : "TUTOR"}: ${t.text.trim()}`)
     .join("\n");
   const live = ev.live_evidence.length
     ? ev.live_evidence
@@ -56,7 +57,10 @@ Principles
 - Report only what the evidence supports. The learner's turns are automatic speech transcripts: do not invent pronunciation issues from spelling, and treat odd words as possible transcription errors unless the tutor's live notes confirm them.
 - Errors: group by underlying pattern (e.g. "passé composé auxiliary: être vs avoir"), not by sentence. Reuse the wording of an existing registry pattern when it is the same issue so it can be deduplicated. occurrences = how many times it happened this session. "preferred" must be natural Québec/standard French.
 - errors_improving: list registry ids (ERROR-xxx) only when the learner clearly had the opportunity to make that error and did not.
-- Competencies: give observations for oral_production and oral_comprehension whenever there are at least a few learner turns. Only give written_* observations if the learner actually typed text (turns that are obviously typed). Use CEFR-style levels as rough estimates; evidence_strength 1 for a short session, 2 for a normal one, 3 only for a long varied session. Level estimates should be stable: do not jump more than one step from the current level without strong reason.
+- Competencies: give observations for oral_production and oral_comprehension whenever there are at least a few learner turns. Give a written_production observation only when the learner typed text (turns marked "LEARNER (typed)"); give a written_comprehension observation only when the learner visibly responded to something they had to read (e.g. the tutor asked them to read the on-screen text). observed_level is an integer 1–12 on the Échelle québécoise below; evidence_strength 1 for a short session, 2 for a normal one, 3 only for a long varied session. Level estimates should be stable: do not jump more than one level from the current level without strong reason.
+
+LEVEL SCALE
+${describeScale()}
 - Vocabulary: "used_correctly" for words the learner produced well (especially target/shaky ones), "struggled" for words they searched for, mis-used, or needed in English, "introduced" for useful words the tutor taught. Mark register "quebec" for Québec-specific usage (dépanneur, magasiner, frette, chum/blonde, tantôt, char, correct...).
 - Grammar: report points actually exercised, with success/failure outcomes.
 - Pronunciation: only issues the tutor's notes mention or that are unmistakable.
@@ -64,6 +68,8 @@ Principles
 - summary_for_learner: 3–6 short, encouraging, concrete bullets in English (the app shows them after the call). No scores.
 - profile_notes: durable personal facts the learner shared (job, neighbourhood, interests). Empty if none.
 - topics: 2–5 short topic labels.`;
+
+const REVIEWER_SYSTEM_TEXT = REVIEWER_SYSTEM.replace("${SCALE}", describeScale());
 
 function userPrompt(state: LearnerState, evidence: SessionEvidence): string {
   return `CURRENT LEARNER MODEL\n${compactState(state)}\n\nSESSION EVIDENCE\n${renderEvidence(evidence)}`;
@@ -94,7 +100,7 @@ async function reviewWithOpenAI(state: LearnerState, evidence: SessionEvidence, 
   const response = await client.responses.parse({
     model,
     input: [
-      { role: "system", content: REVIEWER_SYSTEM },
+      { role: "system", content: REVIEWER_SYSTEM_TEXT },
       { role: "user", content: userPrompt(state, evidence) },
     ],
     text: { format: zodTextFormat(ReviewDeltaSchema, "review_delta") },
@@ -115,7 +121,7 @@ async function reviewWithGemini(state: LearnerState, evidence: SessionEvidence, 
   const models = opts.models ?? env.GEMINI_REVIEW_MODELS;
   const schema = z.toJSONSchema(ReviewDeltaSchema, { target: "draft-7" });
   const body = JSON.stringify({
-    systemInstruction: { parts: [{ text: REVIEWER_SYSTEM }] },
+    systemInstruction: { parts: [{ text: REVIEWER_SYSTEM_TEXT }] },
     contents: [{ parts: [{ text: userPrompt(state, evidence) }] }],
     generationConfig: { responseMimeType: "application/json", responseJsonSchema: schema, temperature: 0.2 },
   });

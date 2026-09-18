@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { formatLevel } from "@/lib/learner/levels";
 import type { LearnerState } from "@/lib/learner/schema";
 
 export function TutorHeader({ state }: { state: LearnerState | null }) {
-  const level = state?.competencies.oral_production.level ?? "…";
+  const level = state ? formatLevel(state.competencies.oral_production.level) : "…";
   const focus = state?.roadmap.current_focus ?? "…";
 
   return (

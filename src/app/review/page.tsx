@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getLearnerStore } from "@/lib/learner";
 import { COMPETENCY_KEYS } from "@/lib/learner/schema";
+import { cefrEquivalent, stageOf } from "@/lib/learner/levels";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,9 @@ export default async function ReviewPage() {
 
       <section>
         <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400 mb-2">Competencies</h2>
+        <p className="text-xs text-zinc-400 mb-2">
+          Échelle québécoise des niveaux de compétence en français (1–12), with the approximate CEFR equivalent.
+        </p>
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="text-left text-zinc-400 border-b border-zinc-200 dark:border-zinc-800">
@@ -34,7 +38,10 @@ export default async function ReviewPage() {
               return (
                 <tr key={key} className="border-b border-zinc-100 dark:border-zinc-900">
                   <td className="py-1.5 pr-2">{key.replace("_", " ")}</td>
-                  <td className="py-1.5 pr-2">{c.level}</td>
+                  <td className="py-1.5 pr-2">
+                    {c.level}
+                    <span className="text-zinc-400"> / 12 · {stageOf(c.level)} · ≈ {cefrEquivalent(c.level)}</span>
+                  </td>
                   <td className="py-1.5 pr-2">{Math.round(c.confidence * 100)}%</td>
                   <td className="py-1.5 pr-2">{c.evidence_count}</td>
                 </tr>

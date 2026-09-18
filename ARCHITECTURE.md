@@ -31,7 +31,7 @@ and stored in one Letta memory block with the same label:
 | block          | content                                             |
 | -------------- | --------------------------------------------------- |
 | profile        | name, languages, goals, preferences, session count  |
-| competencies   | 4 competencies: level, confidence, evidence, notes  |
+| competencies   | 4 competencies: level (Échelle québécoise 1–12), confidence, evidence, notes |
 | errors         | recurring error registry (ERROR-001 …)              |
 | vocabulary     | known / shaky / target words, Québec items          |
 | grammar        | grammar points: status + notes                      |
@@ -42,12 +42,40 @@ and stored in one Letta memory block with the same label:
 Session records (Markdown summaries, no raw transcript) are written as Letta
 archival passages and the last few are pulled back into the prompt.
 
+## Levels
+
+`src/lib/learner/levels.ts` defines the scale: the Échelle québécoise des niveaux
+de compétence en français (integers 1–12, stages débutant / intermédiaire / avancé),
+a per-level descriptor used to calibrate both the tutor and the reviewer, and the
+approximate CEFR equivalent (1–2 A1 … 11–12 C2) shown wherever a level is displayed.
+Stored documents still accept the pre-2026-09-18 CEFR strings and migrate them on
+parse (`StoredLevelSchema` in `schema.ts`). `merge.ts` moves a level by at most one
+step per session toward the median of recent observations.
+
+## Session modes
+
+`resolveMode` in `src/lib/tutor/instructions.ts`: the first call is `assessment`
+(placement across the four competencies), then `auto` cycles
+guided → lesson → quebec → guided → lesson → assessment. `lesson` is an explicit
+grammar-point + vocabulary mini-lesson inside a conversation; `assessment` asks the
+learner to read the on-screen transcript and to type answers so that written
+comprehension/production get evidence too. Typed turns carry `typed: true` in the
+transcript and the reviewer sees them as `LEARNER (typed)`.
+
+## Turn-taking
+
+The learner must never be interrupted while thinking. Gemini Live runs with
+`END_SENSITIVITY_LOW`, `silenceDurationMs: 1500` and `prefixPaddingMs: 300`
+(`gemini-setup.ts`); OpenAI uses `semantic_vad` with `eagerness: "low"`. The prompt's
+PATIENCE section tells the tutor to stop after one question, wait through silence,
+and never speak over the learner.
+
 ## Session lifecycle
 
 1. Page load → `GET /api/learner` → header shows level + focus.
-2. Start → `POST /api/realtime/session` (mode) → `{ clientSecret, instructions,
-   sessionId, voice, model }` → browser creates `RealtimeAgent` + `RealtimeSession`
-   → `connect()` → tutor greets first (client triggers one response).
+2. Start → `POST /api/realtime/session` (mode) → `{ provider, instructions,
+   sessionId, gemini|openai credentials }` → browser opens a `VoiceSession`
+   (Gemini Live WebSocket by default) → tutor greets first (client triggers one response).
 3. During the call the tutor may call the client-side tool `note_evidence`
    (grammar error / vocab gap / good use / comprehension issue). The browser
    buffers those plus the transcript in memory and mirrors them to localStorage

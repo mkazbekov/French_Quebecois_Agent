@@ -51,11 +51,17 @@ export function buildGeminiLiveSetup({ model, voice, instructions }: GeminiSetup
       tools: [{ functionDeclarations: [NOTE_EVIDENCE_TOOL] }],
       inputAudioTranscription: {},
       outputAudioTranscription: {},
+      // Patience: the tutor must not take the turn while the learner is still
+      // thinking. Low end-of-speech sensitivity plus a long silence window means
+      // a mid-sentence pause is not treated as "done talking"; low start
+      // sensitivity avoids barge-ins from breathing/background noise.
       realtimeInputConfig: {
         automaticActivityDetection: {
           disabled: false,
-          prefixPaddingMs: 100,
-          silenceDurationMs: 600,
+          startOfSpeechSensitivity: "START_SENSITIVITY_LOW",
+          endOfSpeechSensitivity: "END_SENSITIVITY_LOW",
+          prefixPaddingMs: 300,
+          silenceDurationMs: 1500,
         },
       },
       // Lets calls run past the 15-minute audio session cap by compressing old context.

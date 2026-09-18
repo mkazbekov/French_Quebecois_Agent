@@ -1,3 +1,4 @@
+import { formatLevel } from "./levels";
 import type { LearnerState, ReviewDelta, SessionEvidence, SessionSummary } from "./schema";
 
 /**
@@ -51,7 +52,7 @@ export function renderSessionRecordMarkdown(
 
 function competencyTable(state: LearnerState): string {
   const rows = (Object.entries(state.competencies) as Array<[string, LearnerState["competencies"]["oral_production"]]>).map(
-    ([key, c]) => `| ${key} | ${c.level} | ${c.confidence.toFixed(2)} | ${c.evidence_count} |`,
+    ([key, c]) => `| ${key} | ${formatLevel(c.level)} | ${c.confidence.toFixed(2)} | ${c.evidence_count} |`,
   );
   return ["| Competency | Level | Confidence | Evidence |", "| --- | --- | --- | --- |", ...rows].join("\n");
 }
