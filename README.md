@@ -15,6 +15,7 @@ account, Git, or any programming tools.
 2. [Get your free Gemini API key](#step-1--get-your-free-gemini-api-key) (both Windows and Mac)
 3. [Install and start on Windows](#step-2-windows--install-and-start)
 4. [Install and start on macOS](#step-2-macos--install-and-start)
+   (or [with Git](#alternative-windows-or-mac--if-you-already-use-git))
 5. [Your first conversation](#step-3--your-first-conversation)
 6. [Every day after that](#every-day-after-that)
 7. [Troubleshooting](#troubleshooting)
@@ -122,7 +123,9 @@ You can close the PowerShell window from step 1. You won't need it again.
 
 ### Alternative: download the ZIP instead
 
-If you'd rather not paste a command:
+The pasted line above is the easiest way: it avoids Windows' security prompts and makes
+the Desktop icon for you. Use the ZIP only if you can't use PowerShell. It needs one
+extra Windows step, and you start the tutor from the folder instead of a Desktop icon.
 
 1. On <https://github.com/mkazbekov/French_Quebecois_Agent> click the green **Code**
    button, then **Download ZIP**.
@@ -179,6 +182,9 @@ installer downloads itself are not blocked, so the Desktop icon just works.
 
 ### Alternative: download the ZIP instead
 
+The Terminal line above is easier. The ZIP route needs a trip to System Settings to let
+the launcher run, and it doesn't make a Desktop icon.
+
 1. On <https://github.com/mkazbekov/French_Quebecois_Agent> click **Code → Download ZIP**.
    Safari unzips it into your Downloads folder automatically.
 2. Open the **French_Quebecois_Agent-main** folder and double-click
@@ -188,6 +194,24 @@ installer downloads itself are not blocked, so the Desktop icon just works.
    message about *Start Tutor (Mac).command*, click **Open Anyway**, and confirm with your
    password or Touch ID. You only do this once.
 4. From step 3 of the installer above, it's the same.
+
+---
+
+## Alternative (Windows or Mac) — if you already use Git
+
+If Git is installed, you can clone the repository instead. You don't need a GitHub
+account. Files that Git downloads aren't blocked by Windows or macOS, so no unblocking
+or *Open Anyway* step is needed.
+
+```bash
+git clone https://github.com/mkazbekov/French_Quebecois_Agent.git
+```
+
+Then open the **French_Quebecois_Agent** folder and double-click **Start Tutor
+(Windows).bat** or **Start Tutor (Mac).command**. From step 3 of the installer it's the
+same. There is no Desktop icon; start the tutor from that file each time. To update,
+close the tutor and run `git pull` in that folder. Your key (`.env`) and progress are
+kept.
 
 ---
 
@@ -259,7 +283,8 @@ If the browser tab was closed but the window is still open, just open
 running also just opens the page.
 
 **Updating to a newer version:** close the tutor window, then run the same one-line
-install command again. It replaces the program but keeps your key and progress.
+install command again. It replaces the program but keeps your key and progress. (If
+you installed with Git, run `git pull` in the tutor's folder instead.)
 
 **Uninstalling:** close the tutor, then delete the **Quebec French Tutor** folder in your
 user/home folder and the Desktop (and Windows Start menu) icon. That removes everything,
