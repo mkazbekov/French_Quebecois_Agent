@@ -80,3 +80,29 @@ describe("buildTutorInstructions", () => {
     expect(instructions).not.toContain("undefined");
   });
 });
+
+import { resolveLanguageStage } from "@/lib/tutor/instructions";
+import { defaultLearnerState as mkState } from "@/lib/learner/defaults";
+
+describe("language stage", () => {
+  it("beginners get English support by default", () => {
+    const s = mkState("Mirza");
+    expect(resolveLanguageStage(s)).toBe("english_support");
+    const { instructions } = buildTutorInstructions({ state: s, mode: "auto", recentRecords: [] });
+    expect(instructions).toContain("LANGUAGE STAGE: English support");
+    expect(instructions).toContain("say the same thing in English");
+  });
+  it("follows the oral level when auto, and the explicit preference otherwise", () => {
+    const s = mkState("Mirza");
+    s.competencies.oral_production.level = "A2";
+    expect(resolveLanguageStage(s)).toBe("mixed");
+    s.competencies.oral_production.level = "B1";
+    expect(resolveLanguageStage(s)).toBe("french_only");
+    s.profile.preferences.language_mode = "english_support";
+    expect(resolveLanguageStage(s)).toBe("english_support");
+    s.profile.preferences.language_mode = "french_only";
+    s.competencies.oral_production.level = "A1";
+    expect(resolveLanguageStage(s)).toBe("french_only");
+    expect(buildTutorInstructions({ state: s, mode: "auto", recentRecords: [] }).instructions).toContain("LANGUAGE STAGE: French only");
+  });
+});

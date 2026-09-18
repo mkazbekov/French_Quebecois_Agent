@@ -32,6 +32,12 @@ setup and everyday flow.
   `src/lib/env.ts` on the server. Never import `env.ts` from client code, never log
   keys, never persist raw transcripts.
 
+- **Language stage is pedagogy, not config.** `resolveLanguageStage` in
+  `src/lib/tutor/instructions.ts` maps `profile.preferences.language_mode`
+  (auto | english_support | french_only) and the oral level to one of three prompt
+  blocks. Beginners get real English; French-only is earned. Keep the Language
+  switch on the main page as the only user-facing control for this.
+
 ## Commands
 
 | command | purpose |
@@ -48,7 +54,7 @@ src/app/page.tsx                 the single screen (client)
 src/app/review/page.tsx          Review Mistakes (server component)
 src/app/api/realtime/session     POST: learner state → instructions → ek_ key
 src/app/api/session/end          POST: evidence → review → merge → persist → summary
-src/app/api/learner              GET: state + storeKind
+src/app/api/learner              GET: state + storeKind; PATCH: language_mode preference
 src/hooks/useTutorSession.ts     realtime lifecycle, note_evidence tool, crash recovery
 src/lib/learner/                 schema, stores, merge, render, defaults
 src/lib/voice/                   VoiceSession contract + gemini/openai implementations

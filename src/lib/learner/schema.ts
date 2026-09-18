@@ -47,6 +47,13 @@ export const ProfileSchema = z.object({
   preferences: z.object({
     explanation_language: z.string().default("en"),
     correction_intensity: z.enum(["light", "medium", "high"]).default("light"),
+    /**
+     * How much English the tutor uses.
+     *  auto            derived from oral level (beginners get English support, advanced get French only)
+     *  english_support tutor explains and can converse in English, teaching French step by step
+     *  french_only     French all the way; English only for a rare quick gloss
+     */
+    language_mode: z.enum(["auto", "english_support", "french_only"]).default("auto"),
   }),
   sessions_completed: z.number().int().nonnegative().default(0),
   total_minutes: z.number().nonnegative().default(0),

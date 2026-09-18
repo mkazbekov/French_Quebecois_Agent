@@ -47,6 +47,17 @@ Nothing else to configure. The optional chips under the button (Free Conversatio
 Guided Practice, Québec Mode, Correction Mode) only change the flavour of the next
 call; leaving them alone lets the tutor choose.
 
+**How much English?** Under the mode chips there is a small **Language** switch:
+
+- **Auto** (default): follows your level. As a beginner the tutor is fully bilingual,
+  explains in English and teaches French in small steps. Around A2 it leads in
+  French with English on standby. From A2+ it stays in French.
+- **English help**: keep the bilingual style regardless of level.
+- **French only**: French all the way, English only for a rare quick gloss.
+
+The choice is saved in your learner profile. You can also just ask the tutor out
+loud ("explain in English", "on continue en français").
+
 **Review Mistakes** (link at the top) shows your competency estimates, recurring
 errors, vocabulary being recycled, and the current curriculum focus.
 

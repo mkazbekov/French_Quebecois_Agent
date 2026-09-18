@@ -19,7 +19,7 @@ export function defaultLearnerState(name: string): LearnerState {
       name,
       native_languages: ["English", "Russian", "Uzbek", "Karakalpak"],
       goals: ["Practical spoken Montréal / Québec French for daily life"],
-      preferences: { explanation_language: "en", correction_intensity: "light" },
+      preferences: { explanation_language: "en", correction_intensity: "light", language_mode: "auto" },
       sessions_completed: 0,
       total_minutes: 0,
       first_session_at: null,

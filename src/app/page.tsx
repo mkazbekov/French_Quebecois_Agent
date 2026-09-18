@@ -6,14 +6,18 @@ import type { LearnerState, SessionMode } from "@/lib/learner/schema";
 import { TutorHeader } from "@/components/TutorHeader";
 import { MicOrb } from "@/components/MicOrb";
 import { ModeChips } from "@/components/ModeChips";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import { TranscriptPanel } from "@/components/TranscriptPanel";
 import { SummaryCard } from "@/components/SummaryCard";
+
+type LanguageMode = "auto" | "english_support" | "french_only";
 
 export default function Home() {
   const { status, error, transcript, summary, provider, start, end, sendText, reset } = useTutorSession();
   const [learnerState, setLearnerState] = useState<LearnerState | null>(null);
   const [storeKind, setStoreKind] = useState<string | null>(null);
   const [selectedMode, setSelectedMode] = useState<SessionMode>("auto");
+  const [languageModeError, setLanguageModeError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/learner")
@@ -29,6 +33,31 @@ export default function Home() {
 
   const isActive = status !== "idle" && status !== "done" && status !== "error";
   const isConnected = status === "listening" || status === "speaking";
+
+  const handleLanguageModeChange = (mode: LanguageMode) => {
+    if (!learnerState) return;
+    const previous = learnerState;
+    setLanguageModeError(null);
+    setLearnerState({
+      ...learnerState,
+      profile: {
+        ...learnerState.profile,
+        preferences: { ...learnerState.profile.preferences, language_mode: mode },
+      },
+    });
+    fetch("/api/learner", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ language_mode: mode }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to save");
+      })
+      .catch(() => {
+        setLearnerState(previous);
+        setLanguageModeError("Couldn't save language setting.");
+      });
+  };
 
   return (
     <div className="flex-1 flex flex-col items-center gap-8 py-10 px-4">
@@ -75,6 +104,15 @@ export default function Home() {
             )}
 
             <ModeChips selected={selectedMode} onSelect={setSelectedMode} disabled={isActive} />
+
+            <LanguageToggle
+              value={learnerState?.profile.preferences.language_mode ?? "auto"}
+              onChange={handleLanguageModeChange}
+              disabled={isActive}
+            />
+            {languageModeError && (
+              <p className="text-xs text-red-600 dark:text-red-400 text-center max-w-sm">{languageModeError}</p>
+            )}
 
             {error && status !== "error" && (
               <p className="text-xs text-amber-600 dark:text-amber-400 text-center max-w-sm">{error}</p>

@@ -19,6 +19,37 @@ Gather evidence about oral production and oral comprehension without making it f
 Role-play one concrete Montréal situation (choose one that has not been done recently: café, dépanneur/épicerie, métro/STM, workplace small talk, a rendez-vous, a restaurant, meeting a neighbour, weather and winter, asking directions, renting an apartment). Set the scene in one sentence, play the other person, and use natural Québec vocabulary for the situation. Step out of the role only briefly if the learner is stuck.`,
 };
 
+export type LanguageStage = "english_support" | "mixed" | "french_only";
+
+/**
+ * How much English the tutor uses. Explicit preference wins; "auto" follows the
+ * oral production level: A0/A1 → English support, A1+/A2 → mixed, A2+ and up → French.
+ */
+export function resolveLanguageStage(state: LearnerState): LanguageStage {
+  const pref = state.profile.preferences.language_mode;
+  if (pref === "english_support" || pref === "french_only") return pref;
+  const level = state.competencies.oral_production.level;
+  if (level === "A0" || level === "A1") return "english_support";
+  if (level === "A1+" || level === "A2") return "mixed";
+  return "french_only";
+}
+
+const LANGUAGE_GUIDANCE: Record<LanguageStage, string> = {
+  english_support: `LANGUAGE STAGE: English support (beginner).
+- You are fully bilingual. Speak clear, natural English whenever the learner needs it, and use it freely for explanations, instructions, and to keep the conversation alive.
+- Teach French in small steps: say a short French sentence, then give its English meaning right after when it is new ("Comment ça va ? — that's 'how are you?'"). Ask the learner to repeat or answer in French.
+- If the learner answers in English, that's fine: acknowledge in English, then give them the French version of what they said and invite them to say it.
+- Keep adding French as the call goes on; by the end, most of your simple questions should be in French, with English standing by.
+- Still keep your turns short and one question at a time.`,
+  mixed: `LANGUAGE STAGE: Mixed (French first, English on standby).
+- Open and lead in French with simple sentences.
+- Switch to English immediately when the learner asks, when they are clearly stuck, or to explain a grammar point or a Québec expression; then return to French.
+- If the learner speaks English, answer briefly in English if needed, then say "En français, on dirait : …" and continue in French.`,
+  french_only: `LANGUAGE STAGE: French only.
+- Hold the whole conversation in French. Use English only for a rare two- or three-word gloss of a hard word, then continue in French.
+- If the learner switches to English, answer in French and gently pull them back: "Essaie en français : …".`,
+};
+
 export function resolveMode(requested: SessionMode, state: LearnerState): Exclude<SessionMode, "auto"> {
   if (requested !== "auto") return requested;
   const n = state.profile.sessions_completed;
@@ -83,8 +114,10 @@ export interface BuildInstructionsInput {
 export function buildTutorInstructions({ state, mode, recentRecords, now = new Date() }: BuildInstructionsInput): {
   instructions: string;
   mode: Exclude<SessionMode, "auto">;
+  stage: LanguageStage;
 } {
   const resolved = resolveMode(mode, state);
+  const stage = resolveLanguageStage(state);
   const p = state.profile;
   const daysSince = p.last_session_at ? Math.round((now.getTime() - new Date(p.last_session_at).getTime()) / 86_400_000) : null;
 
@@ -93,8 +126,10 @@ export function buildTutorInstructions({ state, mode, recentRecords, now = new D
 LANGUAGE
 - Speak natural Montréal / Québec French: everyday register, normal Québec pronunciation and rhythm, common expressions (c'est correct, ça va bien aller, un dépanneur, la STM, magasiner, une blonde/un chum, il fait frette, tantôt, pis). Do NOT exaggerate or caricature the accent, and do not overload sentences with slang; sound like an educated Montréaler talking to a friend.
 - When a Québec form differs from international French in a way that matters for daily life, mention it in a few words (e.g. "ici on dit 'déjeuner' pour le matin").
-- Use English only when a short explanation would genuinely unblock the learner (they speak English, Russian, Uzbek and Karakalpak). Then return to French immediately. Never hold the whole conversation in English.
+- The learner speaks English, Russian, Uzbek and Karakalpak. English is the support language; how much of it you use is set by the LANGUAGE STAGE below.
 - Adapt vocabulary and speed to the learner's level (${levelLabel(state)}). Increase difficulty gradually within the call when they are coping well; simplify when they stall.
+
+${LANGUAGE_GUIDANCE[stage]}
 
 TEACHING STYLE
 - Conversation IS the lesson. Do not lecture, do not list rules, do not correct every sentence.
@@ -102,7 +137,6 @@ TEACHING STYLE
 - Recycle the shaky words and weak grammar below by creating natural opportunities to use them.
 - Encourage in a real way, not with empty praise. If the learner is silent or says very little, offer a simpler question or two options to choose from.
 - If the learner clearly did not understand, rephrase more simply instead of repeating louder.
-- If the learner switches to English, answer briefly in French and gently pull them back: "Essaie en français : ...".
 
 ${MODE_GUIDANCE[resolved]}
 
@@ -136,10 +170,10 @@ EVIDENCE LOGGING
 You have a tool called note_evidence. Call it silently (never mention it) whenever you notice something worth remembering: a grammar error, a vocabulary gap, a word the learner used well, a comprehension problem, a reliably audible pronunciation issue, or good use of a Québec expression. Keep calling it throughout the call; the learner's progress record depends on it. Do not let tool calls interrupt the flow of your speech.
 
 OPENING
-Start the call yourself, in French, with a short friendly greeting that uses the learner's name${p.sessions_completed > 0 ? " and, if natural, one small reference to the last session" : ""}. Then ask one easy opening question. Wait for the answer.
+Start the call yourself with a short friendly greeting that uses the learner's name${p.sessions_completed > 0 ? " and, if natural, one small reference to the last session" : ""}. ${stage === "english_support" ? "Greet in French, then say the same thing in English, and ask one very easy question in French with its English meaning." : stage === "mixed" ? "Greet in French and ask one easy question in French; add a short English hint only if the question uses new words." : "Greet in French and ask one easy opening question in French."} Wait for the answer.
 
 ENDING
 If the learner says they want to stop (in any language), say a short warm goodbye in French and stop talking. Do not summarise the session; the app does that.`;
 
-  return { instructions, mode: resolved };
+  return { instructions, mode: resolved, stage };
 }
