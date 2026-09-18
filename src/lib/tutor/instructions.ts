@@ -1,5 +1,6 @@
 import { LEVEL_DESCRIPTORS, MAX_LEVEL, clampLevel, formatLevel, stageOf } from "@/lib/learner/levels";
 import type { LearnerState, SessionMode } from "@/lib/learner/schema";
+import { dueItems, recurringDue } from "@/lib/learner/spacing";
 import { findUnit, formatUnit, levelProgress, pendingUnits } from "@/lib/learner/syllabus";
 import type { SessionRecord } from "@/lib/learner/store";
 
@@ -30,6 +31,9 @@ Gather evidence for ALL FOUR competencies of the Échelle québécoise, without 
 - Written comprehension: the transcript of what you say is shown on the learner's screen. Twice during the call, say "regarde ce que je viens d'écrire à l'écran" and then say a short sentence or a two-line note that they must READ (not just hear) and answer, e.g. a short text message from a landlord or a colleague. Ask what it says or what they would reply.
 - Written production: twice during the call, ask the learner to TYPE their answer in the text box under the transcript instead of saying it (one sentence about themselves; later a short reply message). Comment on the written form (spelling, accents, agreement) in one line.
 Vary difficulty across the levels: level 1–2 tasks are memorised phrases and yes/no questions; 3–4 present tense and simple past on routine topics; 5–6 sequenced narration and simple opinions; 7–8 argument, conditional and register changes; 9+ nuance and abstract topics. Log evidence generously with the note_evidence tool. Do not announce scores or levels to the learner; say only what they did well and one thing to work on.`,
+  remediation: `MODE: Remediation drill.
+The learner has recurring errors that are due for work (listed under RECURRING ERRORS and DUE FOR REVIEW). This call targets them, two or three at most, most frequent first.
+For each one: (1) say the correct form and the rule in at most two sentences, with the learner's own past mistake as the example; (2) ask four to six short questions whose natural answer requires the form, correcting every miss immediately and briefly; (3) once they get three in a row, move on. Then a short free exchange where those forms come up naturally; recast if they slip. Log each success or failure with note_evidence so the record shows whether the drill worked. Keep the tone light; this is practice, not a test.`,
   quebec: `MODE: Québec situations.
 Role-play one concrete Montréal situation (choose one that has not been done recently: café, dépanneur/épicerie, métro/STM, workplace small talk, a rendez-vous, a restaurant, meeting a neighbour, weather and winter, asking directions, renting an apartment). Set the scene in one sentence, play the other person, and use natural Québec vocabulary for the situation. Step out of the role only briefly if the learner is stuck.`,
 };
@@ -68,12 +72,22 @@ const LANGUAGE_GUIDANCE: Record<LanguageStage, string> = {
 
 /** Six-session cycle after the placement call: practice, lesson, Québec situation, practice, lesson, level check. */
 const AUTO_CYCLE: Array<Exclude<SessionMode, "auto">> = ["guided", "lesson", "quebec", "guided", "lesson", "assessment"];
+/** Two or more recurring errors due → the next auto call drills them. */
+export const REMEDIATION_MIN_RECURRING = 2;
+/** Oral confidence below this → the next auto call is a level check. */
+export const LOW_CONFIDENCE = 0.25;
 
-export function resolveMode(requested: SessionMode, state: LearnerState): Exclude<SessionMode, "auto"> {
+export function resolveMode(requested: SessionMode, state: LearnerState, now: Date = new Date()): Exclude<SessionMode, "auto"> {
   if (requested !== "auto") return requested;
   const n = state.profile.sessions_completed;
   // First call is a placement across the four competencies.
   if (n === 0) return "assessment";
+  const lastMode = state.progress.entries[0]?.mode;
+  // Weak spots first: a drill when recurring errors are due, never two drills in a row.
+  if (lastMode !== "remediation" && recurringDue(state, now).length >= REMEDIATION_MIN_RECURRING) return "remediation";
+  // Stale picture of the learner: re-check the level before continuing the program.
+  const c = state.competencies;
+  if (lastMode !== "assessment" && Math.min(c.oral_production.confidence, c.oral_comprehension.confidence) < LOW_CONFIDENCE) return "assessment";
   return AUTO_CYCLE[(n - 1) % AUTO_CYCLE.length];
 }
 
@@ -138,6 +152,16 @@ function programLines(state: LearnerState): string {
   return lines.join("\n");
 }
 
+function dueLines(state: LearnerState, now: Date): string {
+  const due = dueItems(state, now);
+  const lines: string[] = [];
+  for (const e of due.errors.slice(0, 5)) lines.push(`- error [${e.id}] ${e.pattern} (${e.status}): check whether "${e.preferred}" now comes naturally`);
+  for (const u of due.units.slice(0, 3)) lines.push(`- unit ${u.unit.id} ${u.unit.title} (finished earlier): bring it up once and see if it still holds`);
+  const words = due.vocabulary.slice(0, 10).map((v) => v.word);
+  if (words.length) lines.push(`- words: ${words.join(", ")}`);
+  return lines.length ? lines.join("\n") : "(nothing due today)";
+}
+
 function recentSessions(records: SessionRecord[]): string {
   if (!records.length) return "This is the learner's first session with you.";
   return records
@@ -158,7 +182,7 @@ export function buildTutorInstructions({ state, mode, recentRecords, now = new D
   mode: Exclude<SessionMode, "auto">;
   stage: LanguageStage;
 } {
-  const resolved = resolveMode(mode, state);
+  const resolved = resolveMode(mode, state, now);
   const stage = resolveLanguageStage(state);
   const p = state.profile;
   const daysSince = p.last_session_at ? Math.round((now.getTime() - new Date(p.last_session_at).getTime()) / 86_400_000) : null;
@@ -210,6 +234,9 @@ CURRENT FOCUS (from the curriculum roadmap)
 
 RECURRING ERRORS (weave in practice; correct these when they happen again)
 ${recurringErrors(state)}
+
+DUE FOR REVIEW (spaced repetition: bring these up naturally during this call, most overdue first)
+${dueLines(state, now)}
 
 GRAMMAR TO WORK ON
 ${grammarLines(state)}

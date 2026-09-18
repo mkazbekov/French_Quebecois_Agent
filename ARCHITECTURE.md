@@ -65,6 +65,20 @@ rebuilt from the syllabus every session. The tutor prompt carries the current un
 the next four, and per-level progress; the reviewer sees the units in play and
 reports `units_practiced` against those ids only.
 
+## Adaptivity (spacing.ts)
+
+`src/lib/learner/spacing.ts` owns spaced review. `merge.ts` sets `next_review` on
+errors (by status: new/recurring 2 d, improving 7 d, resolved 21 d), vocabulary
+(1 d unless known, then 2^n days capped at 60) and finished units (14 d, doubling
+to 90 d; a `struggled` outcome on a done unit lapses it back to `in_progress`).
+Errors carry `unit_id` (reviewer-provided, else `matchUnitForError` keyword match
+in `syllabus.ts`); a recurring error whose unit is pending makes that unit current
+ahead of program order. Unobserved competencies lose `CONFIDENCE_DECAY_PER_SESSION`.
+`resolveMode` (instructions.ts) turns this into session plans: `remediation` when
+`recurringDue` ≥ 2 (not twice in a row), `assessment` when oral confidence <
+`LOW_CONFIDENCE` (not twice in a row), else the six-call cycle. The prompt carries a
+DUE FOR REVIEW block built by `dueItems`.
+
 ## Session modes
 
 `resolveMode` in `src/lib/tutor/instructions.ts`: the first call is `assessment`

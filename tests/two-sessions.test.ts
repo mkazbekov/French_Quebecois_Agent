@@ -39,6 +39,7 @@ const delta1: ReviewDelta = {
       preferred: "je suis allé au travail",
       explanation: "aller takes être in the passé composé",
       occurrences: 1,
+      unit_id: "",
     },
   ],
   competencies: [

@@ -64,6 +64,7 @@ just said on screen (reading). You can also type any time instead of speaking.
 - **Québec Mode**: role-play of one Montréal situation (dépanneur, STM, landlord, winter…).
 - **Correction Mode**: explicit one-line corrections after each clear error.
 - **Level Check**: evidence gathering across the four competencies; no score is announced.
+- **Drill My Errors**: a targeted drill on your recurring errors.
 
 **Language switch** (how much English the tutor uses):
 
@@ -92,6 +93,23 @@ are filled before moving up, and one level above yours is always in reach. The
 end-of-call review may pull a unit forward when your errors call for it, but cannot
 skip or invent units. The Review page shows a progress bar per level and the unit
 list for your level.
+
+## How it adapts to you
+
+- **Errors point at units.** Every recorded error is linked to the syllabus unit that
+  teaches the fix (the reviewer names it, with a keyword fallback in code). Once an
+  error becomes recurring, that unit jumps to the front of the program.
+- **Spaced review.** Errors, vocabulary and finished units carry a review date. New
+  errors come back in two days, improving ones in a week, resolved ones in three weeks
+  as a check. Words come back tomorrow after a struggle and at doubling intervals once
+  known. A finished unit is re-checked after two weeks, then at doubling intervals; if
+  the check fails, the unit re-enters the program. Due items are listed in the prompt
+  and on the Review page.
+- **Remediation calls.** When two or more recurring errors are due, the next automatic
+  call is a drill on them (never two drills in a row).
+- **Confidence decay.** A competency the review said nothing about loses a little
+  confidence each session; when confidence in your oral skills gets low, the next
+  automatic call is a level check.
 
 ## Levels
 

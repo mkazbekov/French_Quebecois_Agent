@@ -7,6 +7,7 @@ const CHIPS: { mode: Exclude<SessionMode, "auto">; label: string }[] = [
   { mode: "quebec", label: "Québec Mode" },
   { mode: "correction", label: "Correction Mode" },
   { mode: "assessment", label: "Level Check" },
+  { mode: "remediation", label: "Drill My Errors" },
 ];
 
 export function ModeChips({

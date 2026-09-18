@@ -33,7 +33,7 @@ export const COMPETENCY_KEYS = [
 export type CompetencyKey = (typeof COMPETENCY_KEYS)[number];
 export const CompetencyKeySchema = z.enum(COMPETENCY_KEYS);
 
-export const SESSION_MODES = ["auto", "free", "guided", "lesson", "correction", "assessment", "quebec"] as const;
+export const SESSION_MODES = ["auto", "free", "guided", "lesson", "correction", "assessment", "quebec", "remediation"] as const;
 export type SessionMode = (typeof SESSION_MODES)[number];
 export const SessionModeSchema = z.enum(SESSION_MODES);
 
@@ -108,6 +108,10 @@ export const ErrorRecordSchema = z.object({
   first_observed: z.string(),
   last_observed: z.string(),
   status: z.enum(["new", "recurring", "improving", "resolved"]),
+  /** Syllabus unit that teaches the fix (e.g. L3-G02), "" if none. Set by the reviewer or by keyword match. */
+  unit_id: z.string().default(""),
+  /** Spaced review: when this error should be checked again. */
+  next_review: z.string().nullable().default(null),
 });
 export type ErrorRecord = z.infer<typeof ErrorRecordSchema>;
 
@@ -126,6 +130,8 @@ export const VocabEntrySchema = z.object({
   times_used_correctly: z.number().int().nonnegative().default(0),
   times_struggled: z.number().int().nonnegative().default(0),
   last_seen: z.string().nullable().default(null),
+  /** Spaced review: when this word should be recycled again. */
+  next_review: z.string().nullable().default(null),
 });
 export type VocabEntry = z.infer<typeof VocabEntrySchema>;
 
@@ -170,6 +176,10 @@ export const UnitProgressSchema = z.object({
   ok: z.number().int().nonnegative().default(0),
   struggled: z.number().int().nonnegative().default(0),
   last_practiced: z.string().nullable().default(null),
+  /** Spaced review of a finished unit; null while the unit is still being learned. */
+  next_review: z.string().nullable().default(null),
+  /** Current review interval in days (grows while reviews go well). */
+  interval_days: z.number().int().nonnegative().default(0),
 });
 export type UnitProgress = z.infer<typeof UnitProgressSchema>;
 
@@ -295,6 +305,8 @@ export const ReviewErrorSchema = z.object({
   preferred: z.string(),
   explanation: z.string(),
   occurrences: z.number().int().positive(),
+  /** Syllabus unit id that teaches the fix, from the units listed in the prompt; "" if none fits. */
+  unit_id: z.string(),
 });
 
 export const ReviewCompetencyObservationSchema = z.object({

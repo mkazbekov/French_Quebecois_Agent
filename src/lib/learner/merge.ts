@@ -1,5 +1,6 @@
 import { clampLevel, formatLevel, type Level } from "./levels";
-import { findUnit, pendingUnits, type SyllabusUnit } from "./syllabus";
+import { ERROR_INTERVAL_DAYS, UNIT_FIRST_INTERVAL_DAYS, UNIT_MAX_INTERVAL_DAYS, addDays, vocabIntervalDays } from "./spacing";
+import { findUnit, matchUnitForError, pendingUnits, type SyllabusUnit } from "./syllabus";
 import {
   type CompetencyKey,
   type ErrorRecord,
@@ -40,6 +41,9 @@ function medianIndex(indices: number[]): number {
   if (sorted.length % 2 === 1) return sorted[mid];
   return Math.round((sorted[mid - 1] + sorted[mid]) / 2);
 }
+
+/** Confidence lost per session in which a competency was not observed. */
+export const CONFIDENCE_DECAY_PER_SESSION = 0.05;
 
 function plural(n: number, word: string): string {
   return `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -97,10 +101,18 @@ export function applyReviewDelta(
         first_observed: nowIso,
         last_observed: nowIso,
         status: "new",
+        unit_id: "",
+        next_review: null,
       };
       s.errors.items.push(record);
       touchedErrorIds.add(id);
       newErrorCount += 1;
+      existing = record;
+    }
+    // Which syllabus unit fixes this? Reviewer's id if valid, else keyword match; never overwrite a valid one.
+    if (!existing.unit_id || !findUnit(existing.unit_id)) {
+      const unit = (de.unit_id && findUnit(de.unit_id)) || matchUnitForError(de.pattern);
+      existing.unit_id = unit?.id ?? "";
     }
   }
 
@@ -116,6 +128,14 @@ export function applyReviewDelta(
     if (!rec) continue;
     if (rec.status === "new" || rec.status === "recurring") rec.status = "improving";
     else if (rec.status === "improving") rec.status = "resolved";
+  }
+  // Spaced review dates: anything touched this session (made or checked) gets a new date.
+  for (const rec of s.errors.items) {
+    if (touchedErrorIds.has(rec.id) || delta.errors_improving.includes(rec.id)) {
+      rec.next_review = addDays(now, ERROR_INTERVAL_DAYS[rec.status]);
+    } else if (rec.next_review === null && rec.status !== "resolved") {
+      rec.next_review = addDays(now, ERROR_INTERVAL_DAYS[rec.status]);
+    }
   }
 
   // -------------------------------------------------------------------
@@ -151,6 +171,13 @@ export function applyReviewDelta(
 
     if (comp.level !== before) competencyChanges.push({ key: obs.competency, from: before, to: comp.level });
   }
+  // Confidence decays for competencies this session said nothing about (floor 0.1).
+  const observedKeys = new Set(delta.competencies.filter((o) => o.evidence_strength >= 1).map((o) => o.competency));
+  for (const key of Object.keys(s.competencies) as CompetencyKey[]) {
+    if (observedKeys.has(key)) continue;
+    const comp = s.competencies[key];
+    comp.confidence = Math.max(0.1, Math.round((comp.confidence - CONFIDENCE_DECAY_PER_SESSION) * 100) / 100);
+  }
 
   // -------------------------------------------------------------------
   // c. Vocabulary
@@ -163,7 +190,7 @@ export function applyReviewDelta(
 
     if (rv.outcome === "used_correctly") {
       if (!existing) {
-        existing = { word: rv.word, meaning: "", register: "standard", status: "shaky", times_used_correctly: 0, times_struggled: 0, last_seen: null };
+        existing = { word: rv.word, meaning: "", register: "standard", status: "shaky", times_used_correctly: 0, times_struggled: 0, last_seen: null, next_review: null };
         s.vocabulary.items.push(existing);
       }
       existing.times_used_correctly += 1;
@@ -172,7 +199,7 @@ export function applyReviewDelta(
       }
     } else if (rv.outcome === "struggled") {
       if (!existing) {
-        existing = { word: rv.word, meaning: "", register: "standard", status: "shaky", times_used_correctly: 0, times_struggled: 0, last_seen: null };
+        existing = { word: rv.word, meaning: "", register: "standard", status: "shaky", times_used_correctly: 0, times_struggled: 0, last_seen: null, next_review: null };
         s.vocabulary.items.push(existing);
       }
       existing.times_struggled += 1;
@@ -180,7 +207,7 @@ export function applyReviewDelta(
     } else {
       // introduced
       if (!existing) {
-        existing = { word: rv.word, meaning: "", register: "standard", status: "target", times_used_correctly: 0, times_struggled: 0, last_seen: null };
+        existing = { word: rv.word, meaning: "", register: "standard", status: "target", times_used_correctly: 0, times_struggled: 0, last_seen: null, next_review: null };
         s.vocabulary.items.push(existing);
       }
       introducedWords.push(rv.word);
@@ -189,6 +216,7 @@ export function applyReviewDelta(
     if (!existing.meaning) existing.meaning = rv.meaning;
     if (existing.register === "standard" && rv.register !== "standard") existing.register = rv.register;
     existing.last_seen = nowIso;
+    existing.next_review = addDays(now, vocabIntervalDays(existing));
   }
 
   if (s.vocabulary.items.length > 400) {
@@ -261,31 +289,63 @@ export function applyReviewDelta(
     if (!findUnit(ru.unit_id)) continue;
     let rec = s.roadmap.units.find((u) => u.id === ru.unit_id);
     if (!rec) {
-      rec = { id: ru.unit_id, status: "not_started", ok: 0, struggled: 0, last_practiced: null };
+      rec = { id: ru.unit_id, status: "not_started", ok: 0, struggled: 0, last_practiced: null, next_review: null, interval_days: 0 };
       s.roadmap.units.push(rec);
     }
+    const wasDone = rec.status === "done";
     if (ru.outcome === "practiced_ok") rec.ok += 1;
     else if (ru.outcome === "struggled") rec.struggled += 1;
     rec.last_practiced = nowIso;
-    rec.status = rec.ok >= 2 && rec.ok >= 2 * rec.struggled ? "done" : "in_progress";
+
+    if (wasDone && ru.outcome === "struggled") {
+      // Lapse: a finished unit failed its spaced review; it re-enters the program.
+      rec.status = "in_progress";
+      rec.ok = 0;
+      rec.next_review = null;
+      rec.interval_days = 0;
+    } else if (wasDone && ru.outcome === "practiced_ok") {
+      rec.interval_days = Math.min(UNIT_MAX_INTERVAL_DAYS, Math.max(UNIT_FIRST_INTERVAL_DAYS, rec.interval_days * 2));
+      rec.next_review = addDays(now, rec.interval_days);
+    } else if (rec.ok >= 2 && rec.ok >= 2 * rec.struggled) {
+      rec.status = "done";
+      rec.interval_days = UNIT_FIRST_INTERVAL_DAYS;
+      rec.next_review = addDays(now, rec.interval_days);
+    } else {
+      rec.status = "in_progress";
+    }
   }
 
-  // Program order decides the next unit; the reviewer may only pull a pending unit forward.
+  // Next unit, by priority: (1) the unit that fixes the most frequent recurring error,
+  // (2) the reviewer's pull-forward, (3) program order. Only pending units qualify.
   const level = s.competencies.oral_production.level;
   const pending = pendingUnits(level, s.roadmap.units);
+  const label = (u: SyllabusUnit) => `${u.title} (${u.id})`;
+
+  const recurringWithUnit = s.errors.items
+    .filter((e) => e.status === "recurring" && e.unit_id)
+    .sort((a, b) => b.frequency - a.frequency);
+  let remedial: { unit: SyllabusUnit; error: ErrorRecord } | undefined;
+  for (const e of recurringWithUnit) {
+    const unit = pending.find((u) => u.id === e.unit_id);
+    if (unit) {
+      remedial = { unit, error: e };
+      break;
+    }
+  }
   const pulled: SyllabusUnit | undefined = delta.suggested_focus.unit_id
     ? pending.find((u) => u.id === delta.suggested_focus.unit_id)
     : undefined;
-  const current = pulled ?? pending[0] ?? null;
-  const label = (u: SyllabusUnit) => `${u.title} (${u.id})`;
+  const current = remedial?.unit ?? pulled ?? pending[0] ?? null;
 
   s.roadmap.current_unit = current?.id ?? null;
   s.roadmap.current_focus = current ? label(current) : delta.suggested_focus.current_focus;
-  s.roadmap.reason = current
-    ? pulled
-      ? delta.suggested_focus.reason
-      : `Next unit of the program at ${formatLevel(level)}: ${current.goal}${delta.suggested_focus.reason ? ` Reviewer: ${delta.suggested_focus.reason}` : ""}`
-    : delta.suggested_focus.reason;
+  s.roadmap.reason = remedial
+    ? `Recurring error ${remedial.error.id} (${remedial.error.pattern}, seen ${remedial.error.frequency}x) is fixed by this unit.`
+    : current
+      ? pulled
+        ? delta.suggested_focus.reason
+        : `Next unit of the program at ${formatLevel(level)}: ${current.goal}${delta.suggested_focus.reason ? ` Reviewer: ${delta.suggested_focus.reason}` : ""}`
+      : delta.suggested_focus.reason;
   s.roadmap.next_practice = delta.suggested_focus.next_practice;
   s.roadmap.after = delta.suggested_focus.after;
   s.roadmap.recent_topics = dedupeKeepNewest(s.roadmap.recent_topics, delta.topics, 12);

@@ -39,6 +39,8 @@ async function main() {
     first_observed: now.toISOString(),
     last_observed: now.toISOString(),
     status: "new",
+    unit_id: "",
+    next_review: null,
   });
   mutated.errors.next_id += 1;
   mutated.profile.sessions_completed += 1;

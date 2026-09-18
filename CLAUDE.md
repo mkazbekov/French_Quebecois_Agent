@@ -48,6 +48,11 @@ setup and everyday flow.
   syllabus (stable ids, never renumber; append new units). `merge.ts` decides
   done/next; the reviewer can only report `units_practiced` and pull one pending
   unit forward. Guided and lesson calls target `roadmap.current_unit`.
+- **Adaptivity is code too.** `spacing.ts` (review dates), error→unit mapping
+  (`unit_id` + keyword fallback), remediation / low-confidence triggers in
+  `resolveMode`, and confidence decay in `merge.ts` are deterministic. The reviewer
+  only supplies `unit_id` per error. Change thresholds in one place
+  (`REMEDIATION_MIN_RECURRING`, `LOW_CONFIDENCE`, interval constants), with tests.
 - **Every session teaches and assesses.** First call is a placement (`assessment`);
   then `auto` cycles guided → lesson → quebec → guided → lesson → assessment. The
   `lesson` mode teaches one grammar point + 3–5 words; `assessment` covers all four
@@ -72,22 +77,24 @@ src/app/api/realtime/session     POST: learner state → instructions → ek_ ke
 src/app/api/session/end          POST: evidence → review → merge → persist → summary
 src/app/api/learner              GET: state + storeKind; PATCH: language_mode preference
 src/hooks/useTutorSession.ts     realtime lifecycle, note_evidence tool, crash recovery
-src/lib/learner/                 schema, stores, merge, render, defaults, levels, syllabus
+src/lib/learner/                 schema, stores, merge, render, defaults, levels, syllabus, spacing
 src/lib/voice/                   VoiceSession contract + gemini/openai implementations
 src/lib/tutor/instructions.ts    tutor prompt builder (pedagogy lives here)
 src/lib/tutor/gemini-setup.ts    Live API setup message, tool declaration, URLs
 src/lib/tutor/review.ts          structured session review (gemini | openai)
-tests/                           vitest; merge rules, stores, levels, syllabus, prompt, two-session loop
+tests/                           vitest; merge rules, stores, levels, syllabus, adaptive loop, prompt, two-session loop
 ```
 
 ## Working style
 
-- **Planning, architecture and review: Fable** (the lead session). Fable reads the
-  docs, decides the design, and reviews every result before it is committed.
-- **Code changes: Sonnet 5 at medium effort.** Delegate bounded implementation
-  tasks (a function, a component, a test file) to a Sonnet 5 subagent with
-  `model: "sonnet"` and medium reasoning effort; give it the exact files and the
-  acceptance check (typecheck / lint / test). Fable does small edits itself.
+- **Planning, thinking, architecture and review: Opus 5** (the lead session). Opus
+  reads the docs, decides the design, writes the plan, and reviews every result
+  before it is committed.
+- **Code changes: subagents on Sonnet 5 at medium effort.** Delegate implementation
+  (a function, a component, a test file) to a Sonnet 5 subagent with
+  `model: "sonnet"` and medium reasoning effort; give it the exact files, the plan
+  step, and the acceptance check (typecheck / lint / test). The lead only makes
+  trivial edits itself (a doc line, a constant).
 - **Codex CLI as needed** (`codex exec`) for an independent review pass or a second
   opinion on a tricky change.
 - Keep the product simpler than the machinery. If a change makes starting a
@@ -98,9 +105,10 @@ tests/                           vitest; merge rules, stores, levels, syllabus, 
 ## State of the project and what the next session must do first
 
 Built 2026-09-17; Gemini Live made the default 2026-09-17; patience, the 12-level
-Échelle québécoise, lesson/level-check modes, four-competency assessment and the
-fixed syllabus program added 2026-09-18. Verified on this machine at that point:
-typecheck, lint, 46 tests,
+Échelle québécoise, lesson/level-check modes, four-competency assessment, the
+fixed syllabus program, and the adaptive layer (error→unit mapping, spaced review,
+remediation drills, confidence decay) added 2026-09-18. Verified on this machine at
+that point: typecheck, lint, 52 tests,
 production build, `npm run check:gemini-setup` (Live API accepts the new VAD
 config), and earlier Letta persistence across processes against the real Letta
 Cloud agent. The OpenAI backend is optional; `check:realtime` / `check:review`

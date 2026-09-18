@@ -3,6 +3,7 @@ import { getLearnerStore } from "@/lib/learner";
 import { COMPETENCY_KEYS } from "@/lib/learner/schema";
 import { LEVELS, cefrEquivalent, stageOf } from "@/lib/learner/levels";
 import { findUnit, levelProgress, statusOf, unitsForLevel } from "@/lib/learner/syllabus";
+import { dueItems } from "@/lib/learner/spacing";
 
 export const dynamic = "force-dynamic";
 
@@ -106,6 +107,37 @@ export default async function ReviewPage() {
             </p>
           </div>
         </div>
+      </section>
+
+      <section>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400 mb-2">Due for review</h2>
+        {(() => {
+          const due = dueItems(state, new Date());
+          const empty = !due.errors.length && !due.units.length && !due.vocabulary.length;
+          if (empty) return <p className="text-sm text-zinc-400 italic">Nothing due. Spaced review dates are set after each call.</p>;
+          return (
+            <ul className="text-sm space-y-1">
+              {due.errors.map((e) => (
+                <li key={e.id}>
+                  <span className="font-mono text-xs text-zinc-400">{e.id}</span> {e.pattern}
+                  <span className="text-zinc-400"> · {e.status}{e.unit_id ? ` · fix: ${e.unit_id}` : ""}</span>
+                </li>
+              ))}
+              {due.units.map(({ unit }) => (
+                <li key={unit.id}>
+                  <span className="font-mono text-xs text-zinc-400">{unit.id}</span> {unit.title}
+                  <span className="text-zinc-400"> · finished unit, check it still holds</span>
+                </li>
+              ))}
+              {due.vocabulary.length > 0 && (
+                <li>
+                  <span className="text-zinc-500">Words: </span>
+                  {due.vocabulary.map((v) => v.word).join(", ")}
+                </li>
+              )}
+            </ul>
+          );
+        })()}
       </section>
 
       <section>

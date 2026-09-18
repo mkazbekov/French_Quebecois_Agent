@@ -55,7 +55,7 @@ describe("applyReviewDelta - errors", () => {
           observed: "j'ai allé",
           preferred: "je suis allé",
           explanation: "être verb",
-          occurrences: 2,
+          occurrences: 2, unit_id: "",
         },
       ],
     });
@@ -70,14 +70,14 @@ describe("applyReviewDelta - errors", () => {
     let state = freshState();
     const delta1 = emptyDelta({
       errors: [
-        { category: "grammar", pattern: "passé composé auxiliary", observed: "j'ai allé", preferred: "je suis allé", explanation: "", occurrences: 1 },
+        { category: "grammar", pattern: "passé composé auxiliary", observed: "j'ai allé", preferred: "je suis allé", explanation: "", occurrences: 1, unit_id: "" },
       ],
     });
     ({ state } = applyReviewDelta(state, delta1, baseEvidence(), NOW));
 
     const delta2 = emptyDelta({
       errors: [
-        { category: "grammar", pattern: "Passé Composé Auxiliary", observed: "j'ai venu", preferred: "je suis venu", explanation: "", occurrences: 1 },
+        { category: "grammar", pattern: "Passé Composé Auxiliary", observed: "j'ai venu", preferred: "je suis venu", explanation: "", occurrences: 1, unit_id: "" },
       ],
     });
     const { state: state2 } = applyReviewDelta(state, delta2, baseEvidence(), NOW);
@@ -90,7 +90,7 @@ describe("applyReviewDelta - errors", () => {
     let state = freshState();
     for (let i = 0; i < 3; i++) {
       const delta = emptyDelta({
-        errors: [{ category: "grammar", pattern: "gender agreement", observed: "le table", preferred: "la table", explanation: "", occurrences: 1 }],
+        errors: [{ category: "grammar", pattern: "gender agreement", observed: "le table", preferred: "la table", explanation: "", occurrences: 1, unit_id: "" }],
       });
       ({ state } = applyReviewDelta(state, delta, baseEvidence(), NOW));
     }
@@ -100,7 +100,7 @@ describe("applyReviewDelta - errors", () => {
 
   it("a brand-new error record keeps status new even if occurrences is already >= 3", () => {
     const delta = emptyDelta({
-      errors: [{ category: "grammar", pattern: "gender agreement", observed: "le table", preferred: "la table", explanation: "", occurrences: 3 }],
+      errors: [{ category: "grammar", pattern: "gender agreement", observed: "le table", preferred: "la table", explanation: "", occurrences: 3, unit_id: "" }],
     });
     const { state } = applyReviewDelta(freshState(), delta, baseEvidence(), NOW);
     expect(state.errors.items[0].status).toBe("new");
@@ -109,7 +109,7 @@ describe("applyReviewDelta - errors", () => {
   it("moves a new/recurring error not touched this session, listed in errors_improving, to improving then resolved", () => {
     let state = freshState();
     const delta1 = emptyDelta({
-      errors: [{ category: "grammar", pattern: "gender agreement", observed: "le table", preferred: "la table", explanation: "", occurrences: 1 }],
+      errors: [{ category: "grammar", pattern: "gender agreement", observed: "le table", preferred: "la table", explanation: "", occurrences: 1, unit_id: "" }],
     });
     ({ state } = applyReviewDelta(state, delta1, baseEvidence(), NOW));
     const id = state.errors.items[0].id;
@@ -129,14 +129,14 @@ describe("applyReviewDelta - errors", () => {
   it("does not apply errors_improving to an error that was touched this session", () => {
     let state = freshState();
     const delta1 = emptyDelta({
-      errors: [{ category: "grammar", pattern: "gender agreement", observed: "le table", preferred: "la table", explanation: "", occurrences: 1 }],
+      errors: [{ category: "grammar", pattern: "gender agreement", observed: "le table", preferred: "la table", explanation: "", occurrences: 1, unit_id: "" }],
     });
     ({ state } = applyReviewDelta(state, delta1, baseEvidence(), NOW));
     const id = state.errors.items[0].id;
 
     // Same session also lists it in errors_improving (touched -> ignored).
     const delta2 = emptyDelta({
-      errors: [{ category: "grammar", pattern: "gender agreement", observed: "le table", preferred: "la table", explanation: "", occurrences: 1 }],
+      errors: [{ category: "grammar", pattern: "gender agreement", observed: "le table", preferred: "la table", explanation: "", occurrences: 1, unit_id: "" }],
       errors_improving: [id],
     });
     const { state: state2 } = applyReviewDelta(state, delta2, baseEvidence(), NOW);
@@ -277,7 +277,7 @@ describe("applyReviewDelta - profile & progress", () => {
 
   it("prepends a progress entry with a composed delta sentence", () => {
     const delta = emptyDelta({
-      errors: [{ category: "grammar", pattern: "x", observed: "a", preferred: "b", explanation: "", occurrences: 1 }],
+      errors: [{ category: "grammar", pattern: "x", observed: "a", preferred: "b", explanation: "", occurrences: 1, unit_id: "" }],
       topics: ["greetings"],
       summary_for_learner: ["Good energy today."],
     });

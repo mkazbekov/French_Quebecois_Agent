@@ -6,6 +6,9 @@ import type { LearnerState } from "@/lib/learner/schema";
 function stateWithSessions(n: number): LearnerState {
   const state = defaultLearnerState("Mirza");
   state.profile.sessions_completed = n;
+  // A learner who has been placed: enough confidence that auto mode follows the cycle.
+  state.competencies.oral_production.confidence = 0.5;
+  state.competencies.oral_comprehension.confidence = 0.5;
   return state;
 }
 
@@ -46,6 +49,8 @@ describe("buildTutorInstructions", () => {
       first_observed: "2026-01-01T00:00:00.000Z",
       last_observed: "2026-01-15T00:00:00.000Z",
       status: "recurring",
+      unit_id: "",
+      next_review: null,
     });
     state.roadmap.current_focus = "Ordering food at a restaurant";
 
@@ -75,8 +80,10 @@ describe("buildTutorInstructions", () => {
       first_observed: "2026-01-01T00:00:00.000Z",
       last_observed: "2026-01-01T00:00:00.000Z",
       status: "new",
+      unit_id: "",
+      next_review: null,
     });
-    state.vocabulary.items.push({ word: "dépanneur", meaning: "corner store", register: "quebec", status: "shaky", times_used_correctly: 0, times_struggled: 1, last_seen: "2026-01-01T00:00:00.000Z" });
+    state.vocabulary.items.push({ word: "dépanneur", meaning: "corner store", register: "quebec", status: "shaky", times_used_correctly: 0, times_struggled: 1, last_seen: "2026-01-01T00:00:00.000Z", next_review: null });
     state.grammar.items.push({ point: "subjunctive", status: "practicing", notes: "", successes: 1, failures: 2, last_practiced: "2026-01-01T00:00:00.000Z" });
     state.pronunciation.items.push({ feature: "nasal vowels", example: "un bon vin blanc", frequency: 1, last_observed: "2026-01-01T00:00:00.000Z", status: "observed" });
 

@@ -135,6 +135,56 @@ export const SYLLABUS: readonly SyllabusUnit[] = [
 
 const BY_ID = new Map(SYLLABUS.map((u) => [u.id, u]));
 
+/**
+ * Keyword fallback for mapping an error pattern to the unit that teaches the
+ * fix, used when the reviewer did not name a unit. Lower levels win ties.
+ * Keywords are matched case-insensitively as substrings of the error pattern.
+ */
+const UNIT_KEYWORDS: Record<string, string[]> = {
+  "L1-G01": ["être au présent", "c'est vs il est", "je suis"],
+  "L1-G02": ["article", "gender", "genre", "un/une", "le/la"],
+  "L2-G01": ["-er", "présent", "present tense", "conjugation", "conjugaison"],
+  "L2-G02": ["avoir au présent", "j'ai faim", "age with avoir", "avoir vs être au présent"],
+  "L2-G03": ["negation", "négation", "ne pas", "ne… pas"],
+  "L3-G01": ["passé composé", "participe passé", "past participle"],
+  "L3-G02": ["être vs avoir", "auxiliary", "auxiliaire", "verbs of movement"],
+  "L3-G03": ["futur proche", "aller +", "going to"],
+  "L3-G04": ["adjective", "adjectif", "agreement", "accord"],
+  "L4-G01": ["pronominal", "reflexive", "réfléchi", "se lever"],
+  "L4-G02": ["object pronoun", "pronom objet", "lui/leur", "le/la/les"],
+  "L4-G03": ["comparatif", "comparative", "superlative", "superlatif", "plus que", "meilleur"],
+  "L4-G04": ["preposition", "préposition", "au/du", "chez", "contraction"],
+  "L5-G01": ["imparfait", "imperfect"],
+  "L5-G02": ["imparfait vs passé composé", "past tense choice", "aspect"],
+  "L5-G03": ["futur simple", "future tense"],
+  "L5-G04": ["pronoun y", "pronoun en", "y/en", "y et en"],
+  "L6-G01": ["conditionnel", "conditional", "si +"],
+  "L6-G02": ["subjonctif", "subjunctive", "il faut que"],
+  "L6-G03": ["relative pronoun", "pronom relatif", "qui/que", "dont"],
+  "L7-G01": ["plus-que-parfait", "pluperfect", "concordance"],
+  "L7-G02": ["conditionnel passé", "past conditional", "aurais dû"],
+  "L7-G03": ["subjunctive after", "bien que", "pour que"],
+  "L7-G04": ["reported speech", "discours rapporté"],
+  "L8-G01": ["passive", "passif", "impersonal", "impersonnel"],
+  "L8-G02": ["connector", "connecteur"],
+  "L2-T01": ["number", "nombre", "time of day", "l'heure"],
+  "L4-Q01": ["anglicism", "anglicisme"],
+  "L7-Q01": ["anglicism", "anglicisme", "franglais"],
+};
+
+export function matchUnitForError(pattern: string): SyllabusUnit | undefined {
+  const p = pattern.toLowerCase();
+  let best: { unit: SyllabusUnit; score: number } | undefined;
+  for (const [id, keys] of Object.entries(UNIT_KEYWORDS)) {
+    // More and longer matching keywords = more specific match; ties go to the lower level.
+    const score = keys.filter((k) => p.includes(k.toLowerCase())).reduce((n, k) => n + k.length, 0);
+    if (!score) continue;
+    const unit = BY_ID.get(id);
+    if (unit && (!best || score > best.score || (score === best.score && unit.level < best.unit.level))) best = { unit, score };
+  }
+  return best?.unit;
+}
+
 export function findUnit(id: string): SyllabusUnit | undefined {
   return BY_ID.get(id);
 }
