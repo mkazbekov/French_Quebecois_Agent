@@ -38,7 +38,7 @@ function box(lines) {
 
 /** Run setup.mjs interactively (inherits this console's stdio) and return true if it exited 0. */
 function runSetupInteractive() {
-  const res = spawnSync(process.execPath, [setupScript], { stdio: "inherit", cwd: repoRoot });
+  const res = spawnSync(process.execPath, [setupScript, "--from-launcher"], { stdio: "inherit", cwd: repoRoot });
   return res.status === 0;
 }
 

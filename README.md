@@ -100,7 +100,7 @@ This takes about 5 minutes the first time.
    folder (`C:\Users\<you>\Quebec French Tutor`). It also puts a **Quebec French Tutor**
    icon on your Desktop and in the Start menu. Then it opens the tutor in a new window.
 
-   ![The one-line installer in PowerShell](docs/images/windows-install.png)
+   ![What the installer prints when it's done](docs/images/windows-install.png)
 
 3. The new **Quebec French Tutor** window gets Node.js (if needed), then asks for your key:
 
@@ -263,8 +263,8 @@ install command again. It replaces the program but keeps your key and progress.
 
 **Uninstalling:** close the tutor, then delete the **Quebec French Tutor** folder in your
 user/home folder and the Desktop (and Windows Start menu) icon. That removes everything,
-including your saved progress. To also revoke the key, open the AI Studio API Keys page, click the
-key, and choose **Delete key**.
+including your saved progress. To also revoke the key, open the AI Studio API Keys page, click **⋮** at the
+end of the key's row, choose **Delete key**, then **Delete**.
 
 ---
 
@@ -409,6 +409,8 @@ You can also just ask the tutor out loud ("explain in English", "on continue en 
 **Review mistakes** (link at the top) shows your level per skill, your progress through
 the program, recurring errors, vocabulary being recycled, grammar points, and the
 current focus.
+
+![The Review mistakes page after a first call](docs/images/review.png)
 
 **Profile** (under the header) lets you change your name, pick a different level, or
 **Retake the level test** (your next call becomes a placement chat; progress is kept).

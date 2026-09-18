@@ -31,6 +31,8 @@ const repoRoot = path.join(scriptDir, "..");
 
 const args = process.argv.slice(2);
 const ifNeeded = args.includes("--if-needed");
+// Set by scripts/launch.mjs, which carries on starting the tutor after setup.
+const fromLauncher = args.includes("--from-launcher");
 const envFileFlagIndex = args.indexOf("--env-file");
 const envPath =
   envFileFlagIndex !== -1 && args[envFileFlagIndex + 1]
@@ -189,7 +191,7 @@ async function main() {
     }
 
     console.log("");
-    if (ifNeeded) {
+    if (ifNeeded || fromLauncher) {
       console.log("Starting the tutor…");
     } else {
       console.log("All set. Your key is saved. Start the tutor with the \"Start Tutor\" launcher");
