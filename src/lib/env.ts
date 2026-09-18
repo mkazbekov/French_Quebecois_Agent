@@ -34,7 +34,7 @@ export const env = {
     return process.env.LETTA_BASE_URL || undefined;
   },
   get LETTA_MODEL() {
-    return opt("LETTA_MODEL", "openai/gpt-4.1");
+    return opt("LETTA_MODEL", "openai/gpt-5.6-luna");
   },
   get LEARNER_ID() {
     return opt("LEARNER_ID", "mirza");

@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "verify:persistence": "tsx scripts/verify-persistence.ts"
+    "verify:persistence": "tsx scripts/verify-persistence.ts",
+    "check:review": "tsx --tsconfig tsconfig.json scripts/live-review-check.mts",
+    "check:realtime": "tsx --tsconfig tsconfig.json scripts/live-realtime-check.mts"
   },
   "dependencies": {
     "@letta-ai/letta-client": "^1.12.1",

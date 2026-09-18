@@ -63,16 +63,21 @@ tests/                           vitest; merge rules, stores, prompt, two-sessio
 ## State of the project and what the next session must do first
 
 Built 2026-09-17. Verified on this machine: typecheck, lint, 31 tests, production
-build, file-store persistence across processes, and a production smoke test of
-all routes. **Not yet verified live** because no `.env` existed: real OpenAI
-Realtime voice, real Letta persistence, and the review model.
+build, production smoke test of all routes, **Letta persistence across processes
+against the real Letta Cloud agent** (`npm run verify:persistence` → VERIFIED via
+letta), and minting a real realtime `ek_` key with the exact session config.
+**Blocked at end of that session**: the OpenAI account had no API credits
+(`credit_balance_exhausted`), so `npm run check:realtime` (multi-turn text→speech
+session over WebSocket) and `npm run check:review` (structured review) both
+connected but got no model output. Nothing in the code path failed.
 
 Next session, in order:
 
-1. Confirm `.env` exists with `OPENAI_API_KEY` and `LETTA_API_KEY` (or
-   `LETTA_BASE_URL`). If not, ask the user for them before anything else.
+1. `.env` already has both keys. Ask the user to confirm OpenAI credits were added
+   (https://platform.openai.com/settings/organization/billing/), then run
+   `npm run check:review` and `npm run check:realtime`; both must print OK.
 2. `npm run verify:persistence` → must print `PERSISTENCE VERIFIED via letta`.
-   If Letta agent creation fails, check `LETTA_MODEL` (default `openai/gpt-4.1`)
+   If Letta agent creation fails, check `LETTA_MODEL` (default `openai/gpt-5.6-luna`)
    against `client.models.list()` and the `embedding` handling in `letta-store.ts`.
 3. `npm run dev`, then have the user do the manual voice test: press Start, say
    "Salut, ça va bien", hear a reply, press End, confirm the summary card and
