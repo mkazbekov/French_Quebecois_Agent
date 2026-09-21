@@ -6,6 +6,11 @@ that's the easiest way to check what you're running.
 
 ## 0.2.0 (2026-09-21)
 
+**Upgrading from 0.1.0:** that version has no update check, so it cannot offer you
+this one. Close the tutor and run the one-line install command once more (see
+[Updating](README.md#updating)) — your key and progress are kept. After that,
+updates are offered automatically every time you start the tutor.
+
 - You can now see what you're saying as you say it: a live transcript during the conversation.
 - Lessons now include short multiple-choice checks, so you can confirm what you just learned.
 - Added a way to send feedback about the tutor from inside the app.

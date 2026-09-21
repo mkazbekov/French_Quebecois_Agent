@@ -128,6 +128,7 @@ scripts/update.mjs               in-place updater (--check | --apply)
 scripts/make-icons.ps1           renders assets/*.png + tutor.ico from the logo path data
 assets/                          tutor.ico + PNGs used by the installers and shortcuts
 docs/FEEDBACK.md                 how to deploy the feedback relay (docs/feedback-relay.gs)
+docs/NEXT-SESSION-FEEDBACK.md    handoff: what is left to do on the feedback feature
 scripts/setup.mjs                first-run Gemini key setup (npm run setup, predev, launcher)
 scripts/launch.mjs               one-click launcher behind the Start Tutor scripts (npm run start:app)
 install-*.ps1 / install-mac.sh   one-line installers; Start Tutor (Windows).bat / (Mac).command
@@ -219,8 +220,11 @@ Not yet verified on real hardware, and worth doing first next session:
    Windows tries `System32\tar.exe`, then `tar` on PATH, then `Expand-Archive` —
    a plain `tar` on PATH can be GNU tar, which cannot read a .zip, which is exactly
    how the first attempt failed. Still worth doing from the real Desktop icon once.
-3. **The feedback relay**: deploy `docs/feedback-relay.gs`, put its `/exec` URL in
-   `FEEDBACK_ENDPOINT`, and send one message end to end (delivery + auto-reply).
+3. **The feedback relay** — the app side ships, but nothing has ever been delivered:
+   the relay is undeployed, so every install falls back to a mailto draft. Full context,
+   the deployment steps, and the one open decision (does the endpoint URL ship in the
+   repo so learners get real delivery, or stay opt-in?) are in
+   `docs/NEXT-SESSION-FEEDBACK.md` — read that before touching the feature.
 4. **macOS**: the icon application (`sips`/`iconutil`/NSWorkspace in `install-mac.sh`)
    and the `.command` launcher are still only tested on Linux/WSL.
 

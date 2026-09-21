@@ -43,6 +43,10 @@
 
 You don't need a paid account, Git, or any programming tools.
 
+> **Already installed the tutor before 21 September 2026?** You are on v0.1.0, which
+> cannot update itself. See [Updating](#updating) for the single line that brings you up
+> to date without losing your key or your progress.
+
 ---
 
 ## How to use it
@@ -404,7 +408,31 @@ running also just opens the page.
 
 ### Updating
 
-**You don't have to do anything special — just start the tutor as usual.**
+> [!IMPORTANT]
+> **Installed before 21 September 2026 (v0.1.0)? Do this once.**
+> The automatic update check didn't exist in that version, so your tutor can't offer
+> it to you — it will keep running v0.1.0 forever until you do this one step.
+> **Close the tutor window**, then paste the same one line you used to install it:
+>
+> **Windows** — open **PowerShell** (Start menu → type *PowerShell* → Enter) and paste:
+>
+> ```powershell
+> irm https://raw.githubusercontent.com/mkazbekov/French_Quebecois_Agent/main/install-windows.ps1 | iex
+> ```
+>
+> **Mac** — open **Terminal** (⌘Space → type *Terminal* → Enter) and paste:
+>
+> ```bash
+> curl -fsSL https://raw.githubusercontent.com/mkazbekov/French_Quebecois_Agent/main/install-mac.sh | bash
+> ```
+>
+> It keeps your **API key, your progress and your settings** and replaces only the
+> program, exactly like a fresh install on top. The tutor starts by itself when it
+> finishes. Check the bottom of the page afterwards: it should say **v0.2.0** or newer.
+> From then on, updates are offered automatically — you never have to do this again.
+
+**Already on v0.2.0 or newer? You don't have to do anything — just start the tutor as
+usual.**
 
 Every time you double-click **Quebec French Tutor**, the launcher checks whether a newer
 version exists (it asks GitHub for one small file and sends nothing about you). If there

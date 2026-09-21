@@ -1,5 +1,9 @@
 # In-app feedback
 
+> Picking this work up fresh? Read [NEXT-SESSION-FEEDBACK.md](NEXT-SESSION-FEEDBACK.md)
+> first — it says what is already built, what has never been tested, and the one
+> decision still open (whether the relay URL ships with the app).
+
 Learners can press **Send feedback** inside the tutor and send a note to
 Mirzabek. The app itself never needs an API key for this: the "Send
 feedback" button always works, either by relaying through a small script you
