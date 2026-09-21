@@ -4,6 +4,17 @@ Plain-language notes on what changed in each version, newest first. The
 version number is shown in the tutor's own footer (bottom of the page) —
 that's the easiest way to check what you're running.
 
+## 0.2.1 (2026-09-21)
+
+- **Send feedback** now writes the email for you instead of sending it for you: press
+  the button and your own mail app opens with the message ready for
+  mjkazbekov@gmail.com — you read it and press send. If no mail app opens, the card
+  offers **Copy message** and **Open in Gmail**.
+- The optional "your email" box is gone: your message now comes from your own address,
+  so replies just work.
+- The app no longer sends anything anywhere when you give feedback. One less way for
+  anything to leave your computer without you seeing it.
+
 ## 0.2.0 (2026-09-21)
 
 **Upgrading from 0.1.0:** that version has no update check, so it cannot offer you

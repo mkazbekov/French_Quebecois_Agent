@@ -79,10 +79,7 @@ export const env = {
   get DATA_DIR() {
     return opt("DATA_DIR", "./data");
   },
-  /** Optional. Google Apps Script web app URL that relays feedback; see docs/FEEDBACK.md. */
-  get FEEDBACK_ENDPOINT(): string | undefined {
-    return process.env.FEEDBACK_ENDPOINT || undefined;
-  },
+  /** Where "Send feedback" addresses the learner's email draft. */
   get FEEDBACK_EMAIL() {
     return opt("FEEDBACK_EMAIL", "mjkazbekov@gmail.com");
   },

@@ -14,8 +14,8 @@ Next.js API routes (server, holds the real API keys)
                                Gemini ephemeral token or an OpenAI ek_ key (VOICE_PROVIDER)
   POST /api/session/end        transcript + evidence → structured review → merge → persist
   GET  /api/learner            read-only view of learner state (header + review page)
-  POST /api/feedback           forwards a learner-written message to FEEDBACK_ENDPOINT,
-                               or hands back a mailto: URL when none is configured
+  GET  /api/feedback           the feedback address + version/platform/provider, so the
+                               form can compose a mailto: draft (no POST: nothing is sent)
   GET  /api/version            local package.json version vs. the published one (6h cache)
       │
       ▼

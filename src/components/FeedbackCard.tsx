@@ -1,61 +1,82 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  FeedbackInputSchema,
+  buildFeedbackBody,
+  buildGmailComposeUrl,
+  buildMailtoUrl,
+  type FeedbackDetails,
+} from "@/lib/feedback";
 
-type Status = "idle" | "sending" | "delivered" | "fallback" | "error";
+type Status = "idle" | "sent" | "error";
+
+const FALLBACK_CONTACT = "mjkazbekov@gmail.com";
+const UNKNOWN_DETAILS: FeedbackDetails = { version: "unknown", platform: "unknown", provider: "unknown" };
 
 export function FeedbackCard() {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
-  const [email, setEmail] = useState("");
   const [includeDetails, setIncludeDetails] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const [errorText, setErrorText] = useState<string | null>(null);
-  const [deliveredWithEmail, setDeliveredWithEmail] = useState(false);
+  const [contact, setContact] = useState(FALLBACK_CONTACT);
+  const [details, setDetails] = useState<FeedbackDetails | null>(null);
+  const [draftBody, setDraftBody] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  // Only asks the server who the mail goes to and (for the opt-in checkbox)
+  // the version/platform/provider. Nothing is ever posted back.
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void fetch("/api/feedback")
+      .then((res) => res.json())
+      .then((data: { contact?: string; details?: FeedbackDetails }) => {
+        if (cancelled) return;
+        if (data?.contact) setContact(data.contact);
+        if (data?.details) setDetails(data.details);
+      })
+      .catch(() => {
+        // Keep the default address; the form still works offline.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   function reset() {
     setOpen(false);
     setMessage("");
-    setEmail("");
     setIncludeDetails(false);
     setStatus("idle");
     setErrorText(null);
+    setDraftBody("");
+    setCopied(false);
   }
 
-  async function submit() {
-    if (!message.trim()) return;
-    setStatus("sending");
-    setErrorText(null);
-    try {
-      const res = await fetch("/api/feedback", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message, email, include_details: includeDetails }),
-      });
-      const data = (await res.json().catch(() => null)) as
-        | { delivered: true; autoReply: boolean }
-        | { delivered: false; mailto: string; contact: string }
-        | { error: string }
-        | null;
-
-      if (!res.ok || !data || "error" in data) {
-        setStatus("error");
-        setErrorText((data && "error" in data && data.error) || "Couldn't send feedback. Please try again.");
-        return;
-      }
-
-      if (data.delivered) {
-        setDeliveredWithEmail(data.autoReply);
-        setStatus("delivered");
-        return;
-      }
-
-      // No relay configured, or it failed: open a pre-filled email draft.
-      window.location.href = data.mailto;
-      setStatus("fallback");
-    } catch {
+  function submit() {
+    const parsed = FeedbackInputSchema.safeParse({ message, include_details: includeDetails });
+    if (!parsed.success) {
       setStatus("error");
-      setErrorText("Couldn't send feedback. Please try again.");
+      setErrorText(parsed.error.issues[0]?.message ?? "Please write a message before sending.");
+      return;
+    }
+
+    const body = buildFeedbackBody(parsed.data, details ?? UNKNOWN_DETAILS);
+    setDraftBody(body);
+    setErrorText(null);
+    setStatus("sent");
+    // A mailto: hand-off, not a navigation — the tutor page stays where it is.
+    window.location.href = buildMailtoUrl({ to: contact, body });
+  }
+
+  async function copyDraft() {
+    try {
+      await navigator.clipboard.writeText(`To: ${contact}\n\n${draftBody}`);
+      setCopied(true);
+    } catch {
+      setCopied(false);
     }
   }
 
@@ -73,25 +94,30 @@ export function FeedbackCard() {
 
   return (
     <div className="w-full max-w-sm rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 text-left space-y-3">
-      {status === "delivered" ? (
-        <div className="space-y-2 text-center">
+      {status === "sent" ? (
+        <div className="space-y-3 text-center">
           <p className="text-sm text-zinc-700 dark:text-zinc-200">
-            Thanks — this went to Mirzabek.
-            {deliveredWithEmail ? ` You'll get a confirmation at ${email.trim()}.` : ""}
+            Your email app should have opened with the message ready for{" "}
+            <span className="font-medium">{contact}</span> — just press send.
           </p>
-          <button
-            type="button"
-            onClick={reset}
-            className="text-[11px] text-zinc-400 dark:text-zinc-600 underline decoration-dotted"
-          >
-            Close
-          </button>
-        </div>
-      ) : status === "fallback" ? (
-        <div className="space-y-2 text-center">
-          <p className="text-sm text-zinc-700 dark:text-zinc-200">
-            Your email app should open with the message ready — just press send.
-          </p>
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Nothing opened? Use one of these instead:</p>
+          <div className="flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => void copyDraft()}
+              className="rounded-full border border-zinc-300 dark:border-zinc-700 px-3 py-1 text-xs text-zinc-600 dark:text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            >
+              {copied ? "Copied" : "Copy message"}
+            </button>
+            <a
+              href={buildGmailComposeUrl({ to: contact, body: draftBody })}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-full border border-zinc-300 dark:border-zinc-700 px-3 py-1 text-xs text-zinc-600 dark:text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            >
+              Open in Gmail
+            </a>
+          </div>
           <button
             type="button"
             onClick={reset}
@@ -104,7 +130,7 @@ export function FeedbackCard() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            void submit();
+            submit();
           }}
           className="space-y-3"
         >
@@ -134,20 +160,6 @@ export function FeedbackCard() {
             />
           </div>
 
-          <div className="space-y-1">
-            <label htmlFor="feedback-email" className="block text-[11px] text-zinc-500 dark:text-zinc-400">
-              Your email (optional — only used to reply)
-            </label>
-            <input
-              id="feedback-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="w-full rounded-full border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-          </div>
-
           <label className="flex items-start gap-2 text-[11px] text-zinc-500 dark:text-zinc-400">
             <input
               type="checkbox"
@@ -161,7 +173,8 @@ export function FeedbackCard() {
           </label>
 
           <p className="text-[10px] text-zinc-400 dark:text-zinc-600">
-            Nothing else from your session is sent — no transcript, no profile.
+            This opens an email to {contact} that you send yourself — the app sends nothing. Nothing else from your
+            session goes with it: no transcript, no profile.
           </p>
 
           {status === "error" && errorText && (
@@ -171,10 +184,10 @@ export function FeedbackCard() {
           <div className="flex items-center gap-2 pt-1">
             <button
               type="submit"
-              disabled={!message.trim() || status === "sending"}
+              disabled={!message.trim()}
               className="flex-1 rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 py-1.5 text-sm font-medium disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
             >
-              {status === "sending" ? "Sending…" : "Send"}
+              Write the email
             </button>
             <button
               type="button"

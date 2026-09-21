@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { FeedbackInputSchema, buildFeedbackPayload, buildMailtoUrl, looksLikeEmail } from "@/lib/feedback";
+import {
+  FEEDBACK_SUBJECT,
+  FeedbackInputSchema,
+  buildFeedbackBody,
+  buildGmailComposeUrl,
+  buildMailtoUrl,
+} from "@/lib/feedback";
 
 describe("FeedbackInputSchema", () => {
   it("rejects an empty message", () => {
@@ -24,97 +30,73 @@ describe("FeedbackInputSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("rejects a malformed email", () => {
-    const result = FeedbackInputSchema.safeParse({ message: "hi", email: "not-an-email" });
-    expect(result.success).toBe(false);
+  it("defaults include_details to false", () => {
+    const result = FeedbackInputSchema.safeParse({ message: "hi" });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.include_details).toBe(false);
   });
 
-  it("accepts an empty-string email as absent", () => {
-    const result = FeedbackInputSchema.safeParse({ message: "hi", email: "" });
+  it("does not carry any field beyond message and include_details", () => {
+    const result = FeedbackInputSchema.safeParse({
+      message: "hi",
+      include_details: true,
+      transcript: "ne me mets pas dans le courriel",
+      profile: { name: "someone" },
+    });
     expect(result.success).toBe(true);
-    if (result.success) expect(result.data.email).toBeUndefined();
-  });
-
-  it("accepts a valid email and defaults include_details to false", () => {
-    const result = FeedbackInputSchema.safeParse({ message: "hi", email: "learner@example.com" });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.email).toBe("learner@example.com");
-      expect(result.data.include_details).toBe(false);
-    }
+    if (result.success) expect(Object.keys(result.data).sort()).toEqual(["include_details", "message"]);
   });
 });
 
-describe("looksLikeEmail", () => {
-  it("accepts a plausible address and rejects garbage", () => {
-    expect(looksLikeEmail("a@b.com")).toBe(true);
-    expect(looksLikeEmail("not-an-email")).toBe(false);
-    expect(looksLikeEmail("a@b")).toBe(false);
-    expect(looksLikeEmail("")).toBe(false);
-  });
-});
+const details = { version: "0.2.1", platform: "win32", provider: "gemini" };
 
-const details = { version: "0.2.0", platform: "win32", provider: "gemini" };
-
-describe("buildFeedbackPayload", () => {
-  it("omits details unless include_details is true", () => {
-    const input = { message: "hello", email: undefined, include_details: false } as const;
-    const payload = buildFeedbackPayload(input, details);
-    expect(Object.keys(payload).sort()).toEqual(["app", "message", "sent_at"]);
+describe("buildFeedbackBody", () => {
+  it("is just the message when details are not opted into", () => {
+    const body = buildFeedbackBody({ message: "hello", include_details: false }, details);
+    expect(body).toBe("hello");
   });
 
-  it("includes exactly version/platform/provider when include_details is true", () => {
-    const input = { message: "hello", email: undefined, include_details: true } as const;
-    const payload = buildFeedbackPayload(input, details);
-    expect(Object.keys(payload).sort()).toEqual(
-      ["app", "message", "platform", "provider", "sent_at", "version"].sort(),
-    );
-    expect(payload).toMatchObject(details);
+  it("appends exactly version, platform and provider when opted in", () => {
+    const body = buildFeedbackBody({ message: "it broke", include_details: true }, details);
+    expect(body).toContain("it broke");
+    expect(body).toContain("App version: 0.2.1");
+    expect(body).toContain("System: win32");
+    expect(body).toContain("Voice provider: gemini");
   });
 
-  it("includes email only when given, and never any other key", () => {
-    const input = { message: "hello", email: "learner@example.com", include_details: true } as const;
-    const payload = buildFeedbackPayload(input, details);
-    expect(Object.keys(payload).sort()).toEqual(
-      ["app", "email", "message", "platform", "provider", "sent_at", "version"].sort(),
-    );
-    expect(payload.app).toBe("quebec-french-tutor");
-    expect(payload.email).toBe("learner@example.com");
-  });
-
-  it("never leaks anything beyond the documented fields", () => {
-    const input = { message: "hello", email: "learner@example.com", include_details: true } as const;
-    const payload = buildFeedbackPayload(input, details);
-    const allowed = new Set(["message", "email", "app", "sent_at", "version", "platform", "provider"]);
-    for (const key of Object.keys(payload)) {
-      expect(allowed.has(key)).toBe(true);
-    }
+  it("never includes anything the sender did not type or tick", () => {
+    const body = buildFeedbackBody({ message: "hello", include_details: true }, details);
+    const allowed = ["hello", "", "---", "App version: 0.2.1", "System: win32", "Voice provider: gemini"];
+    expect(body.split("\n")).toEqual(allowed);
   });
 });
 
 describe("buildMailtoUrl", () => {
-  it("encodes the recipient, subject and message body", () => {
-    const payload = buildFeedbackPayload({ message: "hello, world!", email: undefined, include_details: false }, details);
-    const url = buildMailtoUrl({ to: "mjkazbekov@gmail.com", payload });
+  it("encodes the recipient, subject and body", () => {
+    const body = buildFeedbackBody({ message: "hello, world!", include_details: false }, details);
+    const url = buildMailtoUrl({ to: "mjkazbekov@gmail.com", body });
 
     // The address is left readable: a percent-encoded "@" breaks some mail clients.
     expect(url.startsWith("mailto:mjkazbekov@gmail.com?")).toBe(true);
-    expect(url).toContain(`subject=${encodeURIComponent("Québec French Tutor feedback")}`);
-    expect(url).toContain(encodeURIComponent("hello, world!"));
+    expect(url).toContain(`subject=${encodeURIComponent(FEEDBACK_SUBJECT)}`);
+    expect(decodeURIComponent(url.split("body=")[1])).toBe("hello, world!");
   });
 
-  it("includes technical details and the reply email in the body when present", () => {
-    const payload = buildFeedbackPayload(
-      { message: "it broke", email: "learner@example.com", include_details: true },
-      details,
-    );
-    const url = buildMailtoUrl({ to: "mjkazbekov@gmail.com", payload });
-    const body = decodeURIComponent(url.split("body=")[1]);
+  it("strips characters that would break the mailto URL", () => {
+    const url = buildMailtoUrl({ to: ' "me@example.com" ', body: "hi" });
+    expect(url.startsWith("mailto:me@example.com?")).toBe(true);
+  });
+});
 
-    expect(body).toContain("it broke");
-    expect(body).toContain("0.2.0");
-    expect(body).toContain("win32");
-    expect(body).toContain("gemini");
-    expect(body).toContain("learner@example.com");
+describe("buildGmailComposeUrl", () => {
+  it("builds a compose link carrying the same subject and body", () => {
+    const body = buildFeedbackBody({ message: "it broke", include_details: true }, details);
+    const url = new URL(buildGmailComposeUrl({ to: "mjkazbekov@gmail.com", body }));
+
+    expect(url.origin + url.pathname).toBe("https://mail.google.com/mail/");
+    expect(url.searchParams.get("view")).toBe("cm");
+    expect(url.searchParams.get("to")).toBe("mjkazbekov@gmail.com");
+    expect(url.searchParams.get("su")).toBe(FEEDBACK_SUBJECT);
+    expect(url.searchParams.get("body")).toBe(body);
   });
 });

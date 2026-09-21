@@ -145,13 +145,14 @@ What leaves your computer, and only while you are using it:
   API key means Google may use that content to improve their models — if that matters to
   you, use a paid Gemini key or a key from a Google Cloud project with paid billing.
 - **Nothing else.** No analytics, no telemetry, no crash reporting, no "phone home".
-  The only other network calls the app ever makes are: checking GitHub for a newer
-  version (it asks for one file, `package.json`, and sends nothing about you), and
-  sending feedback — but only if *you* type a message and press Send.
+  The only other network call the app ever makes is checking GitHub for a newer version
+  (it asks for one file, `package.json`, and sends nothing about you). Even **Send
+  feedback** sends nothing: it opens an email in *your* mail app, addressed to me, that
+  you read and send yourself.
 
 I never receive your key, your progress, your recordings or your transcripts. If you
-send feedback, I get exactly the text you typed, plus your email address only if you
-chose to give one.
+send feedback, I get exactly the email you wrote and pressed send on — nothing else
+travels with it.
 
 **To delete everything:** delete the **Quebec French Tutor** folder. That's it — nothing
 is left anywhere else, and nothing remains on any server of mine because it was never
@@ -732,35 +733,27 @@ beside it. The full statement is in [Your privacy](#-your-privacy).
 
 Something confusing, broken, or missing? Tell me — it takes ten seconds.
 
-At the bottom of the tutor's page, click **Send feedback**, type what's on your mind,
-and (optionally) leave your email so I can reply. Press **Send**. If you leave an email
-address you'll get an automatic confirmation right away, and a real answer from me after
-that.
+At the bottom of the tutor's page, click **Send feedback** and type what's on your mind.
+Press **Write the email** and your own mail app opens with the message ready, addressed
+to me — read it over and press send. If nothing opens (no mail app set up), the card
+offers **Copy message** and **Open in Gmail** instead.
 
-What I receive: **the text you typed**, your email address if you gave one, and — only if
-you tick the box — the app version, your operating system and which voice service you're
-on. Nothing else. No transcript, no progress, no key. See
+The app itself never sends anything, so what I receive is exactly the email you sent:
+**the text you typed**, plus — only if you tick the box — the app version, your operating
+system and which voice service you're on. No transcript, no progress, no key. See
 [Your privacy](#-your-privacy).
 
 You can also just email **<mjkazbekov@gmail.com>** directly, or open an issue on
 [GitHub](https://github.com/mkazbekov/French_Quebecois_Agent/issues).
 
 <details>
-<summary><b>For the maintainer: turning on delivery and auto-replies</b></summary>
+<summary><b>For the maintainer: sending feedback somewhere else</b></summary>
 
 <br>
 
-Out of the box the form opens a pre-filled draft in the learner's own mail app, because
-the tutor ships with no server and no credentials. To have it send directly — and to
-auto-reply to whoever wrote — deploy the small Google Apps Script relay in
-[`docs/feedback-relay.gs`](docs/feedback-relay.gs) on your own Google account and put its
-URL in `.env`:
-
-```dotenv
-FEEDBACK_ENDPOINT=https://script.google.com/macros/s/…/exec
-```
-
-Full steps are in [docs/FEEDBACK.md](docs/FEEDBACK.md).
+Set `FEEDBACK_EMAIL` in `.env` to change the address the draft is addressed to. There is
+nothing else to configure and nothing to deploy — there is no relay, no server and no
+credential anywhere in this path, by design.
 
 </details>
 

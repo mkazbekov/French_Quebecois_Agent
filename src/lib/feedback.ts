@@ -1,17 +1,17 @@
 /**
- * Feedback payload building. Pure, no I/O — kept separate from the API route
- * so the shape of what gets sent (and what never does) is unit-testable.
+ * Feedback composing. Pure, no I/O — no network call is ever made with this.
  *
- * Nothing outside this file's exported shapes may be sent to the relay: no
- * transcript, no learner profile, no API keys. See CLAUDE.md.
+ * "Send feedback" opens a pre-addressed email in the learner's own mail app.
+ * The app never transmits the message itself: the learner presses send in
+ * their own client, so they see exactly what leaves their machine, and the
+ * reply address is simply whatever they send from.
+ *
+ * Nothing outside the shapes below may go into that draft: no transcript, no
+ * learner profile, no API keys. See CLAUDE.md.
  */
 import { z } from "zod";
 
-export function looksLikeEmail(s: string): boolean {
-  // Deliberately simple: this only gates "does this look like an email
-  // address" for a reply, not RFC 5322 validation.
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
-}
+export const FEEDBACK_SUBJECT = "Québec French Tutor feedback";
 
 export const FeedbackInputSchema = z.object({
   message: z
@@ -19,74 +19,50 @@ export const FeedbackInputSchema = z.object({
     .trim()
     .min(1, "Please write a message before sending.")
     .max(4000, "Please keep feedback under 4000 characters."),
-  email: z
-    .string()
-    .trim()
-    .optional()
-    .transform((v) => (v ? v : undefined))
-    .refine((v) => v === undefined || looksLikeEmail(v), {
-      message: "That doesn't look like a valid email address.",
-    }),
   include_details: z.boolean().default(false),
 });
 
 export type FeedbackInput = z.infer<typeof FeedbackInputSchema>;
 
-/** Technical details a submitter can opt into attaching. Nothing else is ever included. */
+/** Technical details a sender can opt into attaching. Nothing else is ever included. */
 export type FeedbackDetails = {
   version: string;
   platform: string;
   provider: string;
 };
 
-export type FeedbackPayload = {
-  message: string;
-  email?: string;
-  app: "quebec-french-tutor";
-  sent_at: string;
-} & Partial<FeedbackDetails>;
-
 /**
- * Builds the exact JSON posted to the relay. `details` is only merged in
- * when `input.include_details` is true, and only those three fields.
+ * Builds the body of the email draft. `details` is only appended when
+ * `input.include_details` is true, and only those three fields.
  */
-export function buildFeedbackPayload(input: FeedbackInput, details: FeedbackDetails): FeedbackPayload {
-  return {
-    message: input.message,
-    ...(input.email ? { email: input.email } : {}),
-    app: "quebec-french-tutor",
-    sent_at: new Date().toISOString(),
-    ...(input.include_details
-      ? { version: details.version, platform: details.platform, provider: details.provider }
-      : {}),
-  };
+export function buildFeedbackBody(input: FeedbackInput, details: FeedbackDetails): string {
+  const lines = [input.message.trim()];
+  if (input.include_details) {
+    lines.push("", "---", `App version: ${details.version}`, `System: ${details.platform}`, `Voice provider: ${details.provider}`);
+  }
+  return lines.join("\n");
 }
 
-/** Pre-filled mailto: URL used when there's no relay endpoint, or the relay failed. */
-export function buildMailtoUrl({
-  to,
-  payload,
-}: {
-  to: string;
-  payload: FeedbackPayload;
-}): string {
-  const subject = "Québec French Tutor feedback";
-  const lines = [payload.message];
-  if (payload.version || payload.platform || payload.provider) {
-    lines.push("");
-    lines.push("---");
-    if (payload.version) lines.push(`App version: ${payload.version}`);
-    if (payload.platform) lines.push(`System: ${payload.platform}`);
-    if (payload.provider) lines.push(`Voice provider: ${payload.provider}`);
-  }
-  if (payload.email) {
-    lines.push("");
-    lines.push(`(Reply to: ${payload.email})`);
-  }
-  const body = lines.join("\n");
+/** `mailto:` URL — opens the learner's own mail app with everything filled in. */
+export function buildMailtoUrl({ to, body }: { to: string; body: string }): string {
   // The address goes in as-is apart from characters that would break the URL:
   // percent-encoding the "@" (as encodeURIComponent does) leaves some mail
   // clients showing a broken recipient instead of opening a draft.
   const recipient = to.trim().replace(/[\s<>"]/g, "");
-  return `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  return `mailto:${recipient}?subject=${encodeURIComponent(FEEDBACK_SUBJECT)}&body=${encodeURIComponent(body)}`;
+}
+
+/**
+ * Gmail's web compose URL. The escape hatch for someone with no mail app
+ * configured — most learners here read mail in a browser tab.
+ */
+export function buildGmailComposeUrl({ to, body }: { to: string; body: string }): string {
+  const params = new URLSearchParams({
+    view: "cm",
+    fs: "1",
+    to: to.trim(),
+    su: FEEDBACK_SUBJECT,
+    body,
+  });
+  return `https://mail.google.com/mail/?${params.toString()}`;
 }

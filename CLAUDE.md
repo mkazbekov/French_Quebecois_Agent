@@ -93,10 +93,11 @@ setup and everyday flow.
   `.env`, `data`, `.runtime`, `node_modules` and `.git` are untouchable. Bump
   `package.json` and add a plain-language `CHANGELOG.md` entry with every shipped change.
 - **Nothing is collected.** No analytics, no telemetry, no phone-home. The only outbound
-  calls are the voice/review provider, the version check (one file, nothing sent about the
-  learner), and feedback the learner typed and sent themselves (`/api/feedback` →
-  `FEEDBACK_ENDPOINT`, or a mailto: draft). The README's "Your privacy" section is the
-  promise; keep it true.
+  calls are the voice/review provider and the version check (one file, nothing sent about
+  the learner). Feedback is deliberately not an outbound call: `FeedbackCard` composes a
+  `mailto:` draft the learner sends from their own mail app (`GET /api/feedback` only
+  supplies the address and the three opt-in details). Never add a relay, an endpoint or a
+  POST here. The README's "Your privacy" section is the promise; keep it true.
 
 ## Commands
 
@@ -119,7 +120,7 @@ src/app/review/page.tsx          Review Mistakes (server component)
 src/app/api/realtime/session     POST: learner state → instructions → ek_ key
 src/app/api/session/end          POST: evidence → review → merge → persist → summary
 src/app/api/learner              GET: state + storeKind; PATCH: onboarding | name | language_mode | starting_level | placement:"test"; DELETE: wipe the learner (back to onboarding)
-src/app/api/feedback             POST: learner message -> FEEDBACK_ENDPOINT relay, else a mailto: fallback
+src/app/api/feedback             GET: feedback address + version/platform/provider (no POST; the card opens a mailto:)
 src/app/api/version              GET: installed vs. published version (6h cache, never throws)
 src/components/QuizCard.tsx      the on-screen multiple-choice check (ask_choice)
 src/components/FeedbackCard.tsx  footer feedback form; VersionBadge.tsx shows the version
@@ -127,8 +128,6 @@ scripts/version.mjs              shared version helpers (launcher + /api/version
 scripts/update.mjs               in-place updater (--check | --apply)
 scripts/make-icons.ps1           renders assets/*.png + tutor.ico from the logo path data
 assets/                          tutor.ico + PNGs used by the installers and shortcuts
-docs/FEEDBACK.md                 how to deploy the feedback relay (docs/feedback-relay.gs)
-docs/NEXT-SESSION-FEEDBACK.md    handoff: what is left to do on the feedback feature
 scripts/setup.mjs                first-run Gemini key setup (npm run setup, predev, launcher)
 scripts/launch.mjs               one-click launcher behind the Start Tutor scripts (npm run start:app)
 install-*.ps1 / install-mac.sh   one-line installers; Start Tutor (Windows).bat / (Mac).command
@@ -198,7 +197,7 @@ were verified on Linux/WSL only; a real Mac run is still pending.
 2026-09-21 (v0.2.0): live streaming transcript (partial turns, never persisted),
 on-screen multiple-choice checks (`ask_choice` → `QuizCard`, answerable by voice,
 typing or click), version tracking + an ask-once in-place updater in the launcher,
-an in-app feedback form with an optional Apps Script relay that auto-replies, a real
+an in-app feedback form (a mailto: draft since 0.2.1 — see below), a real
 app icon (`assets/tutor.ico` + SVG favicon, rendered from one set of path data by
 `scripts/make-icons.ps1`), and a plain-language privacy statement in the README.
 Verified on this machine at that point: typecheck, lint, 156 tests, production build,
@@ -220,11 +219,10 @@ Not yet verified on real hardware, and worth doing first next session:
    Windows tries `System32\tar.exe`, then `tar` on PATH, then `Expand-Archive` —
    a plain `tar` on PATH can be GNU tar, which cannot read a .zip, which is exactly
    how the first attempt failed. Still worth doing from the real Desktop icon once.
-3. **The feedback relay** — the app side ships, but nothing has ever been delivered:
-   the relay is undeployed, so every install falls back to a mailto draft. Full context,
-   the deployment steps, and the one open decision (does the endpoint URL ship in the
-   repo so learners get real delivery, or stay opt-in?) are in
-   `docs/NEXT-SESSION-FEEDBACK.md` — read that before touching the feature.
+3. **Feedback (v0.2.1)** — the relay was removed on 2026-09-21: feedback is now a
+   `mailto:` draft the learner sends themselves, with Copy message / Open in Gmail as
+   the fallbacks when no mail app is configured. Worth one click-through in a browser
+   to confirm the draft opens pre-filled.
 4. **macOS**: the icon application (`sips`/`iconutil`/NSWorkspace in `install-mac.sh`)
    and the `.command` launcher are still only tested on Linux/WSL.
 

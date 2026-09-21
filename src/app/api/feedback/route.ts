@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { env } from "@/lib/env";
-import { FeedbackInputSchema, buildFeedbackPayload, buildMailtoUrl, type FeedbackDetails } from "@/lib/feedback";
+import type { FeedbackDetails } from "@/lib/feedback";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,51 +17,17 @@ function readAppVersion(): string {
   }
 }
 
-function readDetails(): FeedbackDetails {
-  return {
+/**
+ * Everything the feedback form needs to compose an email draft: who it goes to,
+ * and the three technical details the sender may choose to attach. There is no
+ * POST — the app never transmits feedback itself; the learner's own mail app
+ * does, so nothing leaves the machine that they haven't seen and sent.
+ */
+export async function GET() {
+  const details: FeedbackDetails = {
     version: readAppVersion(),
     platform: process.platform,
     provider: env.VOICE_PROVIDER,
   };
-}
-
-export async function GET() {
-  return NextResponse.json({
-    endpointConfigured: Boolean(env.FEEDBACK_ENDPOINT),
-    contact: env.FEEDBACK_EMAIL,
-  });
-}
-
-export async function POST(request: NextRequest) {
-  const body = await request.json().catch(() => null);
-  const parsed = FeedbackInputSchema.safeParse(body);
-  if (!parsed.success) {
-    const message = parsed.error.issues[0]?.message ?? "Invalid feedback.";
-    return NextResponse.json({ error: message }, { status: 400 });
-  }
-
-  const contact = env.FEEDBACK_EMAIL;
-  const payload = buildFeedbackPayload(parsed.data, readDetails());
-  const endpoint = env.FEEDBACK_ENDPOINT;
-
-  if (endpoint) {
-    try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (res.ok) {
-        return NextResponse.json({ delivered: true, autoReply: Boolean(payload.email) });
-      }
-      // Non-2xx from the relay: fall through to the mailto fallback below.
-    } catch {
-      // Network error / timeout: fall through to the mailto fallback below.
-      // Never log the endpoint URL or any env value.
-    }
-  }
-
-  const mailto = buildMailtoUrl({ to: contact, payload });
-  return NextResponse.json({ delivered: false, mailto, contact });
+  return NextResponse.json({ contact: env.FEEDBACK_EMAIL, details });
 }
