@@ -211,11 +211,14 @@ Not yet verified on real hardware, and worth doing first next session:
    disappearing at the hand-over. Ask for a lesson and confirm a multiple-choice card
    appears, that the tutor also says the options out loud, and that answering by voice,
    by typing and by clicking all work.
-2. **A real update run.** Once v0.2.0 is on `main`, install v0.1.0 from the one-liner
-   into a scratch folder, double-click the icon, and confirm the launcher offers the
-   update, applies it, keeps `.env` and `data`, and restarts on the new version. The
-   Windows path relies on `tar.exe` extracting a .zip (Windows 10 1803+); there is no
-   `Expand-Archive` fallback yet.
+2. **The one-click update** (the script path is already verified — see below; what is
+   left is the double-click experience). A simulated v0.1.0 install on this machine
+   updated cleanly to the published v0.2.0: key, progress and a learner-created file
+   survived, a stale file listed in the manifest was removed, the running launcher was
+   left alone and its `.new` copy was swapped in on the next start. Extraction on
+   Windows tries `System32\tar.exe`, then `tar` on PATH, then `Expand-Archive` —
+   a plain `tar` on PATH can be GNU tar, which cannot read a .zip, which is exactly
+   how the first attempt failed. Still worth doing from the real Desktop icon once.
 3. **The feedback relay**: deploy `docs/feedback-relay.gs`, put its `/exec` URL in
    `FEEDBACK_ENDPOINT`, and send one message end to end (delivery + auto-reply).
 4. **macOS**: the icon application (`sips`/`iconutil`/NSWorkspace in `install-mac.sh`)

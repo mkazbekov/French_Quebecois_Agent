@@ -8,8 +8,8 @@
 //
 // Apply algorithm:
 //   1. Download the archive (zip on Windows, tar.gz elsewhere) to a temp dir.
-//   2. Extract it with the system `tar` (tar.exe on Windows 10+ handles
-//      .zip too; `tar -xzf` elsewhere).
+//   2. Extract it (Windows: System32\tar.exe, then tar on PATH, then
+//      Expand-Archive; elsewhere: tar -xzf).
 //   3. Find the single extracted top-level folder.
 //   4. Copy its contents OVER the install folder, then delete local files
 //      that are gone from the new version.
@@ -96,12 +96,37 @@ async function download(url, destPath) {
   }
 }
 
-/** Extract an archive with the system `tar` (bsdtar on Windows 10+ handles .zip). */
+/**
+ * Extract the downloaded archive.
+ *
+ * Windows ships bsdtar as %SystemRoot%\System32\tar.exe (Windows 10 1803+),
+ * which reads .zip - but a plain `tar` on PATH can just as easily be GNU tar
+ * (Git for Windows, MSYS, WSL interop), which cannot. So try the system one by
+ * full path first, then whatever is on PATH, then PowerShell's Expand-Archive,
+ * which exists on every supported Windows. Elsewhere, tar -xzf is enough.
+ */
 function extractArchive(archivePath, destDir) {
-  const args =
-    process.platform === "win32" ? ["-xf", archivePath, "-C", destDir] : ["-xzf", archivePath, "-C", destDir];
-  const res = spawnSync("tar", args, { stdio: ["ignore", "pipe", "pipe"] });
-  return res.status === 0;
+  const run = (exe, args) => spawnSync(exe, args, { stdio: ["ignore", "pipe", "pipe"] });
+
+  if (process.platform !== "win32") {
+    return run("tar", ["-xzf", archivePath, "-C", destDir]).status === 0;
+  }
+
+  const systemTar = path.join(process.env.SystemRoot || "C:\\Windows", "System32", "tar.exe");
+  const tarCandidates = existsSync(systemTar) ? [systemTar, "tar"] : ["tar"];
+  for (const exe of tarCandidates) {
+    if (run(exe, ["-xf", archivePath, "-C", destDir]).status === 0) return true;
+  }
+
+  // PowerShell string literals escape a single quote by doubling it.
+  const q = (s) => "'" + String(s).split("'").join("''") + "'";
+  const ps = run("powershell", [
+    "-NoProfile",
+    "-NonInteractive",
+    "-Command",
+    `Expand-Archive -LiteralPath ${q(archivePath)} -DestinationPath ${q(destDir)} -Force`,
+  ]);
+  return ps.status === 0;
 }
 
 /** Find the single top-level directory a GitHub archive extracts into. */

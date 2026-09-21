@@ -86,6 +86,13 @@ export function isNewer(remote, local) {
   return compareVersions(remote, local) > 0;
 }
 
+// raw.githubusercontent.com serves these files with `Cache-Control: max-age=300`
+// and its CDN ignores query strings, so a just-published version can take a few
+// minutes to show up here - that is fine for an update check, and the launcher
+// asks again on the next start. These options only stop anything BETWEEN us and
+// the CDN (a corporate proxy, a local HTTP cache) adding staleness of its own.
+const FETCH_OPTIONS = { cache: "no-store", headers: { "cache-control": "no-cache" } };
+
 /**
  * Fetch the remote version from GitHub's raw package.json on main. Never
  * throws: resolves to { version: string|null, error: string|null }. Respects
@@ -94,7 +101,7 @@ export function isNewer(remote, local) {
  */
 export async function fetchRemoteVersion({ timeoutMs = 3000, url = DEFAULT_REMOTE_PACKAGE_URL } = {}) {
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+    const res = await fetch(url, { ...FETCH_OPTIONS, signal: AbortSignal.timeout(timeoutMs) });
     if (!res.ok) {
       return { version: null, error: `HTTP ${res.status}` };
     }
@@ -126,7 +133,7 @@ export async function fetchChangelogHighlights({
 } = {}) {
   if (!version) return [];
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+    const res = await fetch(url, { ...FETCH_OPTIONS, signal: AbortSignal.timeout(timeoutMs) });
     if (!res.ok) return [];
     const text = await res.text();
     return extractHighlights(text, version);
