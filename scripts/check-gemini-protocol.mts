@@ -38,10 +38,12 @@ async function main() {
         turnCompleteCount++;
       }
     },
+    onPartialTranscript: () => {},
     onActivity: () => {},
     onEvidence: (e) => {
       evidence.push(e);
     },
+    onQuiz: () => {},
     onInterrupted: () => {},
     onSetupComplete: () => {
       console.log("setup complete:", model);

@@ -18,7 +18,11 @@ export function TutorHeader({
 
   return (
     <header className="w-full max-w-xl mx-auto flex flex-col items-center gap-1 text-center px-4 pt-8">
-      <h1 className="text-2xl font-semibold tracking-tight">French Tutor</h1>
+      <div className="flex items-center justify-center gap-2">
+        {/* eslint-disable-next-line @next/next/no-img-element -- static, tiny local SVG mark; next/image is overkill here */}
+        <img src="/logo.svg" alt="" width={28} height={28} className="shrink-0" />
+        <h1 className="text-2xl font-semibold tracking-tight">French Tutor</h1>
+      </div>
       {state && state.profile.onboarded_at !== null && (
         <>
           {name && <p className="text-sm text-zinc-500 dark:text-zinc-400">Salut, {name}</p>}

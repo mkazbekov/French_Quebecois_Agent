@@ -105,6 +105,49 @@ EOF
     chmod +x "$desktop_launcher"
   fi
 
+  # Give the launchers the app's own icon instead of the default blank-page
+  # .command icon. Best-effort only: this whole script runs under `set -e`,
+  # so every step here is guarded/non-fatal - a machine missing sips,
+  # iconutil or Python's plistlib, or one that refuses the AppleScript
+  # automation prompt, must still finish the install cleanly.
+  # NOTE: this codepath is unverified on a real Mac (only tested on
+  # Linux/WSL, where sips/iconutil/osascript don't exist and it just skips).
+  set_launcher_icon() {
+    source_png="$install_dir/assets/tutor-1024.png"
+    [ -f "$source_png" ] || return 0
+    command -v sips >/dev/null 2>&1 || return 0
+    command -v iconutil >/dev/null 2>&1 || return 0
+    command -v osascript >/dev/null 2>&1 || return 0
+
+    iconset_dir="$tmp_dir/tutor.iconset"
+    icns_path="$tmp_dir/tutor.icns"
+    mkdir -p "$iconset_dir" || return 0
+
+    for spec in "16:icon_16x16" "32:icon_16x16@2x" "32:icon_32x32" "64:icon_32x32@2x" \
+                "128:icon_128x128" "256:icon_128x128@2x" "256:icon_256x256" \
+                "512:icon_256x256@2x" "512:icon_512x512" "1024:icon_512x512@2x"; do
+      px="${spec%%:*}"
+      name="${spec##*:}"
+      sips -z "$px" "$px" "$source_png" --out "$iconset_dir/$name.png" >/dev/null 2>&1 || true
+    done
+
+    iconutil -c icns "$iconset_dir" -o "$icns_path" >/dev/null 2>&1 || return 0
+    [ -f "$icns_path" ] || return 0
+
+    for target in "$launcher" "$desktop_launcher"; do
+      [ -n "$target" ] || continue
+      [ -e "$target" ] || continue
+      osascript \
+        -e 'use framework "AppKit"' \
+        -e 'use scripting additions' \
+        -e "set i to current application's NSImage's alloc()'s initWithContentsOfFile:\"$icns_path\"" \
+        -e "current application's NSWorkspace's sharedWorkspace()'s setIcon:i forFile:\"$target\" options:0" \
+        >/dev/null 2>&1 || true
+    done
+    return 0
+  }
+  set_launcher_icon || true
+
   echo ""
   echo "Done:"
   echo "  - Installed to: $install_dir"

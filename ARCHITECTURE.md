@@ -14,6 +14,9 @@ Next.js API routes (server, holds the real API keys)
                                Gemini ephemeral token or an OpenAI ek_ key (VOICE_PROVIDER)
   POST /api/session/end        transcript + evidence → structured review → merge → persist
   GET  /api/learner            read-only view of learner state (header + review page)
+  POST /api/feedback           forwards a learner-written message to FEEDBACK_ENDPOINT,
+                               or hands back a mailto: URL when none is configured
+  GET  /api/version            local package.json version vs. the published one (6h cache)
       │
       ▼
 LearnerStore (src/lib/learner/store.ts)
@@ -126,14 +129,32 @@ and never speak over the learner.
 2. Start → `POST /api/realtime/session` (mode) → `{ provider, instructions,
    sessionId, gemini|openai credentials }` → browser opens a `VoiceSession`
    (Gemini Live WebSocket by default) → tutor greets first (client triggers one response).
-3. During the call the tutor may call the client-side tool `note_evidence`
-   (grammar error / vocab gap / good use / comprehension issue). The browser
-   buffers those plus the transcript in memory and mirrors them to localStorage
-   for crash recovery.
+3. During the call the tutor may call the client-side tools `note_evidence`
+   (grammar error / vocab gap / good use / comprehension issue) and `ask_choice`
+   (a 2-4 option check rendered by `QuizCard`; clicking an option sends the option
+   text back as a normal user turn, flagged `choice` so the reviewer can tell it
+   from speech or typing). The browser buffers evidence plus the transcript in
+   memory and mirrors them to localStorage for crash recovery.
+   Transcription arrives as deltas: finalized turns go to `onTranscript` (and into
+   the saved evidence), while the sentence still being spoken goes to
+   `onPartialTranscript` and is rendered live but never persisted.
 4. End (button, or transport drop) → `POST /api/session/end` with transcript +
    evidence → structured review (delta, Gemini or OpenAI) → deterministic merge into the
    learner state → Letta blocks updated + passage written → summary returned.
 5. Next start repeats step 2 with the updated state, so the tutor remembers.
+
+## Versions and updating
+
+`package.json` holds the version; `CHANGELOG.md` explains each one in plain language.
+`scripts/version.mjs` (zero-dependency, shared by the launcher and the API route)
+compares it against the published `package.json` on `main`. `scripts/launch.mjs` checks
+on every start and offers the update; `scripts/update.mjs --apply` downloads the archive
+to a temp dir and copies it over the install **in place** - it never deletes or moves the
+install folder (the running shell holds handles on it), never touches `.env`, `data`,
+`.runtime`, `node_modules` or `.git`, writes a changed root launcher script as
+`<name>.new` (the shell reads those by byte offset while running) for the launcher to
+swap in on the next start, and only removes files listed in its own
+`.runtime/installed-files.json` manifest, so a learner-created file is never deleted.
 
 ## Why these choices
 

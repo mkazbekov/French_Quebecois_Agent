@@ -13,8 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "French Tutor",
+  title: "Québec French Tutor",
   description: "A personal Quebecois French conversation tutor.",
+  icons: {
+    icon: "/logo.svg",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

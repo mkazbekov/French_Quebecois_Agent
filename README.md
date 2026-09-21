@@ -16,8 +16,10 @@
 <p align="center">
   <a href="#how-to-use-it"><b>How to use it</b></a> ·
   <a href="#step-1--get-your-free-gemini-api-key"><b>Install</b></a> ·
+  <a href="#-your-privacy"><b>Privacy</b></a> ·
   <a href="#troubleshooting"><b>Troubleshooting</b></a> ·
   <a href="#using-the-tutor"><b>Features</b></a> ·
+  <a href="#-send-feedback"><b>Feedback</b></a> ·
   <a href="#for-developers"><b>Developers</b></a>
 </p>
 
@@ -26,6 +28,7 @@
 - 🎙️ **Real conversation.** You speak, it answers out loud, straight away. No typing, no recording and uploading.
 - 🍁 **Québec French.** Montréal accent and expressions: *dépanneur*, *tantôt*, *pis*, *il fait frette*.
 - 🧠 **Remembers you.** Your level, recurring mistakes and new words carry over to the next call.
+- ⌨️ **Read along live.** The transcript is written out as you both speak, and the tutor can put a multiple-choice question on screen — answer out loud, by typing, or by clicking.
 - 📈 **A real program.** A 12-level syllabus (Échelle québécoise), lessons, role-plays and level checks.
 - 🐢 **Patient.** Waits through your pauses. Beginners get English help; French-only comes later.
 - 🔒 **Private.** Runs on your computer. Only the call itself goes to Google's Gemini.
@@ -109,6 +112,46 @@ You do **not** need to install Node.js, Git or Python. The installer downloads a
 copy of Node.js (the engine that runs the tutor) inside the tutor's own folder, only if
 your computer doesn't already have a recent one. Nothing is installed system-wide and no
 administrator password is needed.
+
+---
+
+## 🔒 Your privacy
+
+**Everything stays on your computer. I don't collect anything.**
+
+There is no account, no sign-up, no server of mine anywhere in this app. The tutor runs
+on your machine, at `http://localhost:3000` — a web page that only your computer can
+open. Nobody else can reach it, including me.
+
+What is stored, and where:
+
+| What | Where it lives |
+| --- | --- |
+| Your name, level and progress | `data` folder inside the tutor's folder, on your disk |
+| Your Gemini API key | `.env` file in the same folder, on your disk |
+| Recordings of your voice | **Nowhere.** Audio is streamed for the call and never written to disk |
+| Raw transcripts of your calls | **Nowhere.** Only short learning notes (error patterns, words, level estimates, a few summary lines) are kept |
+
+What leaves your computer, and only while you are using it:
+
+- **Your speech and the tutor's replies go to Google's Gemini** during a call, and the
+  call's notes go to Gemini once at the end so it can write your progress summary. That
+  is the service doing the talking and the reviewing; it is governed by
+  [Google's API terms](https://ai.google.dev/gemini-api/terms). Use of a **free** Gemini
+  API key means Google may use that content to improve their models — if that matters to
+  you, use a paid Gemini key or a key from a Google Cloud project with paid billing.
+- **Nothing else.** No analytics, no telemetry, no crash reporting, no "phone home".
+  The only other network calls the app ever makes are: checking GitHub for a newer
+  version (it asks for one file, `package.json`, and sends nothing about you), and
+  sending feedback — but only if *you* type a message and press Send.
+
+I never receive your key, your progress, your recordings or your transcripts. If you
+send feedback, I get exactly the text you typed, plus your email address only if you
+chose to give one.
+
+**To delete everything:** delete the **Quebec French Tutor** folder. That's it — nothing
+is left anywhere else, and nothing remains on any server of mine because it was never
+there. (See [Uninstalling](#stopping-updating-and-uninstalling) to also revoke the key.)
 
 ---
 
@@ -359,15 +402,53 @@ If the browser tab was closed but the window is still open, just open
 <http://localhost:3000> again. Double-clicking the icon while the tutor is already
 running also just opens the page.
 
-**Updating to a newer version:** close the tutor window, then run the same one-line
-install command again. It replaces the program but keeps your key and progress. (If
-you installed with Git, run `git pull` in the tutor's folder instead.)
+### Updating
 
-**Uninstalling:** close the tutor, then delete the **Quebec French Tutor** folder in your
-user/home folder and the Desktop (and Windows Start menu) icon. That removes everything,
-including your saved progress. To also revoke the key, open the AI Studio API Keys page, click **⋮** at the
+**You don't have to do anything special — just start the tutor as usual.**
+
+Every time you double-click **Quebec French Tutor**, the launcher checks whether a newer
+version exists (it asks GitHub for one small file and sends nothing about you). If there
+is one, the window shows what's new and asks:
+
+```text
+A new version is available (v0.3.0 — you have v0.2.0)
+  - Real-time transcript
+  - Multiple-choice checks during lessons
+Update now? [Y/n]
+```
+
+Press **Enter** to update. It takes a few seconds, then the tutor starts on the new
+version. Your **API key, your progress and your settings are kept** — only the program
+files are replaced. Press **n** if you'd rather stay on the version you have; you'll be
+asked again next time.
+
+The version you're running is shown in small grey text at the bottom of the tutor's
+page, next to *Memory* and *Voice*. [CHANGELOG.md](CHANGELOG.md) lists what changed in
+each version.
+
+<details>
+<summary><b>Other ways to update</b></summary>
+
+<br>
+
+- **If you skipped the prompt and want to update now:** close the tutor, double-click the
+  icon again, and press Enter at the question.
+- **Manually, from the tutor's folder:** `npm run update`
+- **The old way (always works):** close the tutor window and paste the same one-line
+  install command from [Step 2](#step-2-windows--install-and-start) again. It replaces
+  the program and keeps your key and progress.
+- **If you installed with Git:** run `git pull` in the tutor's folder.
+- **To turn the check off:** set the environment variable `TUTOR_NO_UPDATE_CHECK=1`.
+  The tutor never updates itself without asking, and never while it is running.
+
+</details>
+
+### Uninstalling
+
+Close the tutor, then delete the **Quebec French Tutor** folder in your user/home folder
+and the Desktop (and Windows Start menu) icon. That removes everything, including your
+saved progress. To also revoke the key, open the AI Studio API Keys page, click **⋮** at the
 end of the key's row, choose **Delete key**, then **Delete**.
-
 ---
 
 ## Troubleshooting
@@ -526,6 +607,17 @@ picked your level): the tutor checks all four skills (listening, speaking, readi
 writing) so it knows where to start. After that, calls rotate automatically through
 practice, a lesson, a Québec role-play, practice, a lesson, and a level check.
 
+**Live transcript.** Everything said in the call is written out under the buttons **as it
+is spoken** — your words and the tutor's, word by word while they come in (the faint grey
+line with a blinking cursor is the sentence still being said). Use it to read along, to
+catch a word you missed, or to answer something the tutor asks you to *read*.
+
+**Multiple-choice checks.** During lessons, level checks and drills the tutor will
+sometimes put a short question with two to four options on your screen — and say it out
+loud too. Answer however you like: **say it**, **type it**, or **click an option** (or
+press `1`–`4`). The card turns the right answer green straight away, and the tutor picks
+the conversation back up from your answer.
+
 **Text box.** Under the transcript there is a text field. The tutor will sometimes ask
 you to *type* an answer (that is how it assesses your writing) or to *read* what it just
 said on screen (reading). You can also type any time instead of speaking.
@@ -601,10 +693,48 @@ program moves on. Gaps from lower levels are filled before moving up.
 
 ### Privacy
 
-Everything stays on your computer except the audio and text sent to Google's Gemini
-during a call and its review. Raw transcripts are never saved. Only compact learning
-notes are kept (error patterns, vocabulary, level estimates, short summaries), in the
-`data` folder inside the tutor folder. Your key is in the `.env` file in the same folder.
+Everything stays on your computer; nothing is collected by anyone. Raw transcripts are
+never saved — only compact learning notes (error patterns, vocabulary, level estimates,
+short summaries), in the `data` folder inside the tutor folder, with your key in `.env`
+beside it. The full statement is in [Your privacy](#-your-privacy).
+
+---
+
+## 💬 Send feedback
+
+Something confusing, broken, or missing? Tell me — it takes ten seconds.
+
+At the bottom of the tutor's page, click **Send feedback**, type what's on your mind,
+and (optionally) leave your email so I can reply. Press **Send**. If you leave an email
+address you'll get an automatic confirmation right away, and a real answer from me after
+that.
+
+What I receive: **the text you typed**, your email address if you gave one, and — only if
+you tick the box — the app version, your operating system and which voice service you're
+on. Nothing else. No transcript, no progress, no key. See
+[Your privacy](#-your-privacy).
+
+You can also just email **<mjkazbekov@gmail.com>** directly, or open an issue on
+[GitHub](https://github.com/mkazbekov/French_Quebecois_Agent/issues).
+
+<details>
+<summary><b>For the maintainer: turning on delivery and auto-replies</b></summary>
+
+<br>
+
+Out of the box the form opens a pre-filled draft in the learner's own mail app, because
+the tutor ships with no server and no credentials. To have it send directly — and to
+auto-reply to whoever wrote — deploy the small Google Apps Script relay in
+[`docs/feedback-relay.gs`](docs/feedback-relay.gs) on your own Google account and put its
+URL in `.env`:
+
+```dotenv
+FEEDBACK_ENDPOINT=https://script.google.com/macros/s/…/exec
+```
+
+Full steps are in [docs/FEEDBACK.md](docs/FEEDBACK.md).
+
+</details>
 
 ---
 
@@ -635,6 +765,9 @@ scripts use (key check, install if needed, start, open browser).
 | `npm run check:gemini`        | live 3-turn text→speech session against Gemini Live (no mic)               |
 | `npm run check:review`        | live structured session review with the configured provider               |
 | `npm run check:realtime`      | same protocol check for the OpenAI backend (needs credits)                 |
+| `npm run update`              | download and apply the latest version in place (keeps `.env` and `data`)   |
+| `npm run check:update`        | report whether a newer version has been published                          |
+| `pwsh -File scripts/make-icons.ps1` | re-render `assets/*.png` + `assets/tutor.ico` from the logo path data |
 
 **Launch files** (repo root):
 

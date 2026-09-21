@@ -1,4 +1,4 @@
-import { LiveEvidenceSchema, type LiveEvidence, type TranscriptTurn } from "@/lib/learner/schema";
+import { LiveEvidenceSchema, QuizQuestionSchema, type LiveEvidence, type QuizQuestion, type TranscriptTurn } from "@/lib/learner/schema";
 import { CALL_START_SENTINEL } from "@/lib/tutor/gemini-setup";
 
 /**
@@ -45,8 +45,11 @@ interface GeminiFunctionCall {
 export interface GeminiLiveProtocolCallbacks {
   onAudioChunk(bytes: ArrayBuffer): void;
   onTranscript(turns: TranscriptTurn[]): void;
+  /** In-flight (not yet finalized) turns, 0–2, user first then assistant; [] clears. */
+  onPartialTranscript(partials: TranscriptTurn[]): void;
   onActivity(activity: "listening" | "speaking"): void;
   onEvidence(evidence: LiveEvidence): void;
+  onQuiz(quiz: QuizQuestion): void;
   onInterrupted(): void;
   onSetupComplete(): void;
   onDisconnected(reason: string): void;
@@ -92,7 +95,7 @@ export class GeminiLiveProtocol {
         try {
           const raw = typeof ev.data === "string" ? ev.data : await decodeFrame(ev.data);
           const msg = JSON.parse(raw) as Record<string, unknown>;
-          this.handleMessage(msg);
+          this.handleServerMessage(msg);
           if (msg.setupComplete && !settled) {
             settled = true;
             clearTimeout(timer);
@@ -144,7 +147,17 @@ export class GeminiLiveProtocol {
     if (text) this.turns.push({ role: "assistant", text });
   }
 
-  private handleMessage(msg: Record<string, unknown>) {
+  /** Emits the current in-flight (not yet finalized) turns: user first, then assistant. */
+  private emitPartial(): void {
+    const partials: TranscriptTurn[] = [];
+    const userText = this.curUserText.trim();
+    if (userText && userText !== CALL_START_SENTINEL) partials.push({ role: "user", text: userText });
+    const assistantText = this.curAssistantText.trim();
+    if (assistantText) partials.push({ role: "assistant", text: assistantText });
+    this.callbacks.onPartialTranscript(partials);
+  }
+
+  handleServerMessage(msg: Record<string, unknown>) {
     if (msg.goAway) {
       this.callbacks.onDisconnected("goAway");
       return;
@@ -162,6 +175,7 @@ export class GeminiLiveProtocol {
 
     if (sc?.inputTranscription?.text) {
       this.curUserText += sc.inputTranscription.text;
+      this.emitPartial();
     }
 
     if (sc?.modelTurn?.parts) {
@@ -171,7 +185,12 @@ export class GeminiLiveProtocol {
           if (!this.curTurnHasAudio) {
             this.curTurnHasAudio = true;
             // User (if any) finished speaking now that the model is responding.
+            // Publish the finalized turn straight away and drop it from the
+            // partials in the same tick, otherwise the learner's own sentence
+            // vanishes from the screen until the tutor's turn completes.
             this.finalizeUserTurn();
+            this.callbacks.onTranscript([...this.turns]);
+            this.emitPartial();
             this.callbacks.onActivity("speaking");
           }
           this.callbacks.onAudioChunk(base64ToBytes(data));
@@ -181,6 +200,7 @@ export class GeminiLiveProtocol {
 
     if (sc?.outputTranscription?.text) {
       this.curAssistantText += sc.outputTranscription.text;
+      this.emitPartial();
     }
 
     if (sc?.interrupted) {
@@ -189,6 +209,7 @@ export class GeminiLiveProtocol {
       this.callbacks.onActivity("listening");
       this.callbacks.onInterrupted();
       this.callbacks.onTranscript([...this.turns]);
+      this.callbacks.onPartialTranscript([]);
     }
 
     if (sc?.turnComplete) {
@@ -197,6 +218,7 @@ export class GeminiLiveProtocol {
       this.curTurnHasAudio = false;
       this.callbacks.onActivity("listening");
       this.callbacks.onTranscript([...this.turns]);
+      this.callbacks.onPartialTranscript([]);
       this.callbacks.onTurnComplete();
     }
 
@@ -207,6 +229,18 @@ export class GeminiLiveProtocol {
           const parsed = LiveEvidenceSchema.safeParse(fc.args ?? {});
           if (parsed.success) this.callbacks.onEvidence(parsed.data);
           this.sendToolResponse(fc.id, fc.name, { result: "noted" });
+        } else if (fc.name === "ask_choice") {
+          const parsed = QuizQuestionSchema.safeParse(fc.args ?? {});
+          if (parsed.success) {
+            const clamped: QuizQuestion = {
+              ...parsed.data,
+              answer_index: Math.min(Math.max(parsed.data.answer_index, 0), parsed.data.options.length - 1),
+            };
+            this.callbacks.onQuiz(clamped);
+            this.sendToolResponse(fc.id, fc.name, { result: "shown" });
+          } else {
+            this.sendToolResponse(fc.id, fc.name, { result: "invalid" });
+          }
         } else if (fc.name === "end_call") {
           this.sendToolResponse(fc.id, fc.name, { result: "ok" });
           this.callbacks.onEndCallRequested();
@@ -232,11 +266,11 @@ export class GeminiLiveProtocol {
     );
   }
 
-  sendText(text: string): void {
+  sendText(text: string, source: "typed" | "choice" = "typed"): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
     if (text !== CALL_START_SENTINEL) {
       this.finalizeUserTurn();
-      this.turns.push({ role: "user", text, typed: true });
+      this.turns.push(source === "choice" ? { role: "user", text, choice: true } : { role: "user", text, typed: true });
       this.callbacks.onTranscript([...this.turns]);
     }
     this.ws.send(

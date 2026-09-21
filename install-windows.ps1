@@ -160,8 +160,15 @@ function Install-Tutor {
     if ($startMenuDir -ne $desktopDir) {
       $shortcutTargets.Add((Join-Path $startMenuDir 'Quebec French Tutor.lnk'))
     }
-    # shell32.dll icon 13: a globe - fits a language/world-languages tutor.
-    $iconLocation = (Join-Path $env:SystemRoot 'System32\shell32.dll') + ',13'
+    # The app's own icon (assets\tutor.ico, shipped in the archive). Fall back
+    # to shell32.dll icon 13 (a globe) if it's missing - an older install from
+    # before the icon existed, or a partial/corrupted download.
+    $appIconPath = Join-Path $installDir 'assets\tutor.ico'
+    if (Test-Path -LiteralPath $appIconPath) {
+      $iconLocation = $appIconPath
+    } else {
+      $iconLocation = (Join-Path $env:SystemRoot 'System32\shell32.dll') + ',13'
+    }
     foreach ($lnkPath in $shortcutTargets) {
       try {
         $lnkDir = Split-Path -Parent $lnkPath

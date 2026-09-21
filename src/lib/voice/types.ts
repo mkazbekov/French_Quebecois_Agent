@@ -1,4 +1,4 @@
-import type { LiveEvidence, SessionMode, TranscriptTurn } from "@/lib/learner/schema";
+import type { LiveEvidence, QuizQuestion, SessionMode, TranscriptTurn } from "@/lib/learner/schema";
 
 /**
  * Provider-neutral contract between the UI hook and a realtime voice backend.
@@ -12,8 +12,12 @@ export type VoiceActivity = "listening" | "speaking";
 export interface VoiceSessionHandlers {
   /** Full transcript so far (replace, don't append). Only user/assistant turns with text. */
   onTranscript(turns: TranscriptTurn[]): void;
+  /** In-flight (not yet finalized) turns, 0–2, user first then assistant; [] clears. Never persisted. */
+  onPartialTranscript(partials: TranscriptTurn[]): void;
   onActivity(activity: VoiceActivity): void;
   onEvidence(evidence: LiveEvidence): void;
+  /** The tutor wants to show a multiple-choice check on screen. */
+  onQuiz(quiz: QuizQuestion): void;
   /** The remote side closed or the connection failed after connect(). */
   onDisconnected(reason: string): void;
   /** Non-fatal problem worth surfacing. */
@@ -26,8 +30,8 @@ export interface VoiceSession {
   readonly provider: "openai" | "gemini";
   /** Opens the connection. Resolves once the tutor can be heard/heard from. Rejects on failure. */
   connect(): Promise<void>;
-  /** Learner types instead of speaking. */
-  sendText(text: string): void;
+  /** Learner types instead of speaking, or answers a quiz by clicking ("choice"). Default source is "typed". */
+  sendText(text: string, source?: "typed" | "choice"): void;
   mute(muted: boolean): void;
   /** Stops audio, closes the connection. Idempotent. */
   close(): void;

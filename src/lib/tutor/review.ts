@@ -52,7 +52,7 @@ function compactState(state: LearnerState): string {
 
 function renderEvidence(ev: SessionEvidence): string {
   const transcript = ev.transcript
-    .map((t) => `${t.role === "user" ? (t.typed ? "LEARNER (typed)" : "LEARNER") : "TUTOR"}: ${t.text.trim()}`)
+    .map((t) => `${t.role === "user" ? (t.typed ? "LEARNER (typed)" : t.choice ? "LEARNER (chose)" : "LEARNER") : "TUTOR"}: ${t.text.trim()}`)
     .join("\n");
   const live = ev.live_evidence.length
     ? ev.live_evidence

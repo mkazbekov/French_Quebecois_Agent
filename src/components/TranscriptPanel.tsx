@@ -7,10 +7,14 @@ const MAX_TURNS_SHOWN = 40;
 
 export function TranscriptPanel({
   transcript,
+  partial = [],
+  live = false,
   canSendText,
   onSendText,
 }: {
   transcript: TranscriptTurn[];
+  partial?: TranscriptTurn[];
+  live?: boolean;
   canSendText: boolean;
   onSendText: (text: string) => void;
 }) {
@@ -22,7 +26,7 @@ export function TranscriptPanel({
     if (open && listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
-  }, [transcript, open]);
+  }, [transcript, partial, open]);
 
   const shown = transcript.slice(-MAX_TURNS_SHOWN);
 
@@ -40,13 +44,21 @@ export function TranscriptPanel({
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium bg-zinc-100 dark:bg-zinc-900"
       >
-        <span>Transcript</span>
+        <span className="flex items-center gap-2">
+          Transcript
+          {live && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-normal text-emerald-600 dark:text-emerald-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              live
+            </span>
+          )}
+        </span>
         <span className="text-zinc-400">{open ? "▲" : "▼"}</span>
       </button>
       {open && (
         <div>
           <div ref={listRef} className="max-h-64 overflow-y-auto px-4 py-3 space-y-2 text-sm">
-            {shown.length === 0 && (
+            {shown.length === 0 && partial.length === 0 && (
               <p className="text-zinc-400 dark:text-zinc-600 italic">The conversation will appear here.</p>
             )}
             {shown.map((turn, i) => (
@@ -59,6 +71,20 @@ export function TranscriptPanel({
                   }`}
                 >
                   {turn.text}
+                </span>
+              </div>
+            ))}
+            {partial.map((turn, i) => (
+              <div key={`partial-${i}`} className={turn.role === "user" ? "text-right" : "text-left"}>
+                <span
+                  className={`inline-block max-w-[85%] rounded-2xl px-3 py-1.5 opacity-60 ${
+                    turn.role === "user"
+                      ? "bg-emerald-500 text-white"
+                      : "bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-100"
+                  }`}
+                >
+                  {turn.text}
+                  <span className="ml-0.5 inline-block animate-pulse">▍</span>
                 </span>
               </div>
             ))}

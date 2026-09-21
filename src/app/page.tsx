@@ -10,13 +10,17 @@ import { LanguageToggle } from "@/components/LanguageToggle";
 import { Onboarding } from "@/components/Onboarding";
 import { TranscriptPanel } from "@/components/TranscriptPanel";
 import { SummaryCard } from "@/components/SummaryCard";
+import { QuizCard } from "@/components/QuizCard";
+import { FeedbackCard } from "@/components/FeedbackCard";
+import VersionBadge from "@/components/VersionBadge";
 
 type LanguageMode = "auto" | "english_support" | "french_only";
 
 type ProfilePhase = "loading" | "error" | "ready";
 
 export default function Home() {
-  const { status, error, transcript, summary, provider, start, end, sendText, reset } = useTutorSession();
+  const { status, error, transcript, partialTranscript, summary, provider, quiz, start, end, sendText, answerQuiz, reset } =
+    useTutorSession();
   const [learnerState, setLearnerState] = useState<LearnerState | null>(null);
   const [storeKind, setStoreKind] = useState<string | null>(null);
   const [selectedMode, setSelectedMode] = useState<SessionMode>("auto");
@@ -185,6 +189,10 @@ export default function Home() {
               </div>
             )}
 
+            {isActive && quiz && (
+              <QuizCard quiz={quiz.quiz} answeredIndex={quiz.answeredIndex} onAnswer={answerQuiz} />
+            )}
+
             <ModeChips selected={selectedMode} onSelect={setSelectedMode} disabled={isActive} />
 
             <LanguageToggle
@@ -200,14 +208,23 @@ export default function Home() {
               <p className="text-xs text-amber-600 dark:text-amber-400 text-center max-w-sm">{error}</p>
             )}
 
-            <TranscriptPanel transcript={transcript} canSendText={isConnected} onSendText={sendText} />
+            <TranscriptPanel
+              transcript={transcript}
+              partial={partialTranscript}
+              live={isConnected}
+              canSendText={isConnected}
+              onSendText={sendText}
+            />
           </>
         )}
       </main>
 
-      <footer className="text-[11px] text-zinc-400 dark:text-zinc-600 pb-4">
-        Memory: {storeKind ?? "…"}
-        {provider ? ` · Voice: ${provider}` : ""}
+      <footer className="w-full max-w-xl mx-auto flex flex-col items-center gap-2 pb-4">
+        <p className="text-[11px] text-zinc-400 dark:text-zinc-600">
+          Memory: {storeKind ?? "…"}
+          {provider ? ` · Voice: ${provider}` : ""}<VersionBadge />
+        </p>
+        <FeedbackCard />
       </footer>
     </div>
   );

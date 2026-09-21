@@ -84,8 +84,10 @@ export class GeminiVoiceSession implements VoiceSession {
     this.protocol = new GeminiLiveProtocol({
       onAudioChunk: (bytes) => this.playChunk(bytes),
       onTranscript: (turns) => this.deps.handlers.onTranscript(turns),
+      onPartialTranscript: (partials) => this.deps.handlers.onPartialTranscript(partials),
       onActivity: (activity) => this.deps.handlers.onActivity(activity),
       onEvidence: (evidence) => this.deps.handlers.onEvidence(evidence),
+      onQuiz: (quiz) => this.deps.handlers.onQuiz(quiz),
       onInterrupted: () => this.stopPlayback(),
       onSetupComplete: () => {
         // no-op: greeting is sent by the protocol itself
@@ -135,8 +137,8 @@ export class GeminiVoiceSession implements VoiceSession {
     await this.protocol.connect(url, setupMessage);
   }
 
-  sendText(text: string): void {
-    this.protocol.sendText(text);
+  sendText(text: string, source: "typed" | "choice" = "typed"): void {
+    this.protocol.sendText(text, source);
   }
 
   mute(muted: boolean): void {

@@ -81,6 +81,12 @@ describe("buildTutorInstructions", () => {
     expect(instructions).toContain("Ordering food at a restaurant");
   });
 
+  it("mentions ask_choice in a lesson-mode prompt", () => {
+    const state = defaultLearnerState("Sam");
+    const { instructions } = buildTutorInstructions({ state, mode: "lesson", recentRecords: [] });
+    expect(instructions).toContain("ask_choice");
+  });
+
   it("never contains the literal string 'undefined'", () => {
     const state = defaultLearnerState("Sam");
     const { instructions } = buildTutorInstructions({ state, mode: "auto", recentRecords: [] });

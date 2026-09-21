@@ -1,6 +1,6 @@
 import { OpenAIRealtimeWebRTC, RealtimeAgent, RealtimeSession, tool } from "@openai/agents/realtime";
 import { z } from "zod";
-import { LiveEvidenceSchema, type TranscriptTurn } from "@/lib/learner/schema";
+import { LiveEvidenceSchema, QuizQuestionSchema, type TranscriptTurn } from "@/lib/learner/schema";
 import type { VoiceSession, VoiceSessionDeps } from "./types";
 
 /** Grace period after playback stops before hanging up. */
@@ -32,21 +32,45 @@ function extractAssistantText(content: unknown): string {
   return "";
 }
 
-function deriveTranscript(history: unknown[], typedTexts: Set<string>): TranscriptTurn[] {
-  const turns: TranscriptTurn[] = [];
+function deriveTurn(
+  item: Record<string, unknown>,
+  typedTexts: Set<string>,
+  choiceTexts: Set<string>,
+): TranscriptTurn | null {
+  if (item.role === "user") {
+    const text = extractUserText(item.content);
+    if (!text) return null;
+    const trimmed = text.trim();
+    if (choiceTexts.has(trimmed)) return { role: "user", text, choice: true };
+    if (typedTexts.has(trimmed)) return { role: "user", text, typed: true };
+    return { role: "user", text };
+  }
+  if (item.role === "assistant") {
+    const text = extractAssistantText(item.content);
+    if (!text) return null;
+    return { role: "assistant", text };
+  }
+  return null;
+}
+
+/** Splits history into finalized turns and in-flight (status === "in_progress") turns. */
+function deriveTranscript(
+  history: unknown[],
+  typedTexts: Set<string>,
+  choiceTexts: Set<string>,
+): { final: TranscriptTurn[]; partial: TranscriptTurn[] } {
+  const final: TranscriptTurn[] = [];
+  const partial: TranscriptTurn[] = [];
   for (const item of history) {
     if (!item || typeof item !== "object") continue;
     const it = item as Record<string, unknown>;
     if (it.type !== "message") continue;
-    if (it.role === "user") {
-      const text = extractUserText(it.content);
-      if (text) turns.push(typedTexts.has(text.trim()) ? { role: "user", text, typed: true } : { role: "user", text });
-    } else if (it.role === "assistant") {
-      const text = extractAssistantText(it.content);
-      if (text) turns.push({ role: "assistant", text });
-    }
+    const turn = deriveTurn(it, typedTexts, choiceTexts);
+    if (!turn) continue;
+    if (it.status === "in_progress") partial.push(turn);
+    else final.push(turn);
   }
-  return turns;
+  return { final, partial };
 }
 
 export interface OpenAIVoiceSessionParams {
@@ -65,6 +89,8 @@ export class OpenAIVoiceSession implements VoiceSession {
   private session: RealtimeSession | null = null;
   /** Texts the learner typed (vs. spoke), so the transcript can flag written production. */
   private readonly typedTexts = new Set<string>();
+  /** Texts sent as a quiz-option click, so the transcript can flag a choice instead of typed text. */
+  private readonly choiceTexts = new Set<string>();
   private connected = false;
   private closedByUs = false;
   private endPending = false;
@@ -92,6 +118,18 @@ export class OpenAIVoiceSession implements VoiceSession {
       },
     });
 
+    const askChoice = tool({
+      name: "ask_choice",
+      description:
+        "Show a multiple-choice question on the learner's screen for a quick comprehension, grammar or vocabulary check. Always also SAY the question and the options out loud, since this is a voice call. The learner can answer by speaking, typing, or clicking an option.",
+      parameters: QuizQuestionSchema,
+      execute: async (input) => {
+        const clamped = { ...input, answer_index: Math.min(Math.max(input.answer_index, 0), input.options.length - 1) };
+        handlers.onQuiz(clamped);
+        return "shown";
+      },
+    });
+
     const endCall = tool({
       name: "end_call",
       description:
@@ -106,7 +144,7 @@ export class OpenAIVoiceSession implements VoiceSession {
     const agent = new RealtimeAgent({
       name: "Tutrice",
       instructions,
-      tools: [noteEvidence, endCall],
+      tools: [noteEvidence, askChoice, endCall],
     });
 
     const session = new RealtimeSession(agent, {
@@ -131,7 +169,9 @@ export class OpenAIVoiceSession implements VoiceSession {
     this.session = session;
 
     session.on("history_updated", (history) => {
-      handlers.onTranscript(deriveTranscript(history, this.typedTexts));
+      const { final, partial } = deriveTranscript(history, this.typedTexts, this.choiceTexts);
+      handlers.onTranscript(final);
+      handlers.onPartialTranscript(partial);
     });
 
     session.on("error", (e) => {
@@ -165,8 +205,9 @@ export class OpenAIVoiceSession implements VoiceSession {
     else session.transport.sendEvent({ type: "response.create" });
   }
 
-  sendText(text: string): void {
-    this.typedTexts.add(text.trim());
+  sendText(text: string, source: "typed" | "choice" = "typed"): void {
+    if (source === "choice") this.choiceTexts.add(text.trim());
+    else this.typedTexts.add(text.trim());
     this.session?.sendMessage(text);
   }
 

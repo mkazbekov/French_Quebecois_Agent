@@ -8,19 +8,24 @@
 // global fetch. Node >= 18 APIs only (this repo requires >=20.9, but we try
 // to fail with a clear message rather than a stack trace on anything older).
 
-import { existsSync, statSync } from "node:fs";
+import { existsSync, statSync, readdirSync, renameSync, chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import readline from "node:readline";
 import { readEnvFile, parseEnv, verifyGeminiKey, mask } from "./gemini-key.mjs";
+import { readLocalVersion, isNewer, fetchRemoteVersion, fetchChangelogHighlights } from "./version.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(scriptDir, "..");
 const envPath = path.join(repoRoot, ".env");
 const setupScript = path.join(scriptDir, "setup.mjs");
+const updateScript = path.join(scriptDir, "update.mjs");
 
 const NO_BROWSER = process.env.NO_BROWSER === "1";
 const BASE_PORT = Number(process.env.PORT) > 0 ? Number(process.env.PORT) : 3000;
+const NO_UPDATE_CHECK = process.env.TUTOR_NO_UPDATE_CHECK === "1";
+const ALREADY_UPDATED = process.env.TUTOR_UPDATED === "1";
 
 function log(msg) {
   console.log(msg);
@@ -43,10 +48,143 @@ function runSetupInteractive() {
 }
 
 // ---------------------------------------------------------------------------
-// Step 1: Gemini / OpenAI key
+// Step 0 (unnumbered, silent, runs before anything else): swap in any
+// pending updated launcher scripts.
+// ---------------------------------------------------------------------------
+// An update never overwrites "Start Tutor (Windows).bat" / "Start Tutor
+// (Mac).command" in place - the shell running one of them may still be
+// reading it by byte offset - it writes the new copy as "<name>.new"
+// instead (see scripts/update.mjs). The very first thing a fresh launch
+// does, before any other step, is swap that pending copy in, so the next
+// run - and the shortcut icon - use the current script.
+const LIVE_LAUNCHER_NAMES = new Set(["Start Tutor (Windows).bat", "Start Tutor (Mac).command"]);
+
+function applyPendingLauncherFiles() {
+  let entries;
+  try {
+    entries = readdirSync(repoRoot, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith(".new")) continue;
+    const original = entry.name.slice(0, -".new".length);
+    if (!LIVE_LAUNCHER_NAMES.has(original)) continue; // never swap in anything else
+    const newPath = path.join(repoRoot, entry.name);
+    const originalPath = path.join(repoRoot, original);
+    try {
+      renameSync(newPath, originalPath);
+      if (original.endsWith(".command")) {
+        try {
+          chmodSync(originalPath, 0o755); // restore the executable bit
+        } catch {
+          /* best effort */
+        }
+      }
+    } catch {
+      // Leave the ".new" file for the next launch to retry.
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Step 1: check for a newer version
+// ---------------------------------------------------------------------------
+function readUpdateState() {
+  try {
+    return JSON.parse(readFileSync(path.join(repoRoot, ".runtime", "update-state.json"), "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+function writeUpdateState(patch) {
+  try {
+    const dir = path.join(repoRoot, ".runtime");
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      path.join(dir, "update-state.json"),
+      JSON.stringify({ ...readUpdateState(), ...patch }, null, 2) + "\n",
+      "utf8",
+    );
+  } catch {
+    // The state file is informational only.
+  }
+}
+
+function promptYesNo(question) {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    rl.question(question, (answer) => {
+      rl.close();
+      const a = answer.trim().toLowerCase();
+      resolve(a === "" || a === "y" || a === "yes");
+    });
+  });
+}
+
+async function checkForUpdate() {
+  // Skipped entirely (no output, no network call) when explicitly disabled,
+  // or when this is the re-exec right after applying an update - we just
+  // updated, no need to check again a second later.
+  if (NO_UPDATE_CHECK || ALREADY_UPDATED) return;
+
+  log("[1/5] Checking for updates…");
+
+  const local = readLocalVersion(repoRoot);
+  const { version: remote } = await fetchRemoteVersion({ timeoutMs: 3000 });
+  writeUpdateState({ last_check_at: new Date().toISOString() });
+
+  if (!remote) {
+    // Offline, GitHub unreachable, or the version file 404s (e.g. testing
+    // against a fork with no releases pushed yet) - never block a launch
+    // over this.
+    log("Couldn't check for updates right now — continuing.");
+    return;
+  }
+  if (!isNewer(remote, local)) {
+    return;
+  }
+
+  log(`A new version is available (v${remote} — you have v${local}).`);
+  const highlights = await fetchChangelogHighlights({ version: remote, timeoutMs: 3000 });
+  for (const line of highlights) log(`  - ${line}`);
+
+  if (!process.stdin.isTTY) {
+    log('Not an interactive terminal — run "npm run update" any time to update.');
+    return;
+  }
+
+  const wantsUpdate = await promptYesNo("Update now? [Y/n] ");
+  if (!wantsUpdate) {
+    log("Continuing on the current version.");
+    return;
+  }
+
+  log("Updating — this can take a minute…");
+  const applyResult = spawnSync(process.execPath, [updateScript, "--apply"], { stdio: "inherit", cwd: repoRoot });
+  if (applyResult.status !== 0) {
+    log("The update did not complete — the tutor will start on the current version.");
+    return;
+  }
+
+  // The rest of this file, already loaded into memory, is still the OLD
+  // version's code. Re-exec ourselves so the launch continues on the
+  // freshly-updated scripts/launch.mjs (this also re-applies step 0 above,
+  // which swaps in the updated "Start Tutor" scripts if they changed).
+  const reExec = spawnSync(process.execPath, [fileURLToPath(import.meta.url), ...process.argv.slice(2)], {
+    stdio: "inherit",
+    cwd: repoRoot,
+    env: { ...process.env, TUTOR_UPDATED: "1" },
+  });
+  process.exit(reExec.status ?? 0);
+}
+
+// ---------------------------------------------------------------------------
+// Step 2: Gemini / OpenAI key
 // ---------------------------------------------------------------------------
 async function ensureKey() {
-  log("[1/4] Checking your Gemini API key…");
+  log("[2/5] Checking your Gemini API key…");
 
   let text = readEnvFile(envPath);
   let values = text ? parseEnv(text).values : {};
@@ -114,7 +252,7 @@ async function ensureKey() {
 }
 
 // ---------------------------------------------------------------------------
-// Step 2: dependencies
+// Step 3: dependencies
 // ---------------------------------------------------------------------------
 function findNpmCli() {
   // npm-cli.js ships next to node inside the Node install.
@@ -150,7 +288,7 @@ function needsInstall() {
 }
 
 function ensureDependencies() {
-  log("[2/4] Checking dependencies…");
+  log("[3/5] Checking dependencies…");
   if (!needsInstall()) {
     log("Dependencies already installed.");
     return true;
@@ -174,7 +312,7 @@ function ensureDependencies() {
 }
 
 // ---------------------------------------------------------------------------
-// Step 3: pick a port
+// Step 4: pick a port
 // ---------------------------------------------------------------------------
 async function isTutorAlreadyRunning(port) {
   try {
@@ -199,7 +337,7 @@ async function isPortFree(port) {
 }
 
 async function pickPort() {
-  log("[3/4] Finding a free port…");
+  log("[4/5] Finding a free port…");
   if (await isTutorAlreadyRunning(BASE_PORT)) {
     return { port: BASE_PORT, alreadyRunning: true };
   }
@@ -210,7 +348,7 @@ async function pickPort() {
 }
 
 // ---------------------------------------------------------------------------
-// Step 4: start next dev, wait, open browser
+// Step 5: start next dev, wait, open browser
 // ---------------------------------------------------------------------------
 function openBrowser(url) {
   try {
@@ -263,9 +401,15 @@ function killTree(child) {
 }
 
 async function main() {
+  // Very first action, before any output: swap in an updated launcher
+  // script left behind by a previous update, if any.
+  applyPendingLauncherFiles();
+
   log("");
   log("== Québec French Voice Tutor ==");
   log("");
+
+  await checkForUpdate();
 
   if (!(await ensureKey())) return;
   if (!ensureDependencies()) return;
@@ -279,7 +423,7 @@ async function main() {
     return;
   }
 
-  log(`[4/4] Starting the tutor at ${url} …`);
+  log(`[5/5] Starting the tutor at ${url} …`);
   const nextBin = path.join(repoRoot, "node_modules", "next", "dist", "bin", "next");
   const child = spawn(process.execPath, [nextBin, "dev", "-p", String(port), "-H", "127.0.0.1"], {
     cwd: repoRoot,

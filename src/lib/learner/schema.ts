@@ -300,8 +300,19 @@ export const TranscriptTurnSchema = z.object({
   at: z.number().nonnegative().optional(),
   /** true when the learner typed this turn instead of speaking it (written-production evidence). */
   typed: z.boolean().optional(),
+  /** true when the learner answered a multiple-choice check by clicking an option. */
+  choice: z.boolean().optional(),
 });
 export type TranscriptTurn = z.infer<typeof TranscriptTurnSchema>;
+
+/** A multiple-choice comprehension/grammar/vocabulary check the tutor can put on screen mid-call. */
+export const QuizQuestionSchema = z.object({
+  question: z.string(),
+  options: z.array(z.string()).min(2).max(4),
+  answer_index: z.number().int().min(0).default(0),
+  explanation: z.string().default(""),
+});
+export type QuizQuestion = z.infer<typeof QuizQuestionSchema>;
 
 /** What the tutor logs live via the `note_evidence` tool. */
 export const LiveEvidenceSchema = z.object({

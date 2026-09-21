@@ -11,7 +11,8 @@ console.log(`stage=${stage} mode=${mode} level=${state.competencies.oral_product
 let greeting = "";
 const proto = new GeminiLiveProtocol({
   onAudioChunk: () => {}, onTranscript: (t) => { greeting = t.filter((x) => x.role === "assistant").map((x) => x.text).join(" | "); },
-  onActivity: () => {}, onEvidence: () => {}, onInterrupted: () => {}, onSetupComplete: () => {}, onDisconnected: () => {}, onError: (e) => console.error("error", e), onEndCallRequested: () => {}, onTurnComplete: () => {},
+  onPartialTranscript: () => {},
+  onActivity: () => {}, onEvidence: () => {}, onQuiz: () => {}, onInterrupted: () => {}, onSetupComplete: () => {}, onDisconnected: () => {}, onError: (e) => console.error("error", e), onEndCallRequested: () => {}, onTurnComplete: () => {},
 });
 await proto.connect(geminiLiveUrlForApiKey(process.env.GEMINI_API_KEY!), buildGeminiLiveSetup({ model: process.env.GEMINI_LIVE_MODEL ?? "gemini-3.8-live", voice: process.env.GEMINI_LIVE_VOICE ?? "Kore", instructions }));
 await new Promise((r) => setTimeout(r, 12000));

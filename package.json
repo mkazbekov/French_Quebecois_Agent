@@ -1,6 +1,6 @@
 {
   "name": "quebec-french-tutor",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "engines": {
     "node": ">=20.9"
@@ -10,6 +10,8 @@
     "setup": "node scripts/setup.mjs",
     "dev": "next dev",
     "start:app": "node scripts/launch.mjs",
+    "update": "node scripts/update.mjs --apply",
+    "check:update": "node scripts/update.mjs --check",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

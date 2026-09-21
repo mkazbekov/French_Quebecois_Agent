@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createVoiceSession } from "@/lib/voice";
 import { micErrorMessage } from "@/lib/voice/mic-errors";
 import type { StartSessionResponse, VoiceSession } from "@/lib/voice/types";
-import type { LiveEvidence, SessionEvidence, SessionMode, SessionSummary, TranscriptTurn } from "@/lib/learner/schema";
+import type { LiveEvidence, QuizQuestion, SessionEvidence, SessionMode, SessionSummary, TranscriptTurn } from "@/lib/learner/schema";
 
 export type TutorStatus =
   | "idle"
@@ -31,16 +31,24 @@ export function clearPendingSession(): void {
   }
 }
 
+export interface QuizState {
+  quiz: QuizQuestion;
+  answeredIndex: number | null;
+}
+
 export interface UseTutorSessionResult {
   status: TutorStatus;
   error: string | null;
   transcript: TranscriptTurn[];
+  partialTranscript: TranscriptTurn[];
   summary: SessionSummary | null;
   mode: SessionMode;
   provider: "openai" | "gemini" | null;
+  quiz: QuizState | null;
   start(mode: SessionMode): Promise<void>;
   end(): Promise<void>;
   sendText(text: string): void;
+  answerQuiz(index: number): void;
   reset(): void;
 }
 
@@ -48,11 +56,16 @@ export function useTutorSession(): UseTutorSessionResult {
   const [status, setStatus] = useState<TutorStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<TranscriptTurn[]>([]);
+  const [partialTranscript, setPartialTranscript] = useState<TranscriptTurn[]>([]);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [mode, setMode] = useState<SessionMode>("auto");
   const [provider, setProvider] = useState<"openai" | "gemini" | null>(null);
+  const [quiz, setQuizState] = useState<QuizState | null>(null);
 
   const voiceRef = useRef<VoiceSession | null>(null);
+  // Mirrors `quiz` so answerQuiz can read and send outside of a state updater
+  // (React runs updaters twice in StrictMode; sending there would double-answer).
+  const quizRef = useRef<QuizState | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioElRef = useRef<HTMLAudioElement | null>(null);
   const evidenceRef = useRef<LiveEvidence[]>([]);
@@ -65,6 +78,11 @@ export function useTutorSession(): UseTutorSessionResult {
   const startingRef = useRef(false);
   const cancelledRef = useRef(false);
   const endRef = useRef<() => Promise<void>>(async () => {});
+
+  const setQuiz = useCallback((next: QuizState | null) => {
+    quizRef.current = next;
+    setQuizState(next);
+  }, []);
 
   const mirrorPending = useCallback((disconnected: boolean, endedAt?: string) => {
     try {
@@ -140,6 +158,8 @@ export function useTutorSession(): UseTutorSessionResult {
     endingRef.current = true;
     activeRef.current = false;
     setStatus("ending");
+    setPartialTranscript([]);
+    setQuiz(null);
     const endedAt = new Date().toISOString();
     // Mirror the pending session before the wait/teardown so closing the tab
     // during the review is safe; on-mount recovery will post it next time.
@@ -156,7 +176,7 @@ export function useTutorSession(): UseTutorSessionResult {
     if (s) setSummary(s);
     setStatus("done");
     endingRef.current = false;
-  }, [postEnd, teardown, mirrorPending]);
+  }, [postEnd, teardown, mirrorPending, setQuiz]);
 
   useEffect(() => {
     endRef.current = end;
@@ -169,6 +189,8 @@ export function useTutorSession(): UseTutorSessionResult {
     setError(null);
     setSummary(null);
     setTranscript([]);
+    setPartialTranscript([]);
+    setQuiz(null);
     transcriptRef.current = [];
     evidenceRef.current = [];
     setStatus("requesting_mic");
@@ -233,16 +255,24 @@ export function useTutorSession(): UseTutorSessionResult {
             transcriptRef.current = turns;
             setTranscript(turns);
           },
+          onPartialTranscript: (partials) => {
+            setPartialTranscript(partials);
+          },
           onActivity: (activity) => {
             setStatus((prev) => (prev === "ending" || prev === "done" ? prev : activity));
           },
           onEvidence: (evidence) => {
             evidenceRef.current = [...evidenceRef.current, evidence];
           },
+          onQuiz: (quiz) => {
+            setQuiz({ quiz, answeredIndex: null });
+          },
           onDisconnected: () => {
             if (!activeRef.current) return;
             activeRef.current = false;
             setStatus("ending");
+            setPartialTranscript([]);
+            setQuiz(null);
             teardown();
             void postEnd(true).then((s) => {
               if (s) setSummary(s);
@@ -280,20 +310,31 @@ export function useTutorSession(): UseTutorSessionResult {
       startingRef.current = false;
       cancelledRef.current = false;
     }
-  }, [postEnd, teardown]);
+  }, [postEnd, teardown, setQuiz]);
 
   const sendText = useCallback((text: string) => {
     if (!voiceRef.current || !activeRef.current) return;
     voiceRef.current.sendText(text);
   }, []);
 
+  const answerQuiz = useCallback((index: number) => {
+    const current = quizRef.current;
+    if (!current || current.answeredIndex !== null) return;
+    const optionText = current.quiz.options[index];
+    if (optionText === undefined) return;
+    setQuiz({ ...current, answeredIndex: index });
+    if (voiceRef.current && activeRef.current) voiceRef.current.sendText(optionText, "choice");
+  }, [setQuiz]);
+
   const reset = useCallback(() => {
     setStatus("idle");
     setError(null);
     setSummary(null);
     setTranscript([]);
+    setPartialTranscript([]);
+    setQuiz(null);
     evidenceRef.current = [];
-  }, []);
+  }, [setQuiz]);
 
   // Crash recovery mirror
   useEffect(() => {
@@ -339,5 +380,5 @@ export function useTutorSession(): UseTutorSessionResult {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { status, error, transcript, summary, mode, provider, start, end, sendText, reset };
+  return { status, error, transcript, partialTranscript, summary, mode, provider, quiz, start, end, sendText, answerQuiz, reset };
 }

@@ -79,6 +79,25 @@ setup and everyday flow.
   competencies (typed answers and reading the on-screen transcript give the written
   ones evidence). Keep that rotation in `resolveMode`.
 
+- **The transcript is live, the evidence is not.** Finalized turns go through
+  `onTranscript` and are the only thing `SessionEvidence` ever sees; the sentence still
+  being spoken goes through `onPartialTranscript`, is rendered dim in `TranscriptPanel`,
+  and is never persisted. Keep those two channels separate.
+- **Interactive checks are a tool.** `ask_choice` (both backends) renders `QuizCard`;
+  a click sends the option text back as a user turn flagged `choice`, not `typed` —
+  clicking is not written production. The tutor must still say the question out loud.
+- **Updates are offered, never forced.** `scripts/launch.mjs` checks the published
+  version on every start and asks once; `scripts/update.mjs` copies the new version over
+  the install in place, never deleting the install folder, the launcher scripts it may be
+  running from, or anything outside its own `.runtime/installed-files.json` manifest.
+  `.env`, `data`, `.runtime`, `node_modules` and `.git` are untouchable. Bump
+  `package.json` and add a plain-language `CHANGELOG.md` entry with every shipped change.
+- **Nothing is collected.** No analytics, no telemetry, no phone-home. The only outbound
+  calls are the voice/review provider, the version check (one file, nothing sent about the
+  learner), and feedback the learner typed and sent themselves (`/api/feedback` →
+  `FEEDBACK_ENDPOINT`, or a mailto: draft). The README's "Your privacy" section is the
+  promise; keep it true.
+
 ## Commands
 
 | command | purpose |
@@ -89,6 +108,8 @@ setup and everyday flow.
 | `npm run verify:persistence` | writes state, re-reads from a child process; use it to prove Letta works |
 | `npm run reset:profile` | deletes the current learner's stored profile (Letta agent or file); confirms unless `--yes` |
 | `npm run check:gemini` / `check:review` / `check:realtime` | live provider checks (no microphone needed) |
+| `npm run update` / `check:update` | apply / report the published version (`scripts/update.mjs`) |
+| `pwsh -File scripts/make-icons.ps1` | re-render `assets/*.png` + `tutor.ico` from the logo path data |
 
 ## Layout
 
@@ -98,6 +119,15 @@ src/app/review/page.tsx          Review Mistakes (server component)
 src/app/api/realtime/session     POST: learner state → instructions → ek_ key
 src/app/api/session/end          POST: evidence → review → merge → persist → summary
 src/app/api/learner              GET: state + storeKind; PATCH: onboarding | name | language_mode | starting_level | placement:"test"; DELETE: wipe the learner (back to onboarding)
+src/app/api/feedback             POST: learner message -> FEEDBACK_ENDPOINT relay, else a mailto: fallback
+src/app/api/version              GET: installed vs. published version (6h cache, never throws)
+src/components/QuizCard.tsx      the on-screen multiple-choice check (ask_choice)
+src/components/FeedbackCard.tsx  footer feedback form; VersionBadge.tsx shows the version
+scripts/version.mjs              shared version helpers (launcher + /api/version)
+scripts/update.mjs               in-place updater (--check | --apply)
+scripts/make-icons.ps1           renders assets/*.png + tutor.ico from the logo path data
+assets/                          tutor.ico + PNGs used by the installers and shortcuts
+docs/FEEDBACK.md                 how to deploy the feedback relay (docs/feedback-relay.gs)
 scripts/setup.mjs                first-run Gemini key setup (npm run setup, predev, launcher)
 scripts/launch.mjs               one-click launcher behind the Start Tutor scripts (npm run start:app)
 install-*.ps1 / install-mac.sh   one-line installers; Start Tutor (Windows).bat / (Mac).command
@@ -163,6 +193,33 @@ the key check, ephemeral tokens, Live and review. Windows flow verified end to e
 Windows 11 with Smart App Control on (a browser-downloaded .bat is blocked unless the
 ZIP is unblocked, which is why the installer is the primary path). The macOS scripts
 were verified on Linux/WSL only; a real Mac run is still pending.
+
+2026-09-21 (v0.2.0): live streaming transcript (partial turns, never persisted),
+on-screen multiple-choice checks (`ask_choice` → `QuizCard`, answerable by voice,
+typing or click), version tracking + an ask-once in-place updater in the launcher,
+an in-app feedback form with an optional Apps Script relay that auto-replies, a real
+app icon (`assets/tutor.ico` + SVG favicon, rendered from one set of path data by
+`scripts/make-icons.ps1`), and a plain-language privacy statement in the README.
+Verified on this machine at that point: typecheck, lint, 156 tests, production build,
+and `npm run check:gemini-setup` (the Live API accepts the setup message with the new
+`ask_choice` declaration).
+
+Not yet verified on real hardware, and worth doing first next session:
+
+1. **Manual voice test** (the one that matters): `npm run dev`, press Start, and watch
+   the transcript fill in *while* you and the tutor speak — no flicker, no sentence
+   disappearing at the hand-over. Ask for a lesson and confirm a multiple-choice card
+   appears, that the tutor also says the options out loud, and that answering by voice,
+   by typing and by clicking all work.
+2. **A real update run.** Once v0.2.0 is on `main`, install v0.1.0 from the one-liner
+   into a scratch folder, double-click the icon, and confirm the launcher offers the
+   update, applies it, keeps `.env` and `data`, and restarts on the new version. The
+   Windows path relies on `tar.exe` extracting a .zip (Windows 10 1803+); there is no
+   `Expand-Archive` fallback yet.
+3. **The feedback relay**: deploy `docs/feedback-relay.gs`, put its `/exec` URL in
+   `FEEDBACK_ENDPOINT`, and send one message end to end (delivery + auto-reply).
+4. **macOS**: the icon application (`sips`/`iconutil`/NSWorkspace in `install-mac.sh`)
+   and the `.command` launcher are still only tested on Linux/WSL.
 
 After that, candidate improvements (not started): confidence time-decay, Letta
 archival search for older sessions, pronunciation-aware feedback, a true

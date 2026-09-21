@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Quebec French Tutor">
+  <!--
+    Next.js App Router favicon convention: this file is served automatically
+    as the site icon. Same mark as public/logo.svg, same path data on
+    purpose - see the comment there. scripts/make-icons.ps1 re-renders these
+    same path strings to produce assets/tutor.ico and the PNG sizes used by
+    the Windows shortcut and (indirectly, via tutor-1024.png) the macOS icon.
+  -->
+  <rect x="0" y="0" width="512" height="512" rx="110" ry="110" fill="#1B3FAE"/>
+  <path
+    d="M144,104 L368,104 A48,48 0 0 1 416,152 L416,296 A48,48 0 0 1 368,344 L144,344 A48,48 0 0 1 96,296 L96,152 A48,48 0 0 1 144,104 Z M150,318 L144,400 L238,318 Z"
+    fill="#FFFFFF"/>
+  <path
+    d="M256,118 C296,152 306,190 292,240 L220,240 C206,190 216,152 256,118 Z M218,228 C188,206 154,194 126,192 C134,236 168,262 206,262 L214,244 Z M294,228 C324,206 358,194 386,192 C378,236 344,262 306,262 L298,244 Z M192,230 L320,230 L320,278 L192,278 Z M234,278 L278,278 L270,308 L242,308 Z"
+    fill="#1B3FAE"/>
+</svg>

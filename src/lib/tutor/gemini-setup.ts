@@ -33,6 +33,26 @@ export const NOTE_EVIDENCE_TOOL = {
   },
 } as const;
 
+export const ASK_CHOICE_TOOL = {
+  name: "ask_choice",
+  description:
+    "Show a multiple-choice question on the learner's screen for a quick comprehension, grammar or vocabulary check. Always also SAY the question and the options out loud, since this is a voice call. The learner can answer by speaking, typing, or clicking an option.",
+  parameters: {
+    type: "OBJECT",
+    properties: {
+      question: { type: "STRING", description: "The question, in French (or matching the call's language stage)." },
+      options: {
+        type: "ARRAY",
+        items: { type: "STRING" },
+        description: "2 to 4 short answer options.",
+      },
+      answer_index: { type: "INTEGER", description: "0-based index of the correct option." },
+      explanation: { type: "STRING", description: "Optional one-line explanation shown after the learner answers." },
+    },
+    required: ["question", "options", "answer_index"],
+  },
+} as const;
+
 export const END_CALL_TOOL = {
   name: "end_call",
   description:
@@ -58,7 +78,7 @@ export function buildGeminiLiveSetup({ model, voice, instructions }: GeminiSetup
         speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } },
       },
       systemInstruction: { parts: [{ text: instructions }] },
-      tools: [{ functionDeclarations: [NOTE_EVIDENCE_TOOL, END_CALL_TOOL] }],
+      tools: [{ functionDeclarations: [NOTE_EVIDENCE_TOOL, ASK_CHOICE_TOOL, END_CALL_TOOL] }],
       inputAudioTranscription: {},
       outputAudioTranscription: {},
       // Patience: the tutor must not take the turn while the learner is still
