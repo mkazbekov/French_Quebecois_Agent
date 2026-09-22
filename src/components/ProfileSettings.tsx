@@ -66,7 +66,7 @@ export function ProfileSettings({
 
   return (
     <details className="mt-2 w-full max-w-xs">
-      <summary className="cursor-pointer text-center text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
+      <summary className="cursor-pointer text-center text-[11.5px] text-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2">
         Profile
       </summary>
       <div className="mt-3 flex flex-col items-center gap-3">
@@ -77,28 +77,28 @@ export function ProfileSettings({
             onChange={(e) => setName(e.target.value)}
             maxLength={40}
             disabled={disabled || pending}
-            className="flex-1 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-1.5 text-sm disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="flex-1 rounded-[8px] border border-rule bg-transparent px-3 py-1.5 text-sm text-ink disabled:opacity-50 focus:outline-none focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
           />
           <button
             type="button"
             disabled={!canSave}
             onClick={saveName}
-            className="rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 px-3.5 py-1.5 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-[8px] bg-ink text-paper text-[11px] font-medium px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
           >
             Save
           </button>
         </div>
-        {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
+        {error && <p className="text-xs text-alert">{error}</p>}
         <StartingLevel state={state} onChange={onChange} disabled={disabled} />
         <button
           type="button"
           disabled={disabled || deletePending}
           onClick={deleteProfile}
-          className="text-[11px] text-red-500 underline decoration-dotted hover:text-red-700 disabled:opacity-50 dark:text-red-400 dark:hover:text-red-300"
+          className="text-[11px] text-alert hover:opacity-80 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
         >
           Delete profile & start over
         </button>
-        {deleteError && <p className="text-xs text-red-600 dark:text-red-400">{deleteError}</p>}
+        {deleteError && <p className="text-xs text-alert">{deleteError}</p>}
       </div>
     </details>
   );

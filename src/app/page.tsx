@@ -8,15 +8,26 @@ import { MicOrb } from "@/components/MicOrb";
 import { ModeChips } from "@/components/ModeChips";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { Onboarding } from "@/components/Onboarding";
+import { ProgramCard } from "@/components/ProgramCard";
 import { TranscriptPanel } from "@/components/TranscriptPanel";
 import { SummaryCard } from "@/components/SummaryCard";
 import { QuizCard } from "@/components/QuizCard";
 import { FeedbackCard } from "@/components/FeedbackCard";
 import VersionBadge from "@/components/VersionBadge";
 
+/*
+  Cahier: paper and ink carrying a two-card bento. The call is the left card
+  and stays the primary object on the screen; the learner's program — level,
+  current unit, recurring errors, reviews due — is the right card, pulled
+  forward from /review so it is visible without leaving the page. One column
+  on a phone, side by side from `lg` (1024px) up.
+*/
+
 type LanguageMode = "auto" | "english_support" | "french_only";
 
 type ProfilePhase = "loading" | "error" | "ready";
+
+const CARD = "bg-card border border-rule rounded-[13px] p-3.5";
 
 export default function Home() {
   const { status, error, transcript, partialTranscript, summary, provider, quiz, start, end, sendText, answerQuiz, reset } =
@@ -92,17 +103,19 @@ export default function Home() {
       });
   };
 
+  const onboarded = learnerState !== null && learnerState.profile.onboarded_at !== null;
+
   return (
-    <div className="flex-1 flex flex-col items-center gap-8 py-10 px-4">
+    <div className="flex-1 flex flex-col">
       <TutorHeader state={learnerState} onChange={setLearnerState} disabled={isActive} />
 
-      <main className="flex-1 w-full max-w-xl mx-auto flex flex-col items-center gap-8">
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-4 flex flex-col gap-3">
         {profilePhase === "loading" ? (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 py-10">Loading your profile…</p>
+          <p className="text-[13px] text-muted py-10 text-center">Loading your profile…</p>
         ) : profilePhase === "error" ? (
-          <div className="w-full max-w-sm rounded-xl border border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-950/40 p-6 text-center space-y-3">
-            <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Couldn&apos;t load your profile</h2>
-            {profileError && <p className="text-sm text-red-700 dark:text-red-300">{profileError}</p>}
+          <div className={`${CARD} w-full max-w-sm mx-auto text-center space-y-3 border-alert`}>
+            <h2 className="font-display text-[19px] font-semibold text-ink">Couldn&apos;t load your profile</h2>
+            {profileError && <p className="text-[13px] text-alert">{profileError}</p>}
             <button
               type="button"
               onClick={() => {
@@ -110,102 +123,109 @@ export default function Home() {
                 setProfileError(null);
                 setRetryToken((t) => t + 1);
               }}
-              className="rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 px-4 py-1.5 text-sm font-medium"
+              className="rounded-full bg-primary-solid text-on-primary px-4 py-1.5 text-[13px] font-semibold focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
             >
               Retry
             </button>
           </div>
-        ) : learnerState && learnerState.profile.onboarded_at === null ? (
-          <Onboarding state={learnerState} onChange={setLearnerState} />
+        ) : learnerState && !onboarded ? (
+          <div className="w-full max-w-sm mx-auto">
+            <Onboarding state={learnerState} onChange={setLearnerState} />
+          </div>
         ) : status === "done" && summary ? (
-          <SummaryCard summary={summary} onStartAnother={reset} />
+          <div className="w-full max-w-xl mx-auto">
+            <SummaryCard summary={summary} onStartAnother={reset} />
+          </div>
         ) : status === "done" && !summary ? (
-          <div className="w-full max-w-sm rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 p-5 text-center space-y-3">
-            <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Call ended</h2>
-            <p className="text-sm text-zinc-600 dark:text-zinc-300">
+          <div className={`${CARD} w-full max-w-sm mx-auto text-center space-y-3 border-due`}>
+            <h2 className="font-display text-[19px] font-semibold text-ink">Call ended</h2>
+            <p className="text-[13px] text-ink-soft">
               The review couldn&apos;t finish; it will retry next time you open the app.
             </p>
-            {error && <p className="text-xs text-amber-700 dark:text-amber-400">{error}</p>}
+            {error && <p className="text-[11px] text-due">{error}</p>}
             <button
               type="button"
               onClick={reset}
-              className="w-full rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 py-2.5 text-sm font-medium"
+              className="w-full rounded-full bg-primary-solid text-on-primary py-2.5 text-[14px] font-semibold focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
             >
               Start another
             </button>
           </div>
         ) : status === "ending" ? (
-          <div className="w-full max-w-sm rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 text-center space-y-2">
-            <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">Call ended</h2>
-            <p className="text-sm text-zinc-600 dark:text-zinc-300">
+          <div className={`${CARD} w-full max-w-sm mx-auto text-center space-y-2`}>
+            <h2 className="font-display text-[19px] font-semibold text-ink">Call ended</h2>
+            <p className="text-[13px] text-ink-soft">
               Saving your progress… you can close this tab; nothing will be lost.
             </p>
           </div>
         ) : (
           <>
-            <MicOrb status={status} />
+            <div className="grid gap-3 items-start lg:grid-cols-[1.15fr_1fr]">
+              {/* the call — always the primary object on the page */}
+              <div className={`${CARD} flex flex-col items-center gap-3 text-center`}>
+                <MicOrb status={status} />
 
-            {status === "error" && (
-              <div className="w-full max-w-sm rounded-lg border border-red-300 bg-red-50 dark:bg-red-950/40 dark:border-red-900 px-4 py-3 text-center">
-                <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
-                <button
-                  type="button"
-                  onClick={() => start(selectedMode)}
-                  className="mt-3 rounded-full bg-red-600 text-white px-4 py-1.5 text-sm font-medium"
-                >
-                  Retry
-                </button>
+                {status === "error" && (
+                  <div className="w-full rounded-[8px] border border-alert bg-alert-tint px-3.5 py-2.5 text-center">
+                    <p className="text-[13px] text-alert">{error}</p>
+                    <button
+                      type="button"
+                      onClick={() => start(selectedMode)}
+                      className="mt-2.5 rounded-full bg-danger text-on-primary px-4 py-1.5 text-[13px] font-semibold focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
+
+                {!isActive && status !== "error" && (
+                  <button
+                    type="button"
+                    onClick={() => start(selectedMode)}
+                    className="w-full rounded-full bg-primary-solid text-on-primary py-3.5 text-[15px] font-semibold transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+                  >
+                    Start conversation
+                  </button>
+                )}
+
+                {!isActive && status === "idle" && learnerState?.profile.sessions_completed === 0 && (
+                  <p className="text-[10px] text-muted max-w-[30ch] leading-relaxed">
+                    Your browser will ask to use your microphone — click <strong className="text-ink-soft">Allow</strong>.
+                    Turn your sound on or plug in headphones: the tutor speaks first.
+                  </p>
+                )}
+
+                {isActive && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => void end()}
+                      className="w-full rounded-full bg-danger text-on-primary py-3.5 text-[15px] font-semibold transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+                    >
+                      {isConnecting ? "Cancel" : "End conversation"}
+                    </button>
+                    <p className="text-[10px] text-muted -mt-1.5">Esc · or say &laquo;&nbsp;on arrête&nbsp;&raquo;</p>
+                  </>
+                )}
+
+                <ModeChips selected={selectedMode} onSelect={setSelectedMode} disabled={isActive} />
+
+                <LanguageToggle
+                  value={learnerState?.profile.preferences.language_mode ?? "auto"}
+                  onChange={handleLanguageModeChange}
+                  disabled={isActive}
+                />
+                {languageModeError && <p className="text-[11px] text-alert">{languageModeError}</p>}
+
+                {error && status !== "error" && <p className="text-[11px] text-due">{error}</p>}
               </div>
-            )}
 
-            {!isActive && status !== "error" && (
-              <button
-                type="button"
-                onClick={() => start(selectedMode)}
-                className="w-full max-w-sm rounded-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 text-lg font-semibold shadow-md transition-colors"
-              >
-                Start Conversation
-              </button>
-            )}
-
-            {!isActive && status === "idle" && learnerState?.profile.sessions_completed === 0 && (
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-500 text-center max-w-sm">
-                Your browser will ask to use your microphone — click <strong>Allow</strong>.
-                <br />
-                Turn your sound on or plug in headphones: the tutor speaks first.
-              </p>
-            )}
-
-            {isActive && (
-              <div className="w-full max-w-sm flex flex-col items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => void end()}
-                  className="w-full rounded-full bg-red-600 hover:bg-red-700 text-white py-4 text-lg font-semibold shadow-md transition-colors"
-                >
-                  {isConnecting ? "Cancel" : "End Conversation"}
-                </button>
-                <p className="text-[11px] text-zinc-400 dark:text-zinc-600">Esc · or say &quot;on arrête&quot;</p>
-              </div>
-            )}
+              {/* the program — the half of the design that used to live only on /review */}
+              {learnerState && onboarded && <ProgramCard state={learnerState} />}
+            </div>
 
             {isActive && quiz && (
               <QuizCard quiz={quiz.quiz} answeredIndex={quiz.answeredIndex} onAnswer={answerQuiz} />
-            )}
-
-            <ModeChips selected={selectedMode} onSelect={setSelectedMode} disabled={isActive} />
-
-            <LanguageToggle
-              value={learnerState?.profile.preferences.language_mode ?? "auto"}
-              onChange={handleLanguageModeChange}
-              disabled={isActive}
-            />
-            {languageModeError && (
-              <p className="text-xs text-red-600 dark:text-red-400 text-center max-w-sm">{languageModeError}</p>
-            )}
-
-            {error && status !== "error" && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 text-center max-w-sm">{error}</p>
             )}
 
             <TranscriptPanel
@@ -219,10 +239,11 @@ export default function Home() {
         )}
       </main>
 
-      <footer className="w-full max-w-xl mx-auto flex flex-col items-center gap-2 pb-4">
-        <p className="text-[11px] text-zinc-400 dark:text-zinc-600">
+      <footer className="w-full max-w-5xl mx-auto flex flex-col items-center gap-2 px-4 pb-6 pt-2">
+        <p className="font-mono text-[9px] tracking-[.12em] uppercase text-muted">
           Memory: {storeKind ?? "…"}
-          {provider ? ` · Voice: ${provider}` : ""}<VersionBadge />
+          {provider ? ` · Voice: ${provider}` : ""}
+          <VersionBadge />
         </p>
         <FeedbackCard />
       </footer>

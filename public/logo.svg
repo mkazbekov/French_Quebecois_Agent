@@ -1,19 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Quebec French Tutor">
   <!--
-    Québec French Tutor mark. viewBox is 0 0 512 512. The bubble and fleur-de-lys
-    path data below is the single source of truth: it is copied verbatim into
-    src/app/icon.svg, and scripts/make-icons.ps1 re-renders these same path
-    strings with WPF (Geometry.Parse) to produce the raster PNG/ICO icons, so
-    the SVG favicon and the Windows/desktop icons never drift apart.
+    Québec French Tutor mark ("Accent"): a Québec-blue rounded square and one
+    paper-white speech bubble with an accent aigu punched out of it by the
+    even-odd fill rule. viewBox is 0 0 512 512.
+
+    The two path strings below are the single source of truth: they are copied
+    verbatim into src/app/icon.svg, and scripts/make-icons.ps1 re-renders the
+    same strings with WPF (Geometry.Parse, where F0 is the even-odd rule) to
+    produce the raster PNG/ICO icons, so the SVG favicon and the
+    Windows/desktop icons never drift apart.
+
+    Two draws, two colours, no nesting - which is what survives being 16px.
   -->
-  <!-- Québec blue rounded square background -->
-  <rect x="0" y="0" width="512" height="512" rx="110" ry="110" fill="#1B3FAE"/>
-  <!-- White speech bubble (rounded body + tail), fills most of the square -->
+  <!-- Québec blue rounded square, expressed as a path so WPF and SVG share every coordinate -->
   <path
-    d="M144,104 L368,104 A48,48 0 0 1 416,152 L416,296 A48,48 0 0 1 368,344 L144,344 A48,48 0 0 1 96,296 L96,152 A48,48 0 0 1 144,104 Z M150,318 L144,400 L238,318 Z"
-    fill="#FFFFFF"/>
-  <!-- Blue fleur-de-lys centred in the bubble: centre petal, left petal, right petal, base band -->
-  <path
-    d="M256,118 C296,152 306,190 292,240 L220,240 C206,190 216,152 256,118 Z M218,228 C188,206 154,194 126,192 C134,236 168,262 206,262 L214,244 Z M294,228 C324,206 358,194 386,192 C378,236 344,262 306,262 L298,244 Z M192,230 L320,230 L320,278 L192,278 Z M234,278 L278,278 L270,308 L242,308 Z"
+    d="M110,0 L402,0 A110,110 0 0 1 512,110 L512,402 A110,110 0 0 1 402,512 L110,512 A110,110 0 0 1 0,402 L0,110 A110,110 0 0 1 110,0 Z"
     fill="#1B3FAE"/>
+  <!-- Speech bubble (rounded body + tail) with the accent aigu as an even-odd hole -->
+  <path
+    fill-rule="evenodd"
+    d="M156,96 L356,96 A64,64 0 0 1 420,160 L420,304 A64,64 0 0 1 356,368 L268,368 L172,438 L196,368 L156,368 A64,64 0 0 1 92,304 L92,160 A64,64 0 0 1 156,96 Z M210,286 L328,208 L308,178 L190,256 Z"
+    fill="#FDFBF7"/>
 </svg>

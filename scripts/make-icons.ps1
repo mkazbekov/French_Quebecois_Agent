@@ -1,9 +1,9 @@
 <#
   make-icons.ps1 - regenerates the app icon rasters from the SAME path data
   used in public/logo.svg and src/app/icon.svg. There is one source of truth
-  for the artwork (a Québec-blue rounded square, a white speech bubble, a
-  blue fleur-de-lys); this script just re-renders those SVG path strings
-  with WPF instead of a browser.
+  for the artwork (a Québec-blue rounded square and a paper-white speech
+  bubble with an accent aigu punched out of it); this script just re-renders
+  those SVG path strings with WPF instead of a browser.
 
   Produces:
     assets/icon-16.png, icon-32.png, icon-48.png, icon-64.png, icon-128.png,
@@ -42,22 +42,27 @@ if (-not (Test-Path -LiteralPath $assetsDir)) {
 # ---------------------------------------------------------------------------
 # Same path data as public/logo.svg and src/app/icon.svg (viewBox 0 0 512 512).
 # Keep these three copies identical when the artwork changes.
+#
+# The 'F0' prefix on the bubble is WPF's even-odd fill rule (SVG's
+# fill-rule="evenodd"): the second subpath is the accent aigu, and even-odd
+# is what punches it out of the bubble instead of painting over it.
 # ---------------------------------------------------------------------------
-$bubblePath = 'F1 M144,104 L368,104 A48,48 0 0 1 416,152 L416,296 A48,48 0 0 1 368,344 L144,344 A48,48 0 0 1 96,296 L96,152 A48,48 0 0 1 144,104 Z M150,318 L144,400 L238,318 Z'
-$fleurPath = 'F1 M256,118 C296,152 306,190 292,240 L220,240 C206,190 216,152 256,118 Z M218,228 C188,206 154,194 126,192 C134,236 168,262 206,262 L214,244 Z M294,228 C324,206 358,194 386,192 C378,236 344,262 306,262 L298,244 Z M192,230 L320,230 L320,278 L192,278 Z M234,278 L278,278 L270,308 L242,308 Z'
+$squarePath = 'F1 M110,0 L402,0 A110,110 0 0 1 512,110 L512,402 A110,110 0 0 1 402,512 L110,512 A110,110 0 0 1 0,402 L0,110 A110,110 0 0 1 110,0 Z'
+$accentPath = 'F0 M156,96 L356,96 A64,64 0 0 1 420,160 L420,304 A64,64 0 0 1 356,368 L268,368 L172,438 L196,368 L156,368 A64,64 0 0 1 92,304 L92,160 A64,64 0 0 1 156,96 Z M210,286 L328,208 L308,178 L190,256 Z'
 
-# Québec blue - same value fills the background square and the fleur-de-lys.
+# Québec blue for the square; paper white for the bubble.
 $blueColor = [System.Windows.Media.Color]::FromRgb(0x1B, 0x3F, 0xAE)
+$paperColor = [System.Windows.Media.Color]::FromRgb(0xFD, 0xFB, 0xF7)
 
 function New-IconRenderTargetBitmap {
   param([int]$Size)
 
-  $bubbleGeometry = [System.Windows.Media.Geometry]::Parse($bubblePath)
-  $fleurGeometry = [System.Windows.Media.Geometry]::Parse($fleurPath)
+  $squareGeometry = [System.Windows.Media.Geometry]::Parse($squarePath)
+  $accentGeometry = [System.Windows.Media.Geometry]::Parse($accentPath)
   $blueBrush = New-Object System.Windows.Media.SolidColorBrush($blueColor)
-  $whiteBrush = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.Colors]::White)
+  $paperBrush = New-Object System.Windows.Media.SolidColorBrush($paperColor)
   $blueBrush.Freeze()
-  $whiteBrush.Freeze()
+  $paperBrush.Freeze()
 
   $visual = New-Object System.Windows.Media.DrawingVisual
   $ctx = $visual.RenderOpen()
@@ -66,14 +71,10 @@ function New-IconRenderTargetBitmap {
     $ctx.PushTransform((New-Object System.Windows.Media.ScaleTransform($scale, $scale)))
 
     # Québec-blue rounded-square background, edge to edge.
-    $backgroundRect = New-Object System.Windows.Rect(0, 0, 512, 512)
-    $ctx.DrawRoundedRectangle($blueBrush, $null, $backgroundRect, 110, 110)
+    $ctx.DrawGeometry($blueBrush, $null, $squareGeometry)
 
-    # White speech bubble (rounded body + tail).
-    $ctx.DrawGeometry($whiteBrush, $null, $bubbleGeometry)
-
-    # Blue fleur-de-lys centred in the bubble.
-    $ctx.DrawGeometry($blueBrush, $null, $fleurGeometry)
+    # Paper-white speech bubble with the accent aigu knocked out of it.
+    $ctx.DrawGeometry($paperBrush, $null, $accentGeometry)
 
     $ctx.Pop()
   } finally {

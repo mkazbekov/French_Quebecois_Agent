@@ -85,7 +85,7 @@ export function FeedbackCard() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-[11px] text-zinc-400 dark:text-zinc-600 underline decoration-dotted hover:text-zinc-600 dark:hover:text-zinc-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded"
+        className="text-[11px] text-muted underline decoration-dotted hover:text-ink-soft focus:outline-none focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded"
       >
         Send feedback
       </button>
@@ -93,19 +93,19 @@ export function FeedbackCard() {
   }
 
   return (
-    <div className="w-full max-w-sm rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 text-left space-y-3">
+    <div className="w-full max-w-sm bg-card border border-rule rounded-[13px] p-3.5 text-left space-y-3">
       {status === "sent" ? (
         <div className="space-y-3 text-center">
-          <p className="text-sm text-zinc-700 dark:text-zinc-200">
+          <p className="text-sm text-ink-soft">
             Your email app should have opened with the message ready for{" "}
-            <span className="font-medium">{contact}</span> — just press send.
+            <span className="font-medium text-ink">{contact}</span> — just press send.
           </p>
-          <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Nothing opened? Use one of these instead:</p>
+          <p className="text-[11px] text-muted">Nothing opened? Use one of these instead:</p>
           <div className="flex items-center justify-center gap-2">
             <button
               type="button"
               onClick={() => void copyDraft()}
-              className="rounded-full border border-zinc-300 dark:border-zinc-700 px-3 py-1 text-xs text-zinc-600 dark:text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              className="rounded-[8px] border border-rule px-3 py-1 text-xs text-ink-soft focus:outline-none focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
             >
               {copied ? "Copied" : "Copy message"}
             </button>
@@ -113,7 +113,7 @@ export function FeedbackCard() {
               href={buildGmailComposeUrl({ to: contact, body: draftBody })}
               target="_blank"
               rel="noreferrer"
-              className="rounded-full border border-zinc-300 dark:border-zinc-700 px-3 py-1 text-xs text-zinc-600 dark:text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              className="rounded-[8px] border border-rule px-3 py-1 text-xs text-ink-soft focus:outline-none focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
             >
               Open in Gmail
             </a>
@@ -121,7 +121,7 @@ export function FeedbackCard() {
           <button
             type="button"
             onClick={reset}
-            className="text-[11px] text-zinc-400 dark:text-zinc-600 underline decoration-dotted"
+            className="text-[11px] text-muted underline decoration-dotted focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
           >
             Close
           </button>
@@ -135,11 +135,11 @@ export function FeedbackCard() {
           className="space-y-3"
         >
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-200">Send feedback</h3>
+            <h3 className="font-mono text-[9px] tracking-[.15em] uppercase text-muted">Send feedback</h3>
             <button
               type="button"
               onClick={reset}
-              className="text-[11px] text-zinc-400 dark:text-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded"
+              className="text-[11px] text-muted focus:outline-none focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 rounded"
             >
               Cancel
             </button>
@@ -156,43 +156,41 @@ export function FeedbackCard() {
               placeholder="What's working, what isn't, what you'd like?"
               rows={4}
               maxLength={4000}
-              className="w-full resize-none rounded-lg border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full resize-none rounded-[8px] border border-rule bg-transparent px-3 py-2 text-sm text-ink outline-none focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
             />
           </div>
 
-          <label className="flex items-start gap-2 text-[11px] text-zinc-500 dark:text-zinc-400">
+          <label className="flex items-start gap-2 text-[11px] text-muted">
             <input
               type="checkbox"
               checked={includeDetails}
               onChange={(e) => setIncludeDetails(e.target.checked)}
-              className="mt-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              className="mt-0.5 focus:outline-none focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
             />
             <span title="App version, operating system, and voice provider (gemini/openai) only.">
               Include technical details (app version, system, voice provider)
             </span>
           </label>
 
-          <p className="text-[10px] text-zinc-400 dark:text-zinc-600">
+          <p className="text-[10px] text-muted">
             This opens an email to {contact} that you send yourself — the app sends nothing. Nothing else from your
             session goes with it: no transcript, no profile.
           </p>
 
-          {status === "error" && errorText && (
-            <p className="text-xs text-red-600 dark:text-red-400">{errorText}</p>
-          )}
+          {status === "error" && errorText && <p className="text-xs text-alert">{errorText}</p>}
 
           <div className="flex items-center gap-2 pt-1">
             <button
               type="submit"
               disabled={!message.trim()}
-              className="flex-1 rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 py-1.5 text-sm font-medium disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              className="flex-1 rounded-full bg-primary-solid text-on-primary py-1.5 text-sm font-medium disabled:opacity-40 focus:outline-none focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
             >
               Write the email
             </button>
             <button
               type="button"
               onClick={reset}
-              className="rounded-full border border-zinc-300 dark:border-zinc-700 px-3.5 py-1.5 text-sm text-zinc-600 dark:text-zinc-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              className="rounded-[8px] border border-rule px-3.5 py-1.5 text-sm text-ink-soft focus:outline-none focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
             >
               Cancel
             </button>

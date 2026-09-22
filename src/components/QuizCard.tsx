@@ -29,50 +29,61 @@ export function QuizCard({
   }, [answered, quiz.options.length, onAnswer]);
 
   return (
-    <div className="w-full max-w-xl mx-auto rounded-xl border border-zinc-200 dark:border-zinc-800 p-5 space-y-3">
-      <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">{quiz.question}</h3>
-      <div className="space-y-2">
+    <div className="w-full max-w-xl mx-auto bg-card border border-primary rounded-[13px] p-3.5 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-[9px] tracking-[.15em] uppercase text-primary">Check</span>
+        <span className="font-mono text-[9px] tracking-[.15em] uppercase text-muted">Say it or tap it</span>
+      </div>
+      <h3 className="font-display text-[15px] leading-[1.35] text-ink">{quiz.question}</h3>
+      <ol className="list-none m-0 p-0">
         {quiz.options.map((option, i) => {
           const isCorrect = i === quiz.answer_index;
           const isChosen = i === answeredIndex;
-          let className =
-            "w-full flex items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm transition-colors border-zinc-300 dark:border-zinc-700";
+
+          let textClass = "text-ink";
+          let markerClass = "border-rule text-muted";
           if (answered) {
             if (isCorrect) {
-              className =
-                "w-full flex items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm border-emerald-500 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300";
+              textClass = "text-ok font-semibold";
+              markerClass = "bg-ok border-ok text-on-primary";
             } else if (isChosen) {
-              className =
-                "w-full flex items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm border-red-500 bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-300";
+              textClass = "text-alert font-semibold";
+              markerClass = "bg-alert border-alert text-on-primary";
             } else {
-              className =
-                "w-full flex items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-500";
+              textClass = "text-muted";
             }
-          } else {
-            className +=
-              " hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-zinc-700 dark:text-zinc-200";
           }
+
           return (
-            <button
-              key={i}
-              type="button"
-              disabled={answered}
-              onClick={() => onAnswer(i)}
-              className={className}
-            >
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-current text-[11px] font-semibold">
-                {LETTERS[i] ?? i + 1}
-              </span>
-              <span>{option}</span>
-            </button>
+            <li key={i}>
+              <button
+                type="button"
+                disabled={answered}
+                onClick={() => onAnswer(i)}
+                className={`group w-full flex items-center gap-2.5 text-left py-2.5 px-0.5 text-[12.5px] ${textClass} ${
+                  i === 0 ? "" : "border-t border-rule-soft"
+                } ${
+                  !answered ? "hover:text-primary" : ""
+                } focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2`}
+              >
+                <span
+                  className={`h-5 w-5 shrink-0 rounded-[4px] border grid place-items-center font-mono text-[9.5px] font-bold ${markerClass} ${
+                    !answered ? "group-hover:border-primary group-hover:text-primary" : ""
+                  }`}
+                >
+                  {LETTERS[i] ?? i + 1}
+                </span>
+                <span>{option}</span>
+              </button>
+            </li>
           );
         })}
-      </div>
+      </ol>
       {!answered && (
-        <p className="text-[11px] text-zinc-400 dark:text-zinc-600">Click, type, or just say your answer.</p>
+        <p className="text-[10px] text-muted italic mt-2">Click, type, or just say your answer.</p>
       )}
       {answered && quiz.explanation && (
-        <p className="text-xs text-zinc-600 dark:text-zinc-300">{quiz.explanation}</p>
+        <p className="text-[12px] text-ink-soft mt-2">{quiz.explanation}</p>
       )}
     </div>
   );

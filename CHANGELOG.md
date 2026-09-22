@@ -4,6 +4,25 @@ Plain-language notes on what changed in each version, newest first. The
 version number is shown in the tutor's own footer (bottom of the page) —
 that's the easiest way to check what you're running.
 
+## 0.3.0 (2026-09-21)
+
+- **A new look.** The tutor is now set on paper rather than plain white: warm background,
+  hairline rules instead of boxes and shadows, and the Québec blue from the app icon used
+  as the app's own colour for the first time.
+- **Your progress is on the front page.** Your level, the unit you're working on, how many
+  mistakes keep coming back and how many reviews are due today now sit in a card beside the
+  Start button. Before, all of that was hidden behind the "Review mistakes" link.
+- **One line instead of seven buttons.** The row of session-type buttons is now a single
+  line — *Today: Tutor decides · change* — so the Start button is the only thing asking for
+  your attention. Every mode is still there behind **change**.
+- **The transcript reads like a conversation**, not a chat app: each turn is labelled
+  *Tutrice* or *Vous* down the left, no more coloured bubbles.
+- **New app icon**: a speech bubble with an accent aigu cut out of it. The old one packed a
+  square, a bubble and a fleur-de-lys inside each other, which turned into a smudge at the
+  size a browser tab or a taskbar actually shows.
+- On-screen lesson checks are now laid out like a exercise in a workbook, with A/B/C
+  answers you can still say out loud, type, or click.
+
 ## 0.2.1 (2026-09-21)
 
 - **Send feedback** now writes the email for you instead of sending it for you: press

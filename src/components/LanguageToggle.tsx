@@ -16,9 +16,9 @@ export function LanguageToggle({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center gap-1.5">
-      <span className="text-[11px] text-zinc-400 dark:text-zinc-600">Language</span>
-      <div className="flex flex-wrap justify-center gap-2 max-w-sm">
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="font-mono text-[9px] tracking-[.15em] uppercase text-muted">Language</span>
+      <div className="flex rounded-full border border-rule overflow-hidden">
         {OPTIONS.map(({ mode, label }) => {
           const active = value === mode;
           return (
@@ -26,11 +26,10 @@ export function LanguageToggle({
               key={mode}
               type="button"
               disabled={disabled}
+              aria-pressed={active}
               onClick={() => onChange(mode)}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors border disabled:opacity-50 disabled:cursor-not-allowed ${
-                active
-                  ? "bg-zinc-900 text-white border-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 dark:border-zinc-100"
-                  : "bg-transparent text-zinc-600 border-zinc-300 hover:border-zinc-400 dark:text-zinc-300 dark:border-zinc-700 dark:hover:border-zinc-500"
+              className={`text-[10.5px] px-2.5 py-1 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 ${
+                active ? "bg-ink text-paper" : "text-ink-soft"
               }`}
             >
               {label}

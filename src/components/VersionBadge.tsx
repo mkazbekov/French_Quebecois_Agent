@@ -45,7 +45,7 @@ export default function VersionBadge() {
 
   return (
     <span
-      className="ml-1 inline-flex cursor-pointer items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700 dark:bg-amber-900/40 dark:text-amber-400"
+      className="ml-1 inline-flex cursor-pointer items-center gap-1 rounded-full bg-due-tint px-2 py-0.5 text-due"
       title={info.howToUpdate}
       onClick={() => setExpanded((e) => !e)}
     >
