@@ -651,18 +651,25 @@ the conversation back up from your answer.
 you to *type* an answer (that is how it assesses your writing) or to *read* what it just
 said on screen (reading). You can also type any time instead of speaking.
 
-**Mode buttons** (optional, under the Start button) choose the style of the next call.
-If you don't pick one, the tutor chooses for you.
+**What do you want to do today?** Under the Start button, all eight kinds of call are
+laid out with a line each saying what happens. Pick one before you start, or leave it on
+**Tutor decides** — which tells you what it is going to choose ("Today it picks: Teach me
+something"), so you always know what is coming.
 
-| Button | What the call is like |
+| Choice | What the call is like |
 | --- | --- |
-| 💬 **Free Conversation** | fluency first, light corrections |
-| 🧭 **Guided Practice** | the conversation is steered toward your current focus |
-| 📘 **Lesson** | one grammar point explained and drilled, three to five new words, then used live |
-| 🍁 **Québec Mode** | role-play of one Montréal situation (dépanneur, STM, landlord, winter…) |
-| ✏️ **Correction Mode** | explicit one-line corrections after each clear error |
-| 📊 **Level Check** | checks your level in all four skills; no score is announced |
-| 🎯 **Drill My Errors** | a targeted drill on your recurring errors |
+| **Tutor decides** (default) | follows your program: practice, a lesson, a Québec situation, a drill on your mistakes, or a level check when one is due |
+| **Just talk** | fluency first, light corrections |
+| **Guided practice** | the conversation is steered toward your current unit |
+| **Teach me something** | one grammar point explained and drilled, three to five new words, then used live |
+| **Québec situation** | role-play of one Montréal situation (dépanneur, STM, landlord, winter…) |
+| **Correct me closely** | explicit one-line corrections after each clear error |
+| **Drill my mistakes** | a targeted drill on your recurring errors |
+| **Check my level** | checks your level in all four skills; no score is announced |
+
+Once the call starts, the mode actually running is named on the card — so when the tutor
+chose for you, you can see what it picked and how long that kind of call usually runs.
+The summary at the end names it too.
 
 **Language switch** (how much English the tutor uses):
 

@@ -115,6 +115,14 @@ learner to read the on-screen transcript and to type answers so that written
 comprehension/production get evidence too. Typed turns carry `typed: true` in the
 transcript and the reviewer sees them as `LEARNER (typed)`.
 
+The learner-facing side of the same set is `src/lib/tutor/modes.ts` (`MODE_COPY`: one
+label, blurb and rough length per mode) — the only place those strings live, shared by
+`ModePicker`, the banner naming the running mode on the call card, and `SummaryCard`. A
+mode added to `SESSION_MODES` without copy fails `tests/modes.test.ts`. `GET /api/learner`
+also returns `plannedMode` (`resolveMode("auto", state)`, read-only) so the picker can say
+what "Tutor decides" is about to choose; the mode that actually ran comes back from
+`POST /api/realtime/session` and is what the banner and the summary show.
+
 ## Turn-taking
 
 The learner must never be interrupted while thinking. Gemini Live runs with

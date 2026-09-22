@@ -226,6 +226,20 @@ Not yet verified on real hardware, and worth doing first next session:
 4. **macOS**: the icon application (`sips`/`iconutil`/NSWorkspace in `install-mac.sh`)
    and the `.command` launcher are still only tested on Linux/WSL.
 
+2026-09-21 (v0.4.0): the mode picker is visible again. `ModeChips` (a 12px "change"
+link nobody found) is now `ModePicker`: every mode on the card with a line each,
+learner-facing labels and blurbs in `src/lib/tutor/modes.ts` (the only place those
+strings live — `tests/modes.test.ts` fails if a mode is added to `SESSION_MODES`
+without copy). "Tutor decides" names its pick from `plannedMode` on
+`GET /api/learner` (`resolveMode("auto", state)`, read-only); during a call a banner
+names the mode the server actually resolved, and `SummaryCard` names it afterwards.
+Verified on this machine: typecheck, lint, 164 tests, production build, and live at
+127.0.0.1 against the real Letta store — `plannedMode: "lesson"` at session 12, the
+picker rendering and toggling at desktop and phone width with no console errors, and
+`POST /api/realtime/session` returning `mode: "lesson"` for auto / `"quebec"` when
+asked. Still unverified: the in-call banner with a real microphone (it needs a live
+Gemini session, which writes a real session record) — do that in the manual voice test.
+
 After that, candidate improvements (not started): confidence time-decay, Letta
 archival search for older sessions, pronunciation-aware feedback, a true
 text-only session mode.

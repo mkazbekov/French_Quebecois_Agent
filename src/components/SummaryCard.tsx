@@ -1,4 +1,5 @@
-import type { SessionSummary } from "@/lib/learner/schema";
+import type { SessionMode, SessionSummary } from "@/lib/learner/schema";
+import { modeLabel } from "@/lib/tutor/modes";
 
 function Section({ title, items }: { title: string; items: string[] }) {
   if (!items.length) return null;
@@ -19,12 +20,24 @@ function Section({ title, items }: { title: string; items: string[] }) {
   );
 }
 
-export function SummaryCard({ summary, onStartAnother }: { summary: SessionSummary; onStartAnother: () => void }) {
+export function SummaryCard({
+  summary,
+  mode,
+  onStartAnother,
+}: {
+  summary: SessionSummary;
+  mode?: SessionMode;
+  onStartAnother: () => void;
+}) {
+  const modePrefix = mode && mode !== "auto" ? `${modeLabel(mode)} · ` : "";
   return (
     <div className="w-full max-w-xl mx-auto bg-card border border-rule rounded-[13px] p-3.5 space-y-4">
       <div>
         <h2 className="font-display text-[19px] font-semibold text-ink">Session complete</h2>
-        <p className="text-[11px] text-muted">{summary.minutes} minute(s)</p>
+        <p className="text-[11px] text-muted">
+          {modePrefix}
+          {summary.minutes} minute(s)
+        </p>
       </div>
       <Section title="Practiced" items={summary.practiced} />
       <Section title="New vocabulary" items={summary.new_vocabulary} />

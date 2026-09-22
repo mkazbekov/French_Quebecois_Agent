@@ -2,14 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getLearnerStore } from "@/lib/learner";
 import { completeOnboarding, normalizeName, retakePlacement, setStartingLevel } from "@/lib/learner/placement";
+import type { LearnerState } from "@/lib/learner/schema";
+import { resolveMode } from "@/lib/tutor/instructions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * Shared response shape. `plannedMode` is what an "auto" call would pick
+ * right now — read-only and deterministic — so the mode picker can tell the
+ * learner what "Tutor decides" is actually going to do before they press Start.
+ */
+function payload(state: LearnerState, storeKind: string) {
+  return { state, storeKind, plannedMode: resolveMode("auto", state) };
+}
+
 export async function GET() {
   const store = await getLearnerStore();
   const state = await store.load();
-  return NextResponse.json({ state, storeKind: store.kind });
+  return NextResponse.json(payload(state, store.kind));
 }
 
 /** Wipe the learner's stored profile and history; the next GET returns fresh defaults. */
@@ -17,7 +28,7 @@ export async function DELETE() {
   const store = await getLearnerStore();
   await store.reset();
   const state = await store.load();
-  return NextResponse.json({ state, storeKind: store.kind });
+  return NextResponse.json(payload(state, store.kind));
 }
 
 const LevelOrTestSchema = z.union([z.number().int().min(1).max(12), z.literal("test")]);
@@ -43,7 +54,7 @@ export async function PATCH(request: NextRequest) {
   if ("language_mode" in parsed.data) {
     state.profile.preferences.language_mode = parsed.data.language_mode;
     await store.save({ profile: state.profile });
-    return NextResponse.json({ state, storeKind: store.kind });
+    return NextResponse.json(payload(state, store.kind));
   }
 
   if ("name" in parsed.data) {
@@ -51,7 +62,7 @@ export async function PATCH(request: NextRequest) {
     if (!name) return NextResponse.json({ error: "Name can't be empty." }, { status: 400 });
     state.profile.name = name;
     await store.save({ profile: state.profile });
-    return NextResponse.json({ state, storeKind: store.kind });
+    return NextResponse.json(payload(state, store.kind));
   }
 
   if ("onboarding" in parsed.data) {
@@ -59,7 +70,7 @@ export async function PATCH(request: NextRequest) {
     if (!name) return NextResponse.json({ error: "Name can't be empty." }, { status: 400 });
     const next = completeOnboarding(state, { name, level: parsed.data.onboarding.level }, new Date());
     await store.save({ profile: next.profile, competencies: next.competencies, roadmap: next.roadmap });
-    return NextResponse.json({ state: next, storeKind: store.kind });
+    return NextResponse.json(payload(next, store.kind));
   }
 
   const next =
@@ -69,5 +80,5 @@ export async function PATCH(request: NextRequest) {
 
   await store.save({ profile: next.profile, competencies: next.competencies, roadmap: next.roadmap });
 
-  return NextResponse.json({ state: next, storeKind: store.kind });
+  return NextResponse.json(payload(next, store.kind));
 }

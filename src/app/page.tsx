@@ -5,7 +5,7 @@ import { useTutorSession } from "@/hooks/useTutorSession";
 import type { LearnerState, SessionMode } from "@/lib/learner/schema";
 import { TutorHeader } from "@/components/TutorHeader";
 import { MicOrb } from "@/components/MicOrb";
-import { ModeChips } from "@/components/ModeChips";
+import { ModePicker } from "@/components/ModePicker";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { Onboarding } from "@/components/Onboarding";
 import { ProgramCard } from "@/components/ProgramCard";
@@ -14,6 +14,7 @@ import { SummaryCard } from "@/components/SummaryCard";
 import { QuizCard } from "@/components/QuizCard";
 import { FeedbackCard } from "@/components/FeedbackCard";
 import VersionBadge from "@/components/VersionBadge";
+import { modeBlurb, modeLabel, type PickableMode } from "@/lib/tutor/modes";
 
 /*
   Cahier: paper and ink carrying a two-card bento. The call is the left card
@@ -30,10 +31,11 @@ type ProfilePhase = "loading" | "error" | "ready";
 const CARD = "bg-card border border-rule rounded-[13px] p-3.5";
 
 export default function Home() {
-  const { status, error, transcript, partialTranscript, summary, provider, quiz, start, end, sendText, answerQuiz, reset } =
+  const { status, error, transcript, partialTranscript, summary, mode, provider, quiz, start, end, sendText, answerQuiz, reset } =
     useTutorSession();
   const [learnerState, setLearnerState] = useState<LearnerState | null>(null);
   const [storeKind, setStoreKind] = useState<string | null>(null);
+  const [plannedMode, setPlannedMode] = useState<PickableMode | null>(null);
   const [selectedMode, setSelectedMode] = useState<SessionMode>("auto");
   const [languageModeError, setLanguageModeError] = useState<string | null>(null);
   const [profilePhase, setProfilePhase] = useState<ProfilePhase>("loading");
@@ -47,10 +49,11 @@ export default function Home() {
         if (!res.ok) throw new Error(`Server returned ${res.status}`);
         return res.json();
       })
-      .then((data: { state: LearnerState; storeKind: string }) => {
+      .then((data: { state: LearnerState; storeKind: string; plannedMode: PickableMode }) => {
         if (cancelled) return;
         setLearnerState(data.state);
         setStoreKind(data.storeKind);
+        setPlannedMode(data.plannedMode);
         setProfilePhase("ready");
       })
       .catch((err: unknown) => {
@@ -105,9 +108,18 @@ export default function Home() {
 
   const onboarded = learnerState !== null && learnerState.profile.onboarded_at !== null;
 
+  // TutorHeader/ProfileSettings (name, starting level, "Retake the level test") and Onboarding
+  // all PATCH /api/learner and hand back a new state directly; several of those edits change
+  // what "auto" would pick (e.g. a fresh pending placement), so bump retryToken to make the
+  // existing effect refetch /api/learner and pick up a fresh plannedMode.
+  const handleLearnerStateChange = (next: LearnerState) => {
+    setLearnerState(next);
+    setRetryToken((t) => t + 1);
+  };
+
   return (
     <div className="flex-1 flex flex-col">
-      <TutorHeader state={learnerState} onChange={setLearnerState} disabled={isActive} />
+      <TutorHeader state={learnerState} onChange={handleLearnerStateChange} disabled={isActive} />
 
       <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-4 flex flex-col gap-3">
         {profilePhase === "loading" ? (
@@ -130,11 +142,11 @@ export default function Home() {
           </div>
         ) : learnerState && !onboarded ? (
           <div className="w-full max-w-sm mx-auto">
-            <Onboarding state={learnerState} onChange={setLearnerState} />
+            <Onboarding state={learnerState} onChange={handleLearnerStateChange} />
           </div>
         ) : status === "done" && summary ? (
           <div className="w-full max-w-xl mx-auto">
-            <SummaryCard summary={summary} onStartAnother={reset} />
+            <SummaryCard summary={summary} mode={mode} onStartAnother={reset} />
           </div>
         ) : status === "done" && !summary ? (
           <div className={`${CARD} w-full max-w-sm mx-auto text-center space-y-3 border-due`}>
@@ -205,10 +217,23 @@ export default function Home() {
                       {isConnecting ? "Cancel" : "End conversation"}
                     </button>
                     <p className="text-[10px] text-muted -mt-1.5">Esc · or say &laquo;&nbsp;on arrête&nbsp;&raquo;</p>
+
+                    {/* Once the server has resolved a real mode, say which call this is; while
+                        it's still "auto" (connecting, or the learner picked "Tutor decides")
+                        fall back to what was selected rather than ever showing "auto". */}
+                    <div className="rounded-[10px] border border-primary bg-primary-tint px-3 py-2 text-left w-full">
+                      <p className="font-mono text-[9px] tracking-[.14em] uppercase text-primary">
+                        {mode !== "auto" && selectedMode === "auto" ? "Now running · chosen by your tutor" : "Now running"}
+                      </p>
+                      <p className="text-[13px] font-semibold text-ink">{modeLabel(mode !== "auto" ? mode : selectedMode)}</p>
+                      <p className="text-[11px] text-ink-soft">{modeBlurb(mode !== "auto" ? mode : selectedMode)}</p>
+                    </div>
                   </>
                 )}
 
-                <ModeChips selected={selectedMode} onSelect={setSelectedMode} disabled={isActive} />
+                {!isActive && (
+                  <ModePicker selected={selectedMode} plannedMode={plannedMode} onSelect={setSelectedMode} disabled={isActive} />
+                )}
 
                 <LanguageToggle
                   value={learnerState?.profile.preferences.language_mode ?? "auto"}

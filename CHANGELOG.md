@@ -4,6 +4,19 @@ Plain-language notes on what changed in each version, newest first. The
 version number is shown in the tutor's own footer (bottom of the page) —
 that's the easiest way to check what you're running.
 
+## 0.4.0 (2026-09-21)
+
+- **You can see that you get to choose.** 0.3.0 hid the eight kinds of call behind a small
+  *change* link, and nobody found it. They are back on the page under the Start button —
+  each one named plainly, with a line saying what the call will be like: *Just talk*,
+  *Teach me something*, *Québec situation*, *Drill my mistakes*, *Check my level*…
+- **"Tutor decides" now tells you what it decided.** The default option names its pick
+  before you press Start ("Today it picks: Teach me something"), so letting the tutor choose
+  is no longer a surprise.
+- **The call says what it is.** While you are talking, the mode running is shown on the
+  card — and when the tutor picked it for you, it says so. The summary at the end names it
+  too, next to the length of the call.
+
 ## 0.3.0 (2026-09-21)
 
 - **A new look.** The tutor is now set on paper rather than plain white: warm background,
