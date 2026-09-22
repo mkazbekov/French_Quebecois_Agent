@@ -218,16 +218,18 @@ export default function Home() {
                     </button>
                     <p className="text-[10px] text-muted -mt-1.5">Esc · or say &laquo;&nbsp;on arrête&nbsp;&raquo;</p>
 
-                    {/* Once the server has resolved a real mode, say which call this is; while
-                        it's still "auto" (connecting, or the learner picked "Tutor decides")
-                        fall back to what was selected rather than ever showing "auto". */}
-                    <div className="rounded-[10px] border border-primary bg-primary-tint px-3 py-2 text-left w-full">
-                      <p className="font-mono text-[9px] tracking-[.14em] uppercase text-primary">
-                        {mode !== "auto" && selectedMode === "auto" ? "Now running · chosen by your tutor" : "Now running"}
-                      </p>
-                      <p className="text-[13px] font-semibold text-ink">{modeLabel(mode !== "auto" ? mode : selectedMode)}</p>
-                      <p className="text-[11px] text-ink-soft">{modeBlurb(mode !== "auto" ? mode : selectedMode)}</p>
-                    </div>
+                    {/* Only once the server has resolved a real mode: while connecting there is
+                        nothing true to say yet, and "Now running · Tutor decides" would name a
+                        choice rather than the call. Never renders the literal string "auto". */}
+                    {mode !== "auto" && (
+                      <div className="rounded-[10px] border border-primary bg-primary-tint px-3 py-2 text-left w-full">
+                        <p className="font-mono text-[9px] tracking-[.14em] uppercase text-primary">
+                          {selectedMode === "auto" ? "Now running · chosen by your tutor" : "Now running"}
+                        </p>
+                        <p className="text-[13px] font-semibold text-ink">{modeLabel(mode)}</p>
+                        <p className="text-[11px] text-ink-soft">{modeBlurb(mode)}</p>
+                      </div>
+                    )}
                   </>
                 )}
 
