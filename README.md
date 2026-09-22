@@ -62,13 +62,13 @@ Once it's installed, this is all you do. Every time.
   </tr>
   <tr>
     <td valign="top">Double-click <b>Quebec French Tutor</b> on your Desktop. A window opens, then your browser.</td>
-    <td valign="top">Press the big <b>Start Conversation</b> button. The tutor greets you.</td>
+    <td valign="top">Press the big <b>Start conversation</b> button — or first pick the kind of call you want. The tutor greets you.</td>
     <td valign="top">When the circle is <b>green</b>, speak. Take your time; it waits through pauses.</td>
     <td valign="top">Say <i>"on arrête"</i> or press <b>End Conversation</b>. Your progress is saved.</td>
   </tr>
   <tr>
     <td><img src="docs/images/windows-running.png" alt="The tutor window after double-clicking the icon"></td>
-    <td><img src="docs/images/ready.png" alt="The Start Conversation button"></td>
+    <td><img src="docs/images/ready.png" alt="The Start conversation button, with the choice of call underneath"></td>
     <td><img src="docs/images/conversation.png" alt="A conversation with the transcript"></td>
     <td><img src="docs/images/summary.png" alt="The summary after a call"></td>
   </tr>
@@ -363,9 +363,11 @@ window, not from the internet.
    later under **Profile**.
 3. **Turn your sound on.** Check that your speakers aren't muted and the volume is up.
    Headphones work best.
-4. Press **Start Conversation**.
+4. Press **Start conversation** — or first pick what kind of call you want from the list
+   underneath. Leaving it on **Tutor decides** is the normal thing to do; it tells you
+   what it is about to pick.
 
-   <img src="docs/images/ready.png" alt="Ready to start" width="480">
+   <img src="docs/images/ready.png" alt="Ready to start, with the choice of call underneath" width="480">
 
 5. **Allow the microphone.** The browser asks to use your microphone. Click
    **Allow while visiting the site** (Chrome) or **Allow** (Edge). If you have more than
