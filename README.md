@@ -63,7 +63,7 @@ Once it's installed, this is all you do. Every time.
   <tr>
     <td valign="top">Double-click <b>Quebec French Tutor</b> on your Desktop. A window opens, then your browser.</td>
     <td valign="top">Press the big <b>Start conversation</b> button — or first pick the kind of call you want. The tutor greets you.</td>
-    <td valign="top">When the circle is <b>green</b>, speak. Take your time; it waits through pauses.</td>
+    <td valign="top">When it says <b>Listening…</b>, speak. Take your time; it waits through pauses.</td>
     <td valign="top">Say <i>"on arrête"</i> or press <b>End Conversation</b>. Your progress is saved.</td>
   </tr>
   <tr>
@@ -74,12 +74,14 @@ Once it's installed, this is all you do. Every time.
   </tr>
 </table>
 
-**The circle tells you who's talking:**
+**The words under the circle tell you whose turn it is:**
 
-| Circle | Means | You… |
+| Under the circle | Means | You… |
 | --- | --- | --- |
-| 🔵 **Blue** (*Speaking…*) | the tutor is talking | listen |
-| 🟢 **Green** (*Listening…*) | your turn | answer out loud, in French or English |
+| *Speaking…* | the tutor is talking | listen |
+| *Listening…* | your turn | answer out loud, in French or English |
+
+The circle fills in blue and breathes while the call is live, whoever is talking.
 
 **Handy things to say during a call:**
 
@@ -377,17 +379,18 @@ window, not from the internet.
 
    **On a Mac, the first time only**, macOS also asks *"Google Chrome would like to access
    the microphone"*. Click **Allow** (or **OK**).
-6. **The tutor speaks first.** Within a few seconds the circle turns blue
-   (**Speaking…**) and you hear a greeting. Its words also appear in the **Transcript**
+6. **The tutor speaks first.** Within a few seconds the circle fills in blue, it says
+   **Speaking…**, and you hear a greeting. Its words also appear in the **Transcript**
    box.
-7. **Answer out loud.** When the circle is green (**Listening…**), talk normally.
-   Your words appear in a green bubble on the right, and the tutor replies. Take your
-   time: the tutor waits through pauses.
+7. **Answer out loud.** When it says **Listening…**, talk normally. Your words appear in
+   the transcript under **Vous**, the tutor's under **Tutrice**, and the card above the
+   transcript names the kind of call you're in. Take your time: the tutor waits through
+   pauses.
 
    <img src="docs/images/conversation.png" alt="A working conversation with the transcript" width="480">
 
-   ✅ **It works if** you heard the greeting *and* your own words appeared in a green
-   bubble. If either is missing, see [Troubleshooting](#troubleshooting).
+   ✅ **It works if** you heard the greeting *and* your own words appeared under **Vous**.
+   If either is missing, see [Troubleshooting](#troubleshooting).
 
 8. **Hang up** when you're done: press **End Conversation**, press **Esc**, or just say
    *"on arrête"* / *"I have to go"*. A short summary appears and your progress is saved.
