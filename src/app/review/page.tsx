@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ClearHistoryAndGoHome } from "@/components/ClearHistoryButton";
 import { getLearnerStore } from "@/lib/learner";
 import { COMPETENCY_KEYS } from "@/lib/learner/schema";
 import { LEVELS, cefrEquivalent, stageOf } from "@/lib/learner/levels";
@@ -212,6 +213,15 @@ export default async function ReviewPage() {
             <dd className="inline text-ink-soft">{state.roadmap.next_practice}</dd>
           </div>
         </dl>
+      </section>
+
+      <section>
+        <h2 className="font-mono text-[9px] tracking-[.15em] uppercase text-muted mb-2">Start fresh</h2>
+        <p className="text-[13px] text-ink-soft mb-3">
+          Clears your progress, mistakes, vocabulary and past sessions. Your name and settings stay, so you won&apos;t
+          see onboarding again.
+        </p>
+        <ClearHistoryAndGoHome />
       </section>
     </div>
   );

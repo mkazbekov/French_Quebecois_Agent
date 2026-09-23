@@ -3,6 +3,7 @@ import { defaultLearnerState } from "@/lib/learner/defaults";
 import { applyReviewDelta } from "@/lib/learner/merge";
 import {
   PLACEMENT_CONFIDENCE,
+  clearLearningHistory,
   completeOnboarding,
   creditUnitsBelow,
   normalizeName,
@@ -293,6 +294,48 @@ describe("resetToPlacementTest", () => {
     expect(reset.roadmap.current_unit).toBeNull();
     // Profile identity/preferences preserved.
     expect(reset.profile.name).toBe("Sam");
+  });
+});
+
+describe("clearLearningHistory", () => {
+  it("wipes sessions/errors/vocabulary/progress but keeps identity, preferences and onboarded_at", () => {
+    let state = setStartingLevel(defaultLearnerState("Sam"), 7, NOW);
+    state.profile.preferences.language_mode = "french_only";
+    state.profile.onboarded_at = "2026-01-01T00:00:00.000Z";
+    state = {
+      ...state,
+      profile: {
+        ...state.profile,
+        sessions_completed: 5,
+        total_minutes: 120,
+        first_session_at: "2026-01-01T00:00:00.000Z",
+        last_session_at: "2026-01-05T00:00:00.000Z",
+        notes: ["likes hockey"],
+      },
+      errors: { next_id: 2, items: [{ id: "ERROR-001", category: "grammar", pattern: "p", observed: "o", preferred: "pr", explanation: "", frequency: 1, first_observed: NOW.toISOString(), last_observed: NOW.toISOString(), status: "new", unit_id: "", next_review: null }] },
+      vocabulary: { items: [{ word: "chien", meaning: "dog", register: "standard", status: "known", times_used_correctly: 1, times_struggled: 0, last_seen: null, next_review: null }] },
+    };
+
+    const cleared = clearLearningHistory(state);
+
+    expect(cleared.errors.items).toEqual([]);
+    expect(cleared.vocabulary.items).toEqual([]);
+    expect(cleared.grammar.items).toEqual([]);
+    expect(cleared.pronunciation.items).toEqual([]);
+    expect(cleared.progress.entries).toEqual([]);
+    expect(cleared.roadmap.units.some((u) => u.credited)).toBe(false);
+    expect(cleared.profile.sessions_completed).toBe(0);
+    expect(cleared.profile.total_minutes).toBe(0);
+    expect(cleared.profile.first_session_at).toBeNull();
+    expect(cleared.profile.last_session_at).toBeNull();
+    expect(cleared.profile.notes).toEqual([]);
+    expect(cleared.profile.placement).toEqual({ status: "pending", level: null, set_at: null });
+    expect(cleared.competencies.oral_production.level).toBe(2);
+
+    // Preserved.
+    expect(cleared.profile.name).toBe("Sam");
+    expect(cleared.profile.preferences.language_mode).toBe("french_only");
+    expect(cleared.profile.onboarded_at).toBe("2026-01-01T00:00:00.000Z");
   });
 });
 

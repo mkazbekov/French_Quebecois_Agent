@@ -4,6 +4,15 @@ Plain-language notes on what changed in each version, newest first. The
 version number is shown in the tutor's own footer (bottom of the page) —
 that's the easiest way to check what you're running.
 
+## 0.5.0 (2026-09-22)
+
+- **Clear your learning history in one click.** A new *Clear learning history* button, at
+  the bottom of the Review page and in the Profile panel, erases your progress, mistakes,
+  vocabulary and past calls after one confirmation. Your name and settings stay, so you
+  don't go through the first-time questions again; your next call starts by finding your
+  level (or pick one yourself in Profile). *Delete profile & start over* is still there if
+  you want to erase your name too.
+
 ## 0.4.1 (2026-09-22)
 
 - **You hear the tutor's first words again.** The start of what the tutor said (most of

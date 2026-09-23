@@ -104,6 +104,31 @@ export function resetToPlacementTest(state: LearnerState): LearnerState {
   };
 }
 
+/**
+ * "Clear learning history": wipe every session record — errors, vocabulary,
+ * grammar, pronunciation, competencies, roadmap/program units, progress
+ * entries, sessions_completed/minutes/first/last session dates, notes — but
+ * keep the learner's identity (name, native_languages, goals) and preferences
+ * (language_mode etc.) and onboarded_at, so they never see onboarding again.
+ * Placement goes back to pending, same as a brand-new learner: the next auto
+ * call is a placement/level check, or they can pick a level from Profile.
+ * Distinct from a full profile delete (store.reset() with no carry-over),
+ * which returns the learner to onboarding.
+ */
+export function clearLearningHistory(state: LearnerState): LearnerState {
+  const fresh = defaultLearnerState(state.profile.name);
+  return {
+    ...fresh,
+    profile: {
+      ...fresh.profile,
+      native_languages: state.profile.native_languages,
+      goals: state.profile.goals,
+      preferences: state.profile.preferences,
+      onboarded_at: state.profile.onboarded_at,
+    },
+  };
+}
+
 /** Trim, collapse internal whitespace, cap length. Used for every learner-supplied name. */
 export function normalizeName(raw: string): string {
   return raw.trim().replace(/\s+/g, " ").slice(0, 40);

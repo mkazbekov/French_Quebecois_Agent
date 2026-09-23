@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getLearnerStore } from "@/lib/learner";
-import { completeOnboarding, normalizeName, retakePlacement, setStartingLevel } from "@/lib/learner/placement";
-import type { LearnerState } from "@/lib/learner/schema";
+import { clearLearningHistory, completeOnboarding, normalizeName, retakePlacement, setStartingLevel } from "@/lib/learner/placement";
+import { LEARNER_DOCUMENTS, type LearnerState } from "@/lib/learner/schema";
 import { resolveMode } from "@/lib/tutor/instructions";
 
 export const runtime = "nodejs";
@@ -23,9 +23,31 @@ export async function GET() {
   return NextResponse.json(payload(state, store.kind));
 }
 
-/** Wipe the learner's stored profile and history; the next GET returns fresh defaults. */
-export async function DELETE() {
+/**
+ * DELETE wipes the learner's stored profile and history; the next GET returns
+ * fresh defaults (back to onboarding). `?scope=history` instead clears only
+ * what the tutor has learned — sessions, mistakes, vocabulary, progress,
+ * program units — while keeping the learner's name, preferences and
+ * onboarded_at (see clearLearningHistory). Either way store.reset() first,
+ * since it also drops session records / the Letta agent, then re-save what
+ * should survive.
+ */
+export async function DELETE(request: NextRequest) {
+  const scope = new URL(request.url).searchParams.get("scope");
   const store = await getLearnerStore();
+
+  if (scope === "history") {
+    const state = await store.load();
+    const cleared = clearLearningHistory(state);
+    await store.reset();
+    await store.save(Object.fromEntries(LEARNER_DOCUMENTS.map((doc) => [doc, cleared[doc]])) as Pick<
+      LearnerState,
+      (typeof LEARNER_DOCUMENTS)[number]
+    >);
+    const reloaded = await store.load();
+    return NextResponse.json(payload(reloaded, store.kind));
+  }
+
   await store.reset();
   const state = await store.load();
   return NextResponse.json(payload(state, store.kind));

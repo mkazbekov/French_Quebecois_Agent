@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ClearHistoryButton } from "@/components/ClearHistoryButton";
 import { StartingLevel } from "@/components/StartingLevel";
 import { clearPendingSession } from "@/hooks/useTutorSession";
 import type { LearnerState } from "@/lib/learner/schema";
@@ -90,6 +91,7 @@ export function ProfileSettings({
         </div>
         {error && <p className="text-xs text-alert">{error}</p>}
         <StartingLevel state={state} onChange={onChange} disabled={disabled} />
+        <ClearHistoryButton onCleared={onChange} disabled={disabled} />
         <button
           type="button"
           disabled={disabled || deletePending}

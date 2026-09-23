@@ -694,7 +694,9 @@ current focus.
 
 **Profile** (under the header) lets you change your name, pick a different level, or
 **Retake the level test** (your next call becomes a placement chat; progress is kept).
-**Delete profile & start over** wipes your name, level, progress and mistakes and shows
+**Clear learning history** (also at the bottom of the Review page) erases your progress,
+mistakes, vocabulary and past calls but keeps your name and settings; your next call starts
+by finding your level again. **Delete profile & start over** wipes your name too and shows
 the first-time questions again.
 
 ### Levels

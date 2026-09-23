@@ -119,7 +119,7 @@ src/app/page.tsx                 the single screen (client); Onboarding until pr
 src/app/review/page.tsx          Review Mistakes (server component)
 src/app/api/realtime/session     POST: learner state → instructions → ek_ key
 src/app/api/session/end          POST: evidence → review → merge → persist → summary
-src/app/api/learner              GET: state + storeKind; PATCH: onboarding | name | language_mode | starting_level | placement:"test"; DELETE: wipe the learner (back to onboarding)
+src/app/api/learner              GET: state + storeKind; PATCH: onboarding | name | language_mode | starting_level | placement:"test"; DELETE: wipe the learner (back to onboarding); `?scope=history` clears progress but keeps name + settings
 src/app/api/feedback             GET: feedback address + version/platform/provider (no POST; the card opens a mailto:)
 src/app/api/version              GET: installed vs. published version (6h cache, never throws)
 src/components/QuizCard.tsx      the on-screen multiple-choice check (ask_choice)
