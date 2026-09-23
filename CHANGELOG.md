@@ -8,9 +8,10 @@ that's the easiest way to check what you're running.
 
 - **You hear the tutor's first words again.** The start of what the tutor said (most of
   all the greeting when a call opens) could appear in the transcript without ever being
-  spoken. The sound is now switched on and ready before the tutor starts talking, stays
-  on for the whole call, and each reply starts a fraction of a second later so its
-  beginning is no longer cut off.
+  spoken, most noticeably on laptop speakers, which switch off during silence and take a
+  moment to wake up. The sound is now switched on before the tutor starts talking, kept
+  awake for the whole call with a hiss too faint to hear, and the greeting starts about
+  half a second later so your speakers are ready for its first word.
 
 ## 0.4.0 (2026-09-21)
 

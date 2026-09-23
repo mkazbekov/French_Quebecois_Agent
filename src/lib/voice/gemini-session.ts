@@ -16,6 +16,19 @@ const PLAYBACK_RESUME_TIMEOUT_MS = 1000;
 const PLAYBACK_WARMUP_MS = 250;
 /** Lead-in scheduled before the first chunk of a turn, so jitter doesn't clip the head. */
 const PLAYBACK_LEAD_IN_S = 0.15;
+/** Longer lead-in for the call's very first audio (the greeting): laptop speakers
+ * can still be waking up, and a short lead-in clipped the "Bon" of "Bonjour". */
+const FIRST_AUDIO_LEAD_IN_S = 0.6;
+/** Length of the looping keep-alive buffer. */
+const KEEP_ALIVE_BUFFER_S = 1;
+/**
+ * Amplitude of the keep-alive noise (~-80 dBFS): not exact zero, because some
+ * laptop audio drivers/amplifiers treat digital silence as "no signal" and
+ * power down, taking ~0.5-1s to wake back up and clipping the next real
+ * chunk's start. This low-level noise is inaudible but keeps the output
+ * device's amplifier powered on for the whole call.
+ */
+const KEEP_ALIVE_AMPLITUDE = 1e-4;
 
 /**
  * Pure scheduling helper: when the queue has drained, start the next chunk
@@ -90,8 +103,9 @@ export class GeminiVoiceSession implements VoiceSession {
 
   private playCtx: AudioContext | null = null;
   private nextStartTime = 0;
+  private firstAudioScheduled = false;
   private scheduled: AudioBufferSourceNode[] = [];
-  private keepAliveSource: ConstantSourceNode | null = null;
+  private keepAliveSource: AudioBufferSourceNode | null = null;
 
   private closed = false;
   private endPending = false;
@@ -260,11 +274,23 @@ export class GeminiVoiceSession implements VoiceSession {
       ]);
     }
 
-    // Silent keep-alive: an offset-0 source kept running for the whole call
-    // so the output device (esp. Bluetooth headsets renegotiating profile
-    // once the mic opens) doesn't fall back asleep between turns.
-    const keepAlive = ctx.createConstantSource();
-    keepAlive.offset.value = 0;
+    // Near-silent keep-alive: a looping low-level noise buffer kept running
+    // for the whole call so the output device (laptop speaker amplifiers
+    // that power down on digital silence, and Bluetooth headsets
+    // renegotiating profile once the mic opens) doesn't fall back asleep
+    // between turns. See KEEP_ALIVE_AMPLITUDE for why it isn't exact zero.
+    const keepAliveBuffer = ctx.createBuffer(
+      1,
+      Math.round(KEEP_ALIVE_BUFFER_S * PLAYBACK_SAMPLE_RATE),
+      PLAYBACK_SAMPLE_RATE,
+    );
+    const keepAliveChannel = keepAliveBuffer.getChannelData(0);
+    for (let i = 0; i < keepAliveChannel.length; i++) {
+      keepAliveChannel[i] = (Math.random() * 2 - 1) * KEEP_ALIVE_AMPLITUDE;
+    }
+    const keepAlive = ctx.createBufferSource();
+    keepAlive.buffer = keepAliveBuffer;
+    keepAlive.loop = true;
     keepAlive.connect(ctx.destination);
     keepAlive.start();
     this.keepAliveSource = keepAlive;
@@ -287,7 +313,9 @@ export class GeminiVoiceSession implements VoiceSession {
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     source.connect(ctx.destination);
-    const startAt = nextChunkStart(ctx.currentTime, this.nextStartTime);
+    const leadIn = this.firstAudioScheduled ? PLAYBACK_LEAD_IN_S : FIRST_AUDIO_LEAD_IN_S;
+    this.firstAudioScheduled = true;
+    const startAt = nextChunkStart(ctx.currentTime, this.nextStartTime, leadIn);
     source.start(startAt);
     this.nextStartTime = startAt + buffer.duration;
     this.scheduled.push(source);
