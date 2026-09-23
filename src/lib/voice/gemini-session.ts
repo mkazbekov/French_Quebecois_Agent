@@ -9,6 +9,26 @@ const CAPTURE_CHUNK_SAMPLES = 1600; // ~100ms at 16kHz
 const END_CALL_DRAIN_MS = 400;
 /** Hang up no later than this after end_call arrives, even with no turnComplete. */
 const END_CALL_SAFETY_MS = 8000;
+/** Never let ctx.resume() block connect() forever if a browser refuses to resolve it. */
+const PLAYBACK_RESUME_TIMEOUT_MS = 1000;
+/** Give the output device (esp. Bluetooth headsets switching profile) time to wake up
+ * before the greeting is requested, so its first audio isn't clipped. */
+const PLAYBACK_WARMUP_MS = 250;
+/** Lead-in scheduled before the first chunk of a turn, so jitter doesn't clip the head. */
+const PLAYBACK_LEAD_IN_S = 0.15;
+
+/**
+ * Pure scheduling helper: when the queue has drained, start the next chunk
+ * with a short lead-in instead of exactly at currentTime (which clips the
+ * head of the turn); otherwise keep appending right after the last chunk.
+ */
+export function nextChunkStart(
+  currentTime: number,
+  nextStartTime: number,
+  leadInS: number = PLAYBACK_LEAD_IN_S,
+): number {
+  return nextStartTime <= currentTime ? currentTime + leadInS : nextStartTime;
+}
 
 // Runs on the audio rendering thread. Buffers incoming Float32 samples and
 // posts ~100ms Int16 PCM chunks back to the main thread.
@@ -71,6 +91,7 @@ export class GeminiVoiceSession implements VoiceSession {
   private playCtx: AudioContext | null = null;
   private nextStartTime = 0;
   private scheduled: AudioBufferSourceNode[] = [];
+  private keepAliveSource: ConstantSourceNode | null = null;
 
   private closed = false;
   private endPending = false;
@@ -125,8 +146,10 @@ export class GeminiVoiceSession implements VoiceSession {
   }
 
   async connect(): Promise<void> {
+    // Playback first: the output device needs to be resumed and warmed up
+    // before the greeting is requested, or its first words get clipped.
+    await this.setupPlayback();
     await this.setupCapture();
-    this.setupPlayback();
 
     const url = geminiLiveUrlForToken(this.params.token);
     const setupMessage = buildGeminiLiveSetup({
@@ -165,6 +188,14 @@ export class GeminiVoiceSession implements VoiceSession {
     this.captureSource = null;
     void this.captureCtx?.close().catch(() => {});
     this.captureCtx = null;
+
+    try {
+      this.keepAliveSource?.stop();
+      this.keepAliveSource?.disconnect();
+    } catch {
+      // ignore
+    }
+    this.keepAliveSource = null;
 
     try {
       this.playCtx?.close();
@@ -216,11 +247,33 @@ export class GeminiVoiceSession implements VoiceSession {
 
   // --- playback --------------------------------------------------------------
 
-  private setupPlayback(): void {
+  private async setupPlayback(): Promise<void> {
     const ctx = new AudioContext({ sampleRate: PLAYBACK_SAMPLE_RATE });
     this.playCtx = ctx;
-    if (ctx.state === "suspended") void ctx.resume();
+
+    if (ctx.state === "suspended") {
+      // Some browsers never resolve resume() until a later user gesture; never
+      // let that hang connect() forever.
+      await Promise.race([
+        ctx.resume(),
+        new Promise<void>((resolve) => setTimeout(resolve, PLAYBACK_RESUME_TIMEOUT_MS)),
+      ]);
+    }
+
+    // Silent keep-alive: an offset-0 source kept running for the whole call
+    // so the output device (esp. Bluetooth headsets renegotiating profile
+    // once the mic opens) doesn't fall back asleep between turns.
+    const keepAlive = ctx.createConstantSource();
+    keepAlive.offset.value = 0;
+    keepAlive.connect(ctx.destination);
+    keepAlive.start();
+    this.keepAliveSource = keepAlive;
+
     this.nextStartTime = ctx.currentTime;
+
+    // Warm up before the greeting is requested, so the device is actually
+    // live by the time the first audio chunk arrives.
+    await new Promise<void>((resolve) => setTimeout(resolve, PLAYBACK_WARMUP_MS));
   }
 
   private playChunk(bytes: ArrayBuffer): void {
@@ -234,7 +287,7 @@ export class GeminiVoiceSession implements VoiceSession {
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     source.connect(ctx.destination);
-    const startAt = Math.max(ctx.currentTime, this.nextStartTime);
+    const startAt = nextChunkStart(ctx.currentTime, this.nextStartTime);
     source.start(startAt);
     this.nextStartTime = startAt + buffer.duration;
     this.scheduled.push(source);

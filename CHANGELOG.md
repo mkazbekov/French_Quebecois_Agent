@@ -4,6 +4,14 @@ Plain-language notes on what changed in each version, newest first. The
 version number is shown in the tutor's own footer (bottom of the page) —
 that's the easiest way to check what you're running.
 
+## 0.4.1 (2026-09-22)
+
+- **You hear the tutor's first words again.** The start of what the tutor said (most of
+  all the greeting when a call opens) could appear in the transcript without ever being
+  spoken. The sound is now switched on and ready before the tutor starts talking, stays
+  on for the whole call, and each reply starts a fraction of a second later so its
+  beginning is no longer cut off.
+
 ## 0.4.0 (2026-09-21)
 
 - **You can see that you get to choose.** 0.3.0 hid the eight kinds of call behind a small
