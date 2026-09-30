@@ -16,6 +16,8 @@
 <p align="center">
   <a href="#how-to-use-it"><b>How to use it</b></a> ·
   <a href="#step-1--get-your-free-gemini-api-key"><b>Install</b></a> ·
+  <a href="#updating"><b>Update</b></a> ·
+  <a href="#uninstalling"><b>Uninstall</b></a> ·
   <a href="#-your-privacy"><b>Privacy</b></a> ·
   <a href="#troubleshooting"><b>Troubleshooting</b></a> ·
   <a href="#using-the-tutor"><b>Features</b></a> ·
@@ -44,9 +46,8 @@
 
 You don't need a paid account, Git, or any programming tools.
 
-> **Already installed the tutor before 21 September 2026?** You are on v0.1.0, which
-> cannot update itself. See [Updating](#updating) for the single line that brings you up
-> to date without losing your key or your progress.
+**Already installed?** Updates are offered by themselves when you start the tutor
+([Updating](#updating)). To remove it, see [Uninstalling](#uninstalling).
 
 ---
 
@@ -62,13 +63,13 @@ Once it's installed, this is all you do. Every time.
     <th width="25%">4. Hang up</th>
   </tr>
   <tr>
-    <td valign="top">Double-click <b>Quebec French Tutor</b> on your Desktop. A short message window flashes up, then the tutor opens in its own window.</td>
+    <td valign="top">Double-click <b>Quebec French Tutor</b> on your Desktop. A small black window shows for a few seconds, then the tutor opens in its own window.</td>
     <td valign="top">Press the big <b>Start conversation</b> button — or first pick the kind of call you want. The tutor greets you.</td>
     <td valign="top">When it says <b>Listening…</b>, speak. Take your time; it waits through pauses.</td>
     <td valign="top">Say <i>"on arrête"</i> or press <b>End Conversation</b>. Your progress is saved.</td>
   </tr>
   <tr>
-    <td><img src="docs/images/windows-running.png" alt="The tutor window after double-clicking the icon"></td>
+    <td><img src="docs/images/app-window.png" alt="The tutor in its own window after double-clicking the icon"></td>
     <td><img src="docs/images/ready.png" alt="The Start conversation button, with the choice of call underneath"></td>
     <td><img src="docs/images/conversation.png" alt="A conversation with the transcript"></td>
     <td><img src="docs/images/summary.png" alt="The summary after a call"></td>
@@ -161,7 +162,7 @@ travels with it.
 
 **To delete everything:** delete the **Quebec French Tutor** folder. That's it — nothing
 is left anywhere else, and nothing remains on any server of mine because it was never
-there. (See [Uninstalling](#stopping-updating-and-uninstalling) to also revoke the key.)
+there. (See [Uninstalling](#uninstalling) for the exact steps and to also revoke the key.)
 
 ---
 
@@ -225,25 +226,29 @@ is a password-like code that lets the tutor use Gemini on your behalf. It is fre
 
    <img src="docs/images/windows-install.png" alt="What the installer prints when it's done" width="600">
 
-3. The new **Quebec French Tutor** window gets Node.js (if needed), then asks for your key:
+3. A second black window called **Quebec French Tutor** opens. The first time, it
+   downloads Node.js if your PC needs it, then asks for your key:
 
    <img src="docs/images/windows-key-prompt.png" alt="The launcher asking for the Gemini API key" width="600">
 
    **Paste your key** (right-click in the window, or press **Ctrl+V**) and press **Enter**.
    The characters you paste stay visible; that's normal. The launcher checks the key with
-   Google and saves it.
+   Google and saves it. You are asked only once.
 4. The first start then installs the tutor's components and prepares the app (1–3
-   minutes; just wait). Then the tutor opens **in its own window** and the launcher says
-   **The tutor is open in its own window. You can close this window.**
+   minutes; just wait). You see it work through five short steps:
 
-   <img src="docs/images/windows-running.png" alt="The launcher once the tutor is running" width="600">
+   <img src="docs/images/windows-running.png" alt="The launcher working through its five steps" width="600">
 
-5. Continue with [Your first conversation](#step-3--your-first-conversation).
+5. The tutor opens **in its own window**, and the black window closes by itself:
+
+   <img src="docs/images/app-window.png" alt="The tutor in its own window" width="600">
+
+6. Continue with [Your first conversation](#step-3--your-first-conversation).
 
 > [!NOTE]
-> The black launcher window closes by itself once the tutor is open. The tutor now runs
-> behind its own window: **closing the tutor window stops it.** You can close the
-> PowerShell window from step 1; you won't need it again.
+> You can close the PowerShell window from step 1; you won't need it again. From now on,
+> start the tutor with the **Quebec French Tutor** icon on your Desktop or in the Start
+> menu. **Closing the tutor window stops it.**
 
 <details>
 <summary><b>Alternative: download the ZIP instead</b> (more steps)</summary>
@@ -375,14 +380,15 @@ The tutor opens in its own window by itself. Its page comes from your own comput
 
    <img src="docs/images/ready.png" alt="Ready to start, with the choice of call underneath" width="480">
 
-5. **Allow the microphone.** The tutor window asks to use your microphone (only once). Click
-   **Allow while visiting the site** (Chrome) or **Allow** (Edge). If you have more than
-   one microphone, pick the right one in the drop-down menu first.
-
-   <img src="docs/images/mic-permission.png" alt="Chrome asking for microphone permission" width="520">
+5. **Allow the microphone.** The first time only, a small box appears at the top left of
+   the tutor window asking to use your microphone (it names `127.0.0.1`, which is the
+   tutor on your own computer). Click **Allow
+   while visiting the site** (or **Allow**). If you have more than one microphone, pick
+   the right one in its drop-down menu first. Don't click *Never allow*; if you did, see
+   [the microphone is blocked](#troubleshooting).
 
    **On a Mac, the first time only**, macOS also asks *"Google Chrome would like to access
-   the microphone"*. Click **Allow** (or **OK**).
+   the microphone"* (or Edge / Brave). Click **Allow** (or **OK**).
 6. **The tutor speaks first.** Within a few seconds the circle fills in blue, it says
    **Speaking…**, and you hear a greeting. Its words also appear in the **Transcript**
    box.
@@ -406,85 +412,133 @@ The tutor opens in its own window by itself. Its page comes from your own comput
 
 ---
 
-## Stopping, updating and uninstalling
+## Stopping the tutor
 
-**Stopping:** close the tutor window. That stops everything; your progress is already
-saved. On Windows the icon is also in the Start menu.
+**Close the tutor window** (the ✕ at its top right). That stops everything; your progress
+is already saved.
 
-Double-clicking the icon while the tutor is already open opens a second tutor window.
-The tutor stops once every tutor window is closed.
+- Double-clicking the icon while the tutor is open opens a second tutor window. The tutor
+  stops once every tutor window is closed.
+- On Windows, the **Quebec French Tutor** icon is also in the Start menu.
 
-### Updating
+---
+
+## Updating
+
+**You don't have to do anything special.** Start the tutor as usual. Each time, the small
+black window checks whether a newer version exists (it asks GitHub for one small file and
+sends nothing about you). If there is one, it tells you what's new and asks:
+
+```text
+A new version is available (v0.7.0 — you have v0.6.0).
+  - …what changed…
+Update now? [Y/n]
+```
+
+1. Press **Enter** to update (or type **n** and press Enter to skip; you'll be asked
+   again next time).
+2. Wait. The update takes a few seconds, then the app is prepared again (about a minute).
+3. The tutor opens on the new version.
+
+Your **API key, your progress and your settings are kept.** Only the program files are
+replaced, and nothing is ever updated without asking you or while the tutor is running.
+
+**Which version do I have?** It's in small grey text at the bottom of the tutor window,
+next to *Memory* and *Voice*. [CHANGELOG.md](CHANGELOG.md) lists what changed in each
+version, in plain language.
 
 > [!IMPORTANT]
-> **Installed before 21 September 2026 (v0.1.0)? Do this once.**
-> The automatic update check didn't exist in that version, so your tutor can't offer
-> it to you — it will keep running v0.1.0 forever until you do this one step.
-> **Close the tutor window**, then paste the same one line you used to install it:
->
-> **Windows** — open **PowerShell** (Start menu → type *PowerShell* → Enter) and paste:
+> **Installed before 21 September 2026?** If the bottom of the tutor window says **v0.1.0**,
+> your copy is too old to update itself. Do this once: **close the tutor window**, then
+> paste the same line you used to install it (Windows: in **PowerShell**; Mac: in
+> **Terminal**):
 >
 > ```powershell
 > irm https://raw.githubusercontent.com/mkazbekov/French_Quebecois_Agent/main/install-windows.ps1 | iex
 > ```
 >
-> **Mac** — open **Terminal** (⌘Space → type *Terminal* → Enter) and paste:
->
 > ```bash
 > curl -fsSL https://raw.githubusercontent.com/mkazbekov/French_Quebecois_Agent/main/install-mac.sh | bash
 > ```
 >
-> It keeps your **API key, your progress and your settings** and replaces only the
-> program, exactly like a fresh install on top. The tutor starts by itself when it
-> finishes. Check the bottom of the page afterwards: it should say **v0.2.0** or newer.
-> From then on, updates are offered automatically — you never have to do this again.
-
-**Already on v0.2.0 or newer? You don't have to do anything — just start the tutor as
-usual.**
-
-Every time you double-click **Quebec French Tutor**, the short launcher window checks
-whether a newer version exists (it asks GitHub for one small file and sends nothing about
-you). If there is one, it shows what's new and asks:
-
-```text
-A new version is available (v0.3.0 — you have v0.2.0)
-  - Real-time transcript
-  - Multiple-choice checks during lessons
-Update now? [Y/n]
-```
-
-Press **Enter** to update. It takes a few seconds, the app is prepared again (about a
-minute), then the tutor opens on the new version. Your **API key, your progress and your settings are kept** — only the program
-files are replaced. Press **n** if you'd rather stay on the version you have; you'll be
-asked again next time.
-
-The version you're running is shown in small grey text at the bottom of the tutor's
-page, next to *Memory* and *Voice*. [CHANGELOG.md](CHANGELOG.md) lists what changed in
-each version.
+> It installs the new version on top and keeps your key, progress and settings. After
+> that, updates are offered automatically.
 
 <details>
 <summary><b>Other ways to update</b></summary>
 
 <br>
 
-- **If you skipped the prompt and want to update now:** close the tutor, double-click the
-  icon again, and press Enter at the question.
-- **Manually, from the tutor's folder:** `npm run update`
-- **The old way (always works):** close the tutor window and paste the same one-line
-  install command from [Step 2](#step-2-windows--install-and-start) again. It replaces
-  the program and keeps your key and progress.
-- **If you installed with Git:** run `git pull` in the tutor's folder.
+- **You pressed n and changed your mind:** close the tutor, double-click the icon again,
+  and press Enter at the question.
+- **Reinstall on top (always works):** close the tutor window and paste the install line
+  from [Step 2](#step-2-windows--install-and-start) again. It replaces the program and
+  keeps your key and progress.
+- **From the tutor's folder:** `npm run update`.
+- **If you installed with Git:** close the tutor and run `git pull` in its folder.
 - **To turn the check off:** set the environment variable `TUTOR_NO_UPDATE_CHECK=1`.
-  The tutor never updates itself without asking, and never while it is running.
 
 </details>
 
-### Uninstalling
+---
 
-Close the tutor, then delete the **Quebec French Tutor** folder in your user/home folder
-and the Desktop (and Windows Start menu) icon. That removes everything, including your
-saved progress. To also revoke the key, open the AI Studio API Keys page, click **⋮** at the
-end of the key's row, choose **Delete key**, then **Delete**.
+## Uninstalling
+
+Everything the tutor uses lives in one folder, plus its shortcuts. Deleting them removes
+the app **and your saved progress**, completely. Nothing is left on any server.
+
+### Windows
+
+1. **Close the tutor window.**
+2. **Delete the folder.** Press **Windows key + R**, type `%USERPROFILE%` and press
+   **Enter**. In the folder that opens, right-click **Quebec French Tutor** → **Delete**.
+3. **Delete the shortcuts.** Right-click the **Quebec French Tutor** icon on your Desktop →
+   **Delete**. Then press **Windows key + R**, type `shell:programs`, press **Enter**, and
+   delete **Quebec French Tutor** there too (that's the Start menu entry).
+
+<details>
+<summary><b>Or do all of it with one line in PowerShell</b></summary>
+
+<br>
+
+Close the tutor window first, then paste this into **PowerShell** and press **Enter**:
+
+```powershell
+Remove-Item -Recurse -Force "$HOME\Quebec French Tutor", "$([Environment]::GetFolderPath('Desktop'))\Quebec French Tutor.lnk", "$([Environment]::GetFolderPath('Programs'))\Quebec French Tutor.lnk" -ErrorAction SilentlyContinue
+```
+
+</details>
+
+### Mac
+
+1. **Close the tutor window** (and Terminal, if it is still open for the tutor).
+2. **Delete the folder.** In Finder, choose **Go → Home** (⇧⌘H), then drag
+   **Quebec French Tutor** to the Trash.
+3. **Delete the shortcut.** Drag **Quebec French Tutor** from your Desktop to the Trash.
+4. Empty the Trash.
+
+<details>
+<summary><b>Or do all of it with one line in Terminal</b></summary>
+
+<br>
+
+```bash
+rm -rf ~/"Quebec French Tutor" ~/Desktop/"Quebec French Tutor.command"
+```
+
+</details>
+
+### If you installed from the ZIP or with Git
+
+Delete the folder you extracted or cloned (for example **French_Quebecois_Agent-main**).
+There are no shortcuts to remove.
+
+### Also revoke the API key (optional)
+
+The key still exists in your Google account after the app is gone. To switch it off, open
+<https://aistudio.google.com/apikey>, click **⋮** at the end of the key's row, choose
+**Delete key**, then **Delete**.
+
 ---
 
 ## Troubleshooting
@@ -517,9 +571,8 @@ The page shows: *"The browser blocked the microphone…"*
 <br>
 
 - Plug in your headset or microphone and press **Retry**.
-- Make sure the right microphone is selected. In Chrome/Edge, click the icon left of the
-  address bar, then **Site settings**, and choose the device, or pick it in the permission
-  prompt's drop-down.
+- Make sure the right microphone is selected: pick it in the permission box's drop-down
+  the first time, or in your computer's sound settings:
   - **Windows:** **Settings → System → Sound → Input**: choose your microphone and
     speak to see the level bar move.
   - **Mac:** **System Settings → Sound → Input**: choose your microphone and watch the
