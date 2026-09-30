@@ -1,7 +1,5 @@
-import OpenAI from "openai";
-import { zodTextFormat } from "openai/helpers/zod";
+import type OpenAI from "openai";
 import { z } from "zod";
-import { env } from "@/lib/env";
 import { describeScale, formatLevel } from "@/lib/learner/levels";
 import { findUnit, formatUnit, pendingUnits } from "@/lib/learner/syllabus";
 import { ReviewDeltaSchema, type LearnerState, type ReviewDelta, type SessionEvidence } from "@/lib/learner/schema";
@@ -12,8 +10,10 @@ import { isGeminiKeyRejection } from "@/lib/tutor/gemini-errors";
  * structured ReviewDelta. The model only *observes*; merge.ts decides how the
  * learner state changes. Keep this file free of persistence logic.
  *
- * Providers: Gemini (REST, free tier) or OpenAI (Responses API). Chosen by
- * env.REVIEW_PROVIDER; both produce the same zod-validated ReviewDelta.
+ * Providers: Gemini (REST, free tier) or OpenAI (Responses API). The caller
+ * passes the provider and keys in (this file never reads the environment, so it
+ * also runs inside the Android app); the desktop server defaults them from env in
+ * review-server.ts. Both produce the same zod-validated ReviewDelta.
  */
 
 export const MIN_USER_TURNS_FOR_REVIEW = 2;
@@ -88,29 +88,35 @@ function userPrompt(state: LearnerState, evidence: SessionEvidence): string {
 }
 
 export interface ReviewSessionOptions {
-  provider?: "gemini" | "openai";
-  /** OpenAI only */
+  provider: "gemini" | "openai";
+  /** Gemini API key (provider "gemini") */
+  geminiApiKey?: string;
+  /** Gemini fallback list, first that answers wins */
+  models?: string[];
+  /** OpenAI API key, or a ready client (provider "openai") */
+  openaiApiKey?: string;
   client?: OpenAI;
   /** OpenAI model */
   model?: string;
-  /** Gemini fallback list, first that answers wins */
-  models?: string[];
 }
 
 export async function reviewSession(
   state: LearnerState,
   evidence: SessionEvidence,
-  opts: ReviewSessionOptions = {},
+  opts: ReviewSessionOptions,
 ): Promise<ReviewDelta> {
-  const provider = opts.provider ?? env.REVIEW_PROVIDER;
-  return provider === "gemini" ? reviewWithGemini(state, evidence, opts) : reviewWithOpenAI(state, evidence, opts);
+  return opts.provider === "gemini" ? reviewWithGemini(state, evidence, opts) : reviewWithOpenAI(state, evidence, opts);
 }
 
 async function reviewWithOpenAI(state: LearnerState, evidence: SessionEvidence, opts: ReviewSessionOptions): Promise<ReviewDelta> {
-  const client = opts.client ?? new OpenAI({ apiKey: env.OPENAI_API_KEY });
-  const model = opts.model ?? env.OPENAI_REVIEW_MODEL;
+  // Loaded only here so the on-device (Android) bundle never pulls in the OpenAI SDK.
+  const { default: OpenAIClient } = await import("openai");
+  const { zodTextFormat } = await import("openai/helpers/zod");
+  if (!opts.client && !opts.openaiApiKey) throw new Error("No OpenAI API key configured for the session review.");
+  if (!opts.model) throw new Error("No OpenAI review model configured.");
+  const client = opts.client ?? new OpenAIClient({ apiKey: opts.openaiApiKey });
   const response = await client.responses.parse({
-    model,
+    model: opts.model,
     input: [
       { role: "system", content: REVIEWER_SYSTEM_TEXT },
       { role: "user", content: userPrompt(state, evidence) },
@@ -130,7 +136,9 @@ const GEMINI_RETRYABLE = new Set([429, 500, 503]);
  * retries the whole list once after a short pause.
  */
 async function reviewWithGemini(state: LearnerState, evidence: SessionEvidence, opts: ReviewSessionOptions): Promise<ReviewDelta> {
-  const models = opts.models ?? env.GEMINI_REVIEW_MODELS;
+  const models = opts.models ?? [];
+  const apiKey = opts.geminiApiKey;
+  if (!apiKey) throw new Error("No Gemini API key configured for the session review.");
   const schema = z.toJSONSchema(ReviewDeltaSchema, { target: "draft-7" });
   const body = JSON.stringify({
     systemInstruction: { parts: [{ text: REVIEWER_SYSTEM_TEXT }] },
@@ -144,14 +152,14 @@ async function reviewWithGemini(state: LearnerState, evidence: SessionEvidence, 
     for (const model of models) {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: "POST",
-        headers: { "x-goog-api-key": env.GEMINI_API_KEY, "Content-Type": "application/json" },
+        headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
         body,
       });
       if (!res.ok) {
         const bodyText = await res.text();
         if (isGeminiKeyRejection(res.status, bodyText)) {
           throw new Error(
-            "Google rejected your Gemini API key (it may be mistyped, deleted, or restricted). Close the tutor window and double-click Start Tutor again — it will check the key and ask for a new one.",
+            "Google rejected your Gemini API key (it may be mistyped, deleted, or restricted). Check the key (on a computer: close the tutor window and double-click Start Tutor again; on a phone: use Change API key).",
           );
         }
         lastError = `Gemini ${model} returned ${res.status}: ${bodyText.slice(0, 200)}`;

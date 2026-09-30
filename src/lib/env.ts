@@ -2,6 +2,13 @@
  * Server-only environment access. Never import from client components.
  */
 
+import {
+  DEFAULT_FEEDBACK_EMAIL,
+  DEFAULT_GEMINI_LIVE_MODEL,
+  DEFAULT_GEMINI_LIVE_VOICE,
+  DEFAULT_GEMINI_REVIEW_MODELS,
+} from "@/lib/tutor/model-defaults";
+
 function req(name: string): string {
   const v = process.env[name];
   if (!v) throw new Error(`Missing required environment variable ${name}. See .env.example.`);
@@ -41,14 +48,14 @@ export const env = {
     return req("GEMINI_API_KEY");
   },
   get GEMINI_LIVE_MODEL() {
-    return opt("GEMINI_LIVE_MODEL", "gemini-3.8-live");
+    return opt("GEMINI_LIVE_MODEL", DEFAULT_GEMINI_LIVE_MODEL);
   },
   get GEMINI_LIVE_VOICE() {
-    return opt("GEMINI_LIVE_VOICE", "Kore");
+    return opt("GEMINI_LIVE_VOICE", DEFAULT_GEMINI_LIVE_VOICE);
   },
   /** Comma-separated fallback list; the first model that answers wins. */
   get GEMINI_REVIEW_MODELS(): string[] {
-    return opt("GEMINI_REVIEW_MODELS", "gemini-3.8-flash,gemini-3.5-flash-lite").split(",").map((s) => s.trim()).filter(Boolean);
+    return opt("GEMINI_REVIEW_MODELS", DEFAULT_GEMINI_REVIEW_MODELS).split(",").map((s) => s.trim()).filter(Boolean);
   },
   get OPENAI_API_KEY() {
     return req("OPENAI_API_KEY");
@@ -81,7 +88,7 @@ export const env = {
   },
   /** Where "Send feedback" addresses the learner's email draft. */
   get FEEDBACK_EMAIL() {
-    return opt("FEEDBACK_EMAIL", "mjkazbekov@gmail.com");
+    return opt("FEEDBACK_EMAIL", DEFAULT_FEEDBACK_EMAIL);
   },
 };
 

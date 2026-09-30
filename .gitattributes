@@ -8,3 +8,4 @@
 
 # Not needed to run the tutor; keeps "Download ZIP" small.
 voice-samples/ export-ignore
+android/gradlew text eol=lf

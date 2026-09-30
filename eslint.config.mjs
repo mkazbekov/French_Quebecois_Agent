@@ -10,6 +10,9 @@ const eslintConfig = defineConfig([
     // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",
+    ".next-android/**",
+    "android/**",
+    "dist/**",
     "build/**",
     "next-env.d.ts",
     // Browser profile + logs written by the launcher (contains vendor JS).

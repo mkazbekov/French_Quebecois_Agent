@@ -1,16 +1,49 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ClearHistoryAndGoHome } from "@/components/ClearHistoryButton";
-import { getLearnerStore } from "@/lib/learner";
-import { COMPETENCY_KEYS } from "@/lib/learner/schema";
+import { COMPETENCY_KEYS, type LearnerState } from "@/lib/learner/schema";
 import { LEVELS, cefrEquivalent, stageOf } from "@/lib/learner/levels";
 import { findUnit, levelProgress, statusOf, unitsForLevel } from "@/lib/learner/syllabus";
 import { dueItems } from "@/lib/learner/spacing";
 
-export const dynamic = "force-dynamic";
+/**
+ * Client component: reads /api/learner (a server route on desktop, the on-device
+ * handler in the Android app) so the page also works in a static export.
+ */
+export default function ReviewPage() {
+  const [state, setState] = useState<LearnerState | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-export default async function ReviewPage() {
-  const store = await getLearnerStore();
-  const state = await store.load();
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/learner", { cache: "no-store" })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+        return res.json();
+      })
+      .then((data: { state: LearnerState }) => {
+        if (!cancelled) setState(data.state);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Couldn't load your review.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!state) {
+    return (
+      <div className="flex-1 flex flex-col gap-3 py-10 px-4 max-w-2xl mx-auto w-full">
+        <Link href="/" className="text-[11.5px] text-muted hover:text-ink">
+          ← Back
+        </Link>
+        <p className={`text-[13px] ${error ? "text-alert" : "text-muted"}`}>{error ?? "Loading…"}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col gap-8 py-10 px-4 max-w-2xl mx-auto w-full">

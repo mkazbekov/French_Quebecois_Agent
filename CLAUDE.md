@@ -260,3 +260,10 @@ server crash.
 After that, candidate improvements (not started): confidence time-decay, Letta
 archival search for older sessions, pronunciation-aware feedback, a true
 text-only session mode.
+
+2026-09-30 (v0.7.0, branch `android-app`): Android preview app (Capacitor 8), see
+ARCHITECTURE.md *Android app*. Verified: typecheck, lint, 208 tests, desktop build, APK
+build, and the static export in desktop Chrome at Pixel size (key gate, key rejection,
+onboarding, device store, `/api/realtime/session` via the local API, Gemini CORS for
+`auth_tokens` and `generateContent`). Not yet verified on a real phone: the mic prompt,
+a live Gemini voice call, and the end-of-call review.

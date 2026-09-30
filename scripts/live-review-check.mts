@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { defaultLearnerState } from "@/lib/learner/defaults";
 import { reviewSession } from "@/lib/tutor/review";
+import { env } from "@/lib/env";
 import type { SessionEvidence } from "@/lib/learner/schema";
 
 const ev: SessionEvidence = {
@@ -21,7 +22,7 @@ const ev: SessionEvidence = {
 };
 
 const t0 = Date.now();
-const delta = await reviewSession(defaultLearnerState("Sam"), ev);
+const delta = await reviewSession(defaultLearnerState("Sam"), ev, env.REVIEW_PROVIDER === "gemini" ? { provider: "gemini", geminiApiKey: env.GEMINI_API_KEY, models: env.GEMINI_REVIEW_MODELS } : { provider: "openai", openaiApiKey: env.OPENAI_API_KEY, model: env.OPENAI_REVIEW_MODEL });
 console.log(`provider: ${process.env.REVIEW_PROVIDER || (process.env.GEMINI_API_KEY ? "gemini (auto)" : "openai (auto)")}`);
 console.log(`REVIEW OK in ${Date.now() - t0} ms`);
 console.log(JSON.stringify({ topics: delta.topics, errors: delta.errors.map((e) => `${e.pattern} x${e.occurrences}`), competencies: delta.competencies.map((c) => `${c.competency}=${c.observed_level}/${c.evidence_strength}`), vocab: delta.vocabulary.map((v) => `${v.word}:${v.outcome}${v.register === "quebec" ? "(QC)" : ""}`), units: delta.units_practiced.map((u) => `${u.unit_id}:${u.outcome}`), pull_forward: delta.suggested_focus.unit_id, focus: delta.suggested_focus.current_focus, summary: delta.summary_for_learner }, null, 1));

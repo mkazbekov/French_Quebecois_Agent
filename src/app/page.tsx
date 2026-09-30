@@ -14,6 +14,7 @@ import { SummaryCard } from "@/components/SummaryCard";
 import { QuizCard } from "@/components/QuizCard";
 import { FeedbackCard } from "@/components/FeedbackCard";
 import VersionBadge from "@/components/VersionBadge";
+import { ChangeApiKeyButton } from "@/components/DeviceRuntime";
 import { modeBlurb, modeLabel, type PickableMode } from "@/lib/tutor/modes";
 
 /*
@@ -273,6 +274,7 @@ export default function Home() {
           <VersionBadge />
         </p>
         <FeedbackCard />
+        <ChangeApiKeyButton />
       </footer>
     </div>
   );

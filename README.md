@@ -844,6 +844,27 @@ credential anywhere in this path, by design.
 
 ---
 
+## 📱 Android phone (preview)
+
+The tutor also runs as an Android app (Android 7 or newer, built with a Pixel 6 Pro in mind). The
+whole tutor runs on the phone and talks to Google's Gemini directly, so no computer is
+needed.
+
+1. Build the app on a Windows PC (developers): `npm run build:android`. This needs JDK 21
+   and the Android SDK (`JAVA_HOME` / `ANDROID_HOME`, or both under
+   `%LOCALAPPDATA%\AndroidBuild`). The app is written to `dist/QuebecFrenchTutor.apk`.
+2. Put it on the phone:
+   - **USB:** turn on *Developer options → USB debugging*, plug the phone in and run
+     `adb install -r dist/QuebecFrenchTutor.apk`.
+   - **Or copy the file:** copy the `.apk` to the phone (Google Drive, USB, email to
+     yourself), open it, and allow *Install unknown apps* for that app when Android asks.
+3. Open **Québec French Tutor**, paste your Gemini key (it stays on the phone), then press
+   Start and allow the microphone.
+
+Privacy on the phone: the key and your progress are stored only in the app's private
+storage. They're excluded from Android cloud backup and device transfer. Uninstalling the app
+erases them. The phone and computer versions don't share progress.
+
 ## For developers
 
 Requirements: Node.js 20.9+ and npm. Clone the repo, then:

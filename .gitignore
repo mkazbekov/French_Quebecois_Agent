@@ -45,3 +45,19 @@ next-env.d.ts
 
 # portable Node.js downloaded by the "Start Tutor" launchers
 /.runtime/
+
+# Android app (Capacitor): web export, separate Next build dir, APK output, local SDK paths, signing keys
+/.next-android/
+/dist/
+/android/local.properties
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/app/release/
+/android/capacitor-cordova-android-plugins/
+/android/app/src/main/assets/public/
+/android/app/src/main/assets/capacitor.config.json
+/android/app/src/main/assets/capacitor.plugins.json
+/android/app/src/main/res/xml/config.xml
+*.keystore
+*.jks

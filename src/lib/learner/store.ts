@@ -13,11 +13,12 @@ export interface SessionRecord {
  * Exactly one implementation is active per process (chosen in ./index.ts):
  *  - LettaLearnerStore  (canonical, production)
  *  - FileLearnerStore   (LETTA_API_KEY absent: local JSON file, dev/CI only)
+ *  - DeviceLearnerStore (Android app: Capacitor Preferences on the phone)
  *  - MemoryLearnerStore (unit tests)
  */
 export interface LearnerStore {
   /** Human-readable name of the backend, shown in logs / UI footer. */
-  readonly kind: "letta" | "file" | "memory";
+  readonly kind: "letta" | "file" | "memory" | "device";
 
   /** Creates the learner (Letta agent / file) if missing. Idempotent. */
   init(): Promise<void>;

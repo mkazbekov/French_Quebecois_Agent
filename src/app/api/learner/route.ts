@@ -1,106 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { getLearnerStore } from "@/lib/learner";
-import { clearLearningHistory, completeOnboarding, normalizeName, retakePlacement, setStartingLevel } from "@/lib/learner/placement";
-import { LEARNER_DOCUMENTS, type LearnerState } from "@/lib/learner/schema";
-import { resolveMode } from "@/lib/tutor/instructions";
+import { deleteLearner, getLearner, patchLearner } from "@/lib/api/learner";
+import { serverDeps } from "@/lib/server-deps";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/**
- * Shared response shape. `plannedMode` is what an "auto" call would pick
- * right now — read-only and deterministic — so the mode picker can tell the
- * learner what "Tutor decides" is actually going to do before they press Start.
- */
-function payload(state: LearnerState, storeKind: string) {
-  return { state, storeKind, plannedMode: resolveMode("auto", state) };
-}
-
+/** Thin wrappers over the shared handlers in src/lib/api/learner.ts. */
 export async function GET() {
-  const store = await getLearnerStore();
-  const state = await store.load();
-  return NextResponse.json(payload(state, store.kind));
+  const { status, body } = await getLearner(await serverDeps());
+  return NextResponse.json(body, { status });
 }
 
-/**
- * DELETE wipes the learner's stored profile and history; the next GET returns
- * fresh defaults (back to onboarding). `?scope=history` instead clears only
- * what the tutor has learned — sessions, mistakes, vocabulary, progress,
- * program units — while keeping the learner's name, preferences and
- * onboarded_at (see clearLearningHistory). Either way store.reset() first,
- * since it also drops session records / the Letta agent, then re-save what
- * should survive.
- */
 export async function DELETE(request: NextRequest) {
   const scope = new URL(request.url).searchParams.get("scope");
-  const store = await getLearnerStore();
-
-  if (scope === "history") {
-    const state = await store.load();
-    const cleared = clearLearningHistory(state);
-    await store.reset();
-    await store.save(Object.fromEntries(LEARNER_DOCUMENTS.map((doc) => [doc, cleared[doc]])) as Pick<
-      LearnerState,
-      (typeof LEARNER_DOCUMENTS)[number]
-    >);
-    const reloaded = await store.load();
-    return NextResponse.json(payload(reloaded, store.kind));
-  }
-
-  await store.reset();
-  const state = await store.load();
-  return NextResponse.json(payload(state, store.kind));
+  const { status, body } = await deleteLearner(scope, await serverDeps());
+  return NextResponse.json(body, { status });
 }
 
-const LevelOrTestSchema = z.union([z.number().int().min(1).max(12), z.literal("test")]);
-
-const PatchBodySchema = z.union([
-  z.object({ language_mode: z.enum(["auto", "english_support", "french_only"]) }),
-  z.object({ starting_level: z.number().int().min(1).max(12) }),
-  z.object({ placement: z.literal("test") }),
-  z.object({ name: z.string() }),
-  z.object({ onboarding: z.object({ name: z.string(), level: LevelOrTestSchema }) }),
-]);
-
 export async function PATCH(request: NextRequest) {
-  const body = await request.json().catch(() => null);
-  const parsed = PatchBodySchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid body" }, { status: 400 });
-  }
-
-  const store = await getLearnerStore();
-  const state = await store.load();
-
-  if ("language_mode" in parsed.data) {
-    state.profile.preferences.language_mode = parsed.data.language_mode;
-    await store.save({ profile: state.profile });
-    return NextResponse.json(payload(state, store.kind));
-  }
-
-  if ("name" in parsed.data) {
-    const name = normalizeName(parsed.data.name);
-    if (!name) return NextResponse.json({ error: "Name can't be empty." }, { status: 400 });
-    state.profile.name = name;
-    await store.save({ profile: state.profile });
-    return NextResponse.json(payload(state, store.kind));
-  }
-
-  if ("onboarding" in parsed.data) {
-    const name = normalizeName(parsed.data.onboarding.name);
-    if (!name) return NextResponse.json({ error: "Name can't be empty." }, { status: 400 });
-    const next = completeOnboarding(state, { name, level: parsed.data.onboarding.level }, new Date());
-    await store.save({ profile: next.profile, competencies: next.competencies, roadmap: next.roadmap });
-    return NextResponse.json(payload(next, store.kind));
-  }
-
-  const next =
-    "starting_level" in parsed.data
-      ? setStartingLevel(state, parsed.data.starting_level, new Date())
-      : retakePlacement(state);
-
-  await store.save({ profile: next.profile, competencies: next.competencies, roadmap: next.roadmap });
-
-  return NextResponse.json(payload(next, store.kind));
+  const raw = await request.json().catch(() => null);
+  const { status, body } = await patchLearner(raw, await serverDeps());
+  return NextResponse.json(body, { status });
 }

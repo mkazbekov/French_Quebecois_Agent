@@ -4,6 +4,14 @@ Plain-language notes on what changed in each version, newest first. The
 version number is shown in the tutor's own footer (bottom of the page) —
 that's the easiest way to check what you're running.
 
+## 0.7.0 (2026-09-30)
+
+- **The tutor on an Android phone (preview).** A separate Android app runs the whole tutor
+  on the phone: no computer needed. You paste your free Gemini key once, and it stays on
+  the phone. Your progress is saved on the phone too. It isn't backed up to the cloud, and
+  it doesn't sync with the computer version. See "Android phone (preview)" in the README.
+- Nothing changes on Windows or Mac.
+
 ## 0.6.0 (2026-09-30)
 
 - **The tutor is now its own app.** Double-click the icon and the tutor opens in its own

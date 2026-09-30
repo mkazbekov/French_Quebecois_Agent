@@ -205,3 +205,16 @@ pywebview app that runs on signed `python.exe` + WebView2.
   chatty session cannot rewrite the learner profile.
 - No CopilotKit / Agents Everywhere: it adds a chat-UI framework around a
   product whose UI is one button.
+
+## Android app (preview)
+
+`TUTOR_TARGET=android` (`scripts/android-build.mjs`, `npm run build:android`) builds a static
+export (`output: "export"`, `pageExtensions: ["tsx"]` so no `route.ts` ships, `distDir:
+.next-android` copied to `out/`) that Capacitor wraps in `android/`. The route bodies live in
+`src/lib/api/*` as `(input, {store, config}) → {status, body}` handlers; on desktop the
+`route.ts` files call them with `env` (`src/lib/server-deps.ts`), on the phone
+`src/lib/device/local-api.ts` wraps `window.fetch` and answers same-origin `/api/*` with the
+same handlers. It is installed at module evaluation by `src/components/DeviceRuntime.tsx`,
+which also gates the app on a Gemini key saved in Capacitor Preferences. On the phone the
+store is `DeviceLearnerStore` (`kind: "device"`, Preferences), voice and review are always
+Gemini, there is no update check, and backup/device transfer are disabled in the manifest.
