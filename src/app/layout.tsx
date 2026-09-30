@@ -31,12 +31,16 @@ export const metadata: Metadata = {
   icons: {
     icon: "/logo.svg",
   },
+  // The page is French on purpose: never offer to translate it (Chrome/Edge
+  // would otherwise show a translate bar in the app window).
+  other: { google: "notranslate" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="fr"
+      translate="no"
       className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-paper text-ink font-sans">{children}</body>

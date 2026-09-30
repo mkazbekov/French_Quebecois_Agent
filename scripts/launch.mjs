@@ -8,24 +8,47 @@
 // global fetch. Node >= 18 APIs only (this repo requires >=20.9, but we try
 // to fail with a clear message rather than a stack trace on anything older).
 
-import { existsSync, statSync, readdirSync, renameSync, chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  statSync,
+  readdirSync,
+  renameSync,
+  chmodSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  openSync,
+  closeSync,
+  rmSync,
+} from "node:fs";
 import { spawn, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import readline from "node:readline";
 import { readEnvFile, parseEnv, verifyGeminiKey, mask } from "./gemini-key.mjs";
 import { readLocalVersion, isNewer, fetchRemoteVersion, fetchChangelogHighlights } from "./version.mjs";
+import { findAppBrowser, openAppWindow, openWindowWithoutPipe, openInDefaultBrowser } from "./app-window.mjs";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(scriptDir, "..");
 const envPath = path.join(repoRoot, ".env");
 const setupScript = path.join(scriptDir, "setup.mjs");
 const updateScript = path.join(scriptDir, "update.mjs");
+const runtimeDir = path.join(repoRoot, ".runtime");
+const logDir = path.join(runtimeDir, "logs");
+const logPath = path.join(logDir, "tutor.log");
+const hostReadyPath = path.join(runtimeDir, "host-ready.json");
+const buildStampPath = path.join(runtimeDir, "build-stamp.json");
+const appProfileDir = path.join(runtimeDir, "app-window").replace(/\\/g, "/");
+const nextBin = path.join(repoRoot, "node_modules", "next", "dist", "bin", "next");
 
 const NO_BROWSER = process.env.NO_BROWSER === "1";
 const BASE_PORT = Number(process.env.PORT) > 0 ? Number(process.env.PORT) : 3000;
 const NO_UPDATE_CHECK = process.env.TUTOR_NO_UPDATE_CHECK === "1";
 const ALREADY_UPDATED = process.env.TUTOR_UPDATED === "1";
+const DEV_MODE = process.env.TUTOR_DEV === "1";
+const WANT_WINDOW = !NO_BROWSER && process.env.TUTOR_WINDOW !== "browser";
 
 function log(msg) {
   console.log(msg);
@@ -316,7 +339,7 @@ function ensureDependencies() {
 // ---------------------------------------------------------------------------
 async function isTutorAlreadyRunning(port) {
   try {
-    const res = await fetch(`http://localhost:${port}/api/learner`, { signal: AbortSignal.timeout(1500) });
+    const res = await fetch(`http://127.0.0.1:${port}/api/learner`, { signal: AbortSignal.timeout(1500) });
     if (!res.ok) return false;
     const data = await res.json().catch(() => null);
     return Boolean(data && typeof data === "object" && "storeKind" in data);
@@ -348,25 +371,107 @@ async function pickPort() {
 }
 
 // ---------------------------------------------------------------------------
-// Step 5: start next dev, wait, open browser
+// Step 5: build (first time / after an update), start the server, open the app
 // ---------------------------------------------------------------------------
-function openBrowser(url) {
+
+/** sha1 over everything that changes what `next build` would produce. */
+export function computeBuildFingerprint(root) {
+  const hash = createHash("sha1");
+  const add = (label, value) => hash.update(`${label}\0${value}\0`);
   try {
-    if (process.platform === "win32") {
-      spawn("cmd", ["/c", "start", '""', url], { stdio: "ignore", detached: true }).unref();
-    } else if (process.platform === "darwin") {
-      spawn("open", [url], { stdio: "ignore", detached: true }).unref();
-    } else {
-      spawn("xdg-open", [url], { stdio: "ignore", detached: true }).unref();
-    }
+    add("version", JSON.parse(readFileSync(path.join(root, "package.json"), "utf8")).version);
   } catch {
-    log(`Open this in your browser: ${url}`);
+    add("version", "?");
   }
+  for (const name of ["package-lock.json", "next.config.ts", "postcss.config.mjs", "tsconfig.json"]) {
+    try {
+      const st = statSync(path.join(root, name));
+      add(name, `${st.size}:${st.mtimeMs}`);
+    } catch {
+      add(name, "missing");
+    }
+  }
+  const walk = (rel) => {
+    let entries;
+    try {
+      entries = readdirSync(path.join(root, rel), { withFileTypes: true });
+    } catch {
+      return;
+    }
+    entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+    for (const entry of entries) {
+      const childRel = rel + "/" + entry.name;
+      if (entry.isDirectory()) walk(childRel);
+      else if (entry.isFile()) {
+        try {
+          const st = statSync(path.join(root, childRel));
+          add(childRel, `${st.size}:${st.mtimeMs}`);
+        } catch {
+          /* vanished */
+        }
+      }
+    }
+  };
+  walk("src");
+  walk("public");
+  return hash.digest("hex");
 }
 
-async function waitForServer(port, child) {
-  const deadline = Date.now() + 180_000;
-  let childExited = false;
+function ensureBuild() {
+  if (DEV_MODE) {
+    // `next dev` rewrites .next; make sure a later production start rebuilds.
+    try {
+      rmSync(buildStampPath, { force: true });
+    } catch {
+      /* ignore */
+    }
+    return true;
+  }
+  const fingerprint = computeBuildFingerprint(repoRoot);
+  let stamp = null;
+  try {
+    stamp = JSON.parse(readFileSync(buildStampPath, "utf8")).fingerprint;
+  } catch {
+    /* no stamp */
+  }
+  if (existsSync(path.join(repoRoot, ".next", "BUILD_ID")) && stamp === fingerprint) return true;
+
+  log("Preparing the app — only after an install or update, about a minute…");
+  const res = spawnSync(process.execPath, [nextBin, "build"], {
+    stdio: "inherit",
+    cwd: repoRoot,
+    env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" },
+  });
+  if (res.status !== 0) {
+    console.error("");
+    console.error("The app could not be prepared (see the messages above).");
+    console.error("Try running this launcher again; if it keeps failing, tell whoever sent you the tutor.");
+    process.exitCode = 1;
+    return false;
+  }
+  try {
+    mkdirSync(runtimeDir, { recursive: true });
+    writeFileSync(buildStampPath, JSON.stringify({ fingerprint, builtAt: new Date().toISOString() }) + "\n", "utf8");
+  } catch {
+    /* the next start will just rebuild */
+  }
+  return true;
+}
+
+function spawnServer(port, stdio) {
+  const cmd = DEV_MODE ? "dev" : "start";
+  return spawn(process.execPath, [nextBin, cmd, "-p", String(port), "-H", "127.0.0.1"], {
+    cwd: repoRoot,
+    stdio,
+    env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" },
+    detached: process.platform !== "win32",
+    windowsHide: true,
+  });
+}
+
+async function waitForServer(port, child, timeoutMs = 180_000) {
+  const deadline = Date.now() + timeoutMs;
+  let childExited = child.exitCode !== null;
   child.once("exit", () => {
     childExited = true;
   });
@@ -400,37 +505,154 @@ function killTree(child) {
   }
 }
 
-async function main() {
-  // Very first action, before any output: swap in an updated launcher
-  // script left behind by a previous update, if any.
-  applyPendingLauncherFiles();
+function tailLog(lines = 30) {
+  try {
+    return readFileSync(logPath, "utf8").split(/\r?\n/).slice(-lines).join("\n");
+  } catch {
+    return "(no log was written)";
+  }
+}
 
-  log("");
-  log("== Québec French Voice Tutor ==");
-  log("");
+function rotateLog() {
+  try {
+    mkdirSync(logDir, { recursive: true });
+    if (existsSync(logPath)) {
+      rmSync(logPath + ".1", { force: true });
+      renameSync(logPath, logPath + ".1");
+    }
+  } catch {
+    /* best effort */
+  }
+}
 
-  await checkForUpdate();
+function errorPage(message, detail) {
+  const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  return (
+    '<!doctype html><meta charset="utf-8"><title>Quebec French Tutor</title>' +
+    '<body style="font-family:system-ui,sans-serif;max-width:32rem;margin:15vh auto;padding:0 1rem;line-height:1.5">' +
+    `<h1 style="font-size:1.4rem">${esc(message)}</h1>` +
+    `<p>Close this window and open the tutor again.</p><p style="color:#666;font-size:.9rem">Details: ${esc(detail)}</p>`
+  );
+}
 
-  if (!(await ensureKey())) return;
-  if (!ensureDependencies()) return;
+// --- background host: runs the server and owns the app window -------------
 
-  const { port, alreadyRunning } = await pickPort();
-  const url = `http://localhost:${port}`;
+async function runHost(port) {
+  const url = `http://127.0.0.1:${port}`;
+  const browser = findAppBrowser();
+  if (!browser) {
+    console.error("No Chromium-based browser found for the app window.");
+    process.exit(1);
+  }
+  const server = spawnServer(port, ["ignore", "inherit", "inherit"]);
+  let win = null;
+  let stopping = false;
+  const cleanup = () => {
+    killTree(server);
+    try {
+      rmSync(hostReadyPath, { force: true });
+    } catch {
+      /* ignore */
+    }
+  };
+  const stop = (code) => {
+    if (stopping) return;
+    stopping = true;
+    cleanup();
+    if (win) void win.close();
+    process.exit(code);
+  };
+  for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => stop(0));
+  process.on("exit", cleanup);
 
-  if (alreadyRunning) {
-    log(`The tutor is already running at ${url}`);
-    if (!NO_BROWSER) openBrowser(url);
+  const up = await waitForServer(port, server, DEV_MODE ? 180_000 : 90_000);
+  if (!up) {
+    console.error("The tutor server did not start in time (or it crashed).");
+    stop(1);
     return;
   }
 
-  log(`[5/5] Starting the tutor at ${url} …`);
-  const nextBin = path.join(repoRoot, "node_modules", "next", "dist", "bin", "next");
-  const child = spawn(process.execPath, [nextBin, "dev", "-p", String(port), "-H", "127.0.0.1"], {
-    cwd: repoRoot,
-    stdio: ["ignore", "pipe", "pipe"],
-    env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" },
-    detached: process.platform !== "win32",
+  try {
+    mkdirSync(appProfileDir, { recursive: true });
+    win = openAppWindow({ browserPath: browser.path, url, profileDir: appProfileDir });
+  } catch (err) {
+    console.error("Could not open the app window:", err instanceof Error ? err.message : err);
+    stop(1);
+    return;
+  }
+  // A window that vanishes within a moment means the browser refused to start.
+  const early = await Promise.race([win.closed, new Promise((r) => setTimeout(() => r("ok"), 1500))]);
+  if (early !== "ok") {
+    console.error("The app window closed immediately (browser exit code " + early + ").");
+    stop(1);
+    return;
+  }
+
+  server.on("exit", () => {
+    if (stopping) return;
+    console.error("The tutor server stopped unexpectedly.");
+    void win.showError(errorPage("The tutor stopped unexpectedly.", logPath));
   });
+
+  writeFileSync(
+    hostReadyPath,
+    JSON.stringify({ pid: process.pid, port, url, startedAt: new Date().toISOString() }) + "\n",
+    "utf8",
+  );
+  await win.closed;
+  stop(0);
+}
+
+/** Spawn this script as a detached background host and wait until it reports ready. */
+async function startWindowHost(port) {
+  rotateLog();
+  try {
+    rmSync(hostReadyPath, { force: true });
+  } catch {
+    /* ignore */
+  }
+  const fd = openSync(logPath, "a");
+  const host = spawn(process.execPath, [fileURLToPath(import.meta.url), "--host", "--port", String(port)], {
+    cwd: repoRoot,
+    stdio: ["ignore", fd, fd],
+    detached: true,
+    windowsHide: true,
+    env: process.env,
+  });
+  closeSync(fd);
+  let hostExited = false;
+  host.once("exit", () => {
+    hostExited = true;
+  });
+  host.unref();
+
+  const deadline = Date.now() + (DEV_MODE ? 180_000 : 90_000);
+  while (Date.now() < deadline && !hostExited) {
+    if (existsSync(hostReadyPath)) return true;
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  if (existsSync(hostReadyPath)) return true;
+  console.error("");
+  console.error("The tutor did not open. The last lines of its log:");
+  console.error("-".repeat(40));
+  console.error(tailLog(30));
+  console.error("-".repeat(40));
+  console.error(`Full log: ${logPath}`);
+  console.error("Try opening the tutor again. If it keeps failing, send that log to whoever gave you the tutor.");
+  if (!hostExited) {
+    try {
+      process.kill(host.pid);
+    } catch {
+      /* ignore */
+    }
+  }
+  process.exitCode = 1;
+  return false;
+}
+
+async function runForeground(port, url) {
+  log(`[5/5] Starting the tutor at ${url} …`);
+  const child = spawnServer(port, ["ignore", "pipe", "pipe"]);
   child.stdout.on("data", (d) => process.stdout.write(d));
   child.stderr.on("data", (d) => process.stderr.write(d));
 
@@ -443,20 +665,10 @@ async function main() {
   };
   process.on("SIGINT", () => shutdown("SIGINT"));
   process.on("SIGTERM", () => shutdown("SIGTERM"));
-  // On macOS/Linux the next dev child runs detached (its own process
-  // group/session — see spawn() below), specifically so a Ctrl+C on OUR
-  // console doesn't leave it orphaned mid-request. But that same detachment
-  // means closing the Terminal window (which sends SIGHUP only to the
-  // foreground process group of that terminal, i.e. us — not the child's
-  // separate group) would otherwise leave next dev running forever with
-  // nothing left to stop it. Handling SIGHUP ourselves and killing the
-  // child tree explicitly closes that gap. No-op on Windows (no SIGHUP).
+  // On macOS/Linux the server child runs detached (its own process group), so
+  // closing the Terminal window (SIGHUP to us only) would otherwise orphan it.
   process.on("SIGHUP", () => shutdown("SIGHUP"));
-  // Last-resort net: whatever path got us to exit (including a bug we
-  // didn't anticipate), still try to take the child tree down with us.
-  // killTree() is idempotent (checks child.exitCode first), so this is safe
-  // to run even when shutdown() above already did it. process.exit() inside
-  // shutdown() triggers this synchronously before the process actually ends.
+  // Last-resort net; killTree() is idempotent.
   process.on("exit", () => killTree(child));
 
   const up = await waitForServer(port, child);
@@ -468,12 +680,9 @@ async function main() {
     return;
   }
 
-  if (!NO_BROWSER) openBrowser(url);
+  if (!NO_BROWSER) openInDefaultBrowser(url);
 
-  // next dev sets the console/window title to "next-server (vX.Y.Z)" while it
-  // starts. It shares our console (the child isn't detached on Windows), so
-  // set our own title now that the server answered — nothing sets it again
-  // after this, so it sticks. On Windows, process.title calls SetConsoleTitleW.
+  // Set the console title once the server answered; nothing sets it again after this.
   process.title = "Quebec French Tutor - keep this window open";
 
   box([
@@ -489,11 +698,65 @@ async function main() {
     }
   });
 
-  // Keep the process alive until the child exits or we're signalled.
   await new Promise((resolve) => child.on("exit", resolve));
 }
 
-main().catch((err) => {
-  console.error("Launcher failed:", err instanceof Error ? err.message : err);
-  process.exitCode = 1;
-});
+async function main() {
+  const argv = process.argv.slice(2);
+  if (argv.includes("--host")) {
+    const i = argv.indexOf("--port");
+    await runHost(Number(argv[i + 1]) || BASE_PORT);
+    return;
+  }
+
+  // Very first action, before any output: swap in an updated launcher
+  // script left behind by a previous update, if any.
+  applyPendingLauncherFiles();
+
+  log("");
+  log("== Québec French Voice Tutor ==");
+  log("");
+
+  await checkForUpdate();
+
+  if (!(await ensureKey())) return;
+  if (!ensureDependencies()) return;
+
+  const { port, alreadyRunning } = await pickPort();
+  const url = `http://127.0.0.1:${port}`;
+  const browser = WANT_WINDOW ? findAppBrowser() : null;
+
+  // Checked before building: a rebuild under a live `next start` would break it.
+  if (alreadyRunning) {
+    log(`The tutor is already running at ${url}`);
+    if (browser) openWindowWithoutPipe({ browserPath: browser.path, url, profileDir: appProfileDir });
+    else if (!NO_BROWSER) openInDefaultBrowser(url);
+    return;
+  }
+
+  if (!ensureBuild()) return;
+
+  if (browser) {
+    log("[5/5] Starting the tutor …");
+    if (await startWindowHost(port)) {
+      log("The tutor is open in its own window. You can close this window.");
+    }
+    return;
+  }
+
+  await runForeground(port, url);
+}
+
+function isEntryModule() {
+  if (!process.argv[1]) return false;
+  const a = path.resolve(process.argv[1]);
+  const b = fileURLToPath(import.meta.url);
+  return process.platform === "win32" ? a.toLowerCase() === b.toLowerCase() : a === b;
+}
+
+if (isEntryModule()) {
+  main().catch((err) => {
+    console.error("Launcher failed:", err instanceof Error ? err.message : err);
+    process.exitCode = 1;
+  });
+}

@@ -31,6 +31,7 @@
 - ⌨️ **Read along live.** The transcript is written out as you both speak, and the tutor can put a multiple-choice question on screen — answer out loud, by typing, or by clicking.
 - 📈 **A real program.** A 12-level syllabus (Échelle québécoise), lessons, role-plays and level checks.
 - 🐢 **Patient.** Waits through your pauses. Beginners get English help; French-only comes later.
+- 🪟 **Its own app window.** Double-click the icon and the tutor opens in its own window, with no browser tabs or address bar. Close the window and it stops.
 - 🔒 **Private.** Runs on your computer. Only the call itself goes to Google's Gemini.
 
 ## Get started in 3 steps
@@ -61,7 +62,7 @@ Once it's installed, this is all you do. Every time.
     <th width="25%">4. Hang up</th>
   </tr>
   <tr>
-    <td valign="top">Double-click <b>Quebec French Tutor</b> on your Desktop. A window opens, then your browser.</td>
+    <td valign="top">Double-click <b>Quebec French Tutor</b> on your Desktop. A short message window flashes up, then the tutor opens in its own window.</td>
     <td valign="top">Press the big <b>Start conversation</b> button — or first pick the kind of call you want. The tutor greets you.</td>
     <td valign="top">When it says <b>Listening…</b>, speak. Take your time; it waits through pauses.</td>
     <td valign="top">Say <i>"on arrête"</i> or press <b>End Conversation</b>. Your progress is saved.</td>
@@ -91,8 +92,8 @@ The circle fills in blue and breathes while the call is live, whoever is talking
 | *"On continue en français"* | back to French |
 | *"On arrête"* / *"I have to go"* | the tutor says goodbye and the call ends |
 
-**When you're done for the day,** close the tutor window (the one that opened when you
-double-clicked the icon). Your progress is already saved.
+**When you're done for the day,** close the tutor window. That stops the tutor
+completely. Your progress is already saved.
 
 > [!TIP]
 > Wear **headphones**: the tutor then can't hear itself. And you can type instead of
@@ -110,7 +111,9 @@ Your very first call has two extra one-time questions (your name and level). See
   downloads a few hundred MB; later starts need the internet only for the calls.
 - ✅ A **microphone** and **speakers or headphones**. A laptop's built-in ones work;
   headphones stop the tutor from hearing itself.
-- ✅ **Google Chrome** or **Microsoft Edge**. These are the browsers we tested; see
+- ✅ **Microsoft Edge** or **Google Chrome** installed (every Windows 10/11 PC already has
+  Edge). The tutor borrows its engine to draw its own app window; you never see a browser
+  tab. On a Mac without Chrome, Edge or Brave it opens in Safari instead; see
   [Browsers](#browsers).
 - ✅ A **Google account** (Gmail) to get the free API key.
 
@@ -126,8 +129,8 @@ administrator password is needed.
 **Everything stays on your computer. I don't collect anything.**
 
 There is no account, no sign-up, no server of mine anywhere in this app. The tutor runs
-on your machine, at `http://localhost:3000` — a web page that only your computer can
-open. Nobody else can reach it, including me.
+on your machine and shows itself in its own window, served from `http://127.0.0.1` — an
+address that only your computer can open. Nobody else can reach it, including me.
 
 What is stored, and where:
 
@@ -229,17 +232,18 @@ is a password-like code that lets the tutor use Gemini on your behalf. It is fre
    **Paste your key** (right-click in the window, or press **Ctrl+V**) and press **Enter**.
    The characters you paste stay visible; that's normal. The launcher checks the key with
    Google and saves it.
-4. The first start then installs the tutor's components (1–3 minutes, with no progress
-   bar; just wait). When it says **The tutor is running**, your browser opens at
-   **<http://localhost:3000>**.
+4. The first start then installs the tutor's components and prepares the app (1–3
+   minutes; just wait). Then the tutor opens **in its own window** and the launcher says
+   **The tutor is open in its own window. You can close this window.**
 
    <img src="docs/images/windows-running.png" alt="The launcher once the tutor is running" width="600">
 
 5. Continue with [Your first conversation](#step-3--your-first-conversation).
 
-> [!IMPORTANT]
-> **Leave the Quebec French Tutor window open** while you practise; it *is* the tutor.
-> You can minimise it. You can close the PowerShell window from step 1; you won't need it again.
+> [!NOTE]
+> The black launcher window closes by itself once the tutor is open. The tutor now runs
+> behind its own window: **closing the tutor window stops it.** You can close the
+> PowerShell window from step 1; you won't need it again.
 
 <details>
 <summary><b>Alternative: download the ZIP instead</b> (more steps)</summary>
@@ -287,14 +291,15 @@ extra Windows step, and you start the tutor from the folder instead of a Desktop
 3. It gets Node.js (if needed), then asks: **Paste your Gemini API key:**. Paste your
    key (**⌘ Command + V**) and press **Return**. The launcher checks it with Google and
    saves it.
-4. The first start installs the tutor's components (1–3 minutes, with no progress bar;
-   just wait). When it says **The tutor is running**, your browser opens at
-   **<http://localhost:3000>**.
+4. The first start installs the tutor's components and prepares the app (1–3 minutes;
+   just wait). Then the tutor opens **in its own window** (drawn by Chrome, Edge or Brave,
+   whichever you have), and Terminal says **The tutor is open in its own window.**
 5. Continue with [Your first conversation](#step-3--your-first-conversation).
 
-> [!IMPORTANT]
-> **Leave the Terminal window open** while you practise; it *is* the tutor. You can
-> minimise it. It shows the same messages as the Windows screenshots above.
+> [!NOTE]
+> Once the tutor window is open you can close Terminal; **closing the tutor window stops
+> the tutor.** No Chrome, Edge or Brave on your Mac? Then the tutor opens in Safari as a
+> normal web page instead, and the Terminal window must stay open while you practise.
 
 > [!NOTE]
 > **Tested so far:** the macOS installer and launcher were run end to end on Linux, which
@@ -347,9 +352,8 @@ kept.
 
 ## Step 3 — Your first conversation
 
-The browser opens **<http://localhost:3000>** by itself. If it doesn't, open that address
-yourself. `localhost` means "this computer": the tutor's page comes from the launcher
-window, not from the internet.
+The tutor opens in its own window by itself. Its page comes from your own computer
+(`127.0.0.1` means "this computer"), not from the internet.
 
 1. **Your name.** Type what the tutor should call you and click **Continue**.
 
@@ -371,7 +375,7 @@ window, not from the internet.
 
    <img src="docs/images/ready.png" alt="Ready to start, with the choice of call underneath" width="480">
 
-5. **Allow the microphone.** The browser asks to use your microphone. Click
+5. **Allow the microphone.** The tutor window asks to use your microphone (only once). Click
    **Allow while visiting the site** (Chrome) or **Allow** (Edge). If you have more than
    one microphone, pick the right one in the drop-down menu first.
 
@@ -394,7 +398,7 @@ window, not from the internet.
 
 8. **Hang up** when you're done: press **End Conversation**, press **Esc**, or just say
    *"on arrête"* / *"I have to go"*. A short summary appears and your progress is saved.
-   The first review can take up to a minute. You can close the tab; nothing is lost.
+   The first review can take up to a minute. You can close the window; nothing is lost.
 
    <img src="docs/images/summary.png" alt="The summary after a call" width="520">
 
@@ -404,13 +408,11 @@ window, not from the internet.
 
 ## Stopping, updating and uninstalling
 
-**Stopping:** close the tutor window. On a Mac, if Terminal asks *"Do you want to
-terminate running processes?"*, click **Terminate**. Your progress is already saved.
-On Windows the icon is also in the Start menu.
+**Stopping:** close the tutor window. That stops everything; your progress is already
+saved. On Windows the icon is also in the Start menu.
 
-If the browser tab was closed but the window is still open, just open
-<http://localhost:3000> again. Double-clicking the icon while the tutor is already
-running also just opens the page.
+Double-clicking the icon while the tutor is already open opens a second tutor window.
+The tutor stops once every tutor window is closed.
 
 ### Updating
 
@@ -440,9 +442,9 @@ running also just opens the page.
 **Already on v0.2.0 or newer? You don't have to do anything — just start the tutor as
 usual.**
 
-Every time you double-click **Quebec French Tutor**, the launcher checks whether a newer
-version exists (it asks GitHub for one small file and sends nothing about you). If there
-is one, the window shows what's new and asks:
+Every time you double-click **Quebec French Tutor**, the short launcher window checks
+whether a newer version exists (it asks GitHub for one small file and sends nothing about
+you). If there is one, it shows what's new and asks:
 
 ```text
 A new version is available (v0.3.0 — you have v0.2.0)
@@ -451,8 +453,8 @@ A new version is available (v0.3.0 — you have v0.2.0)
 Update now? [Y/n]
 ```
 
-Press **Enter** to update. It takes a few seconds, then the tutor starts on the new
-version. Your **API key, your progress and your settings are kept** — only the program
+Press **Enter** to update. It takes a few seconds, the app is prepared again (about a
+minute), then the tutor opens on the new version. Your **API key, your progress and your settings are kept** — only the program
 files are replaced. Press **n** if you'd rather stay on the version you have; you'll be
 asked again next time.
 
@@ -498,11 +500,10 @@ The page shows: *"The browser blocked the microphone…"*
 
 <img src="docs/images/mic-blocked.png" alt="Microphone blocked message" width="480">
 
-- **Chrome / Edge:** click the icon at the left end of the address bar (next to
-  `localhost:3000`), set **Microphone** to **Allow**, and press **Retry**. If there is no
-  such option, open `chrome://settings/content/microphone` (Edge:
-  `edge://settings/content/microphone`), remove `localhost:3000` from *Not allowed*, and
-  reload the page.
+- **In the tutor window:** click the small icon at the left of the window's title bar
+  (or right-click the title bar), open the site settings, set **Microphone** to **Allow**,
+  and press **Retry**. The tutor window keeps its own settings, separate from your normal
+  browser, so a choice made in your browser doesn't carry over.
 - **Mac:** open **System Settings → Privacy & Security → Microphone**, switch on
   **Google Chrome** (or your browser), then quit and reopen the browser.
 - **Windows:** open **Settings → Privacy & security → Microphone**, and switch on
@@ -534,8 +535,7 @@ The page shows: *"The browser blocked the microphone…"*
 <br>
 
 - The transcript shows the tutor's words but you hear nothing: check that your
-  computer isn't muted and that the browser tab isn't muted (right-click the tab; if it
-  says **Unmute site**, click it).
+  computer isn't muted and that the volume is up.
 - Choose the right speakers or headphones: **Windows:** **Settings → System → Sound →
   Output**; **Mac:** **System Settings → Sound → Output**. Then press **End
   Conversation** and start again.
@@ -602,20 +602,38 @@ Read the last lines; they say what went wrong. The most common causes:
 </details>
 
 <details>
-<summary>🌐 <b>The browser opened something else, or the page doesn't load</b></summary>
+<summary>🪟 <b>The launcher says "The tutor did not open"</b></summary>
 
 <br>
 
-If another program already uses port 3000, the tutor picks the next free one (3001,
-3002…). Use the exact address printed in the tutor window after *The tutor is running at*.
+The launcher window shows the last lines of the tutor's log. The full log is
+`.runtime/logs/tutor.log` inside the tutor's folder (the previous one is `tutor.log.1`).
+Close every tutor window and start again from the icon. If it keeps happening, send
+that log with the [feedback form](#-send-feedback).
+
+</details>
+
+<details>
+<summary>🌐 <b>I'd rather use the tutor in my normal browser</b></summary>
+
+<br>
+
+Set the environment variable `TUTOR_WINDOW=browser` before starting it. The tutor then
+opens as a tab in your default browser, as older versions did, and the launcher window
+must stay open while you practise. If another program already uses port 3000, the tutor
+picks the next free one (3001, 3002…); use the address the launcher prints.
 
 </details>
 
 ### Browsers
 
-We tested **Google Chrome** on Windows 11. Microsoft Edge uses the same engine as Chrome.
-Firefox and Safari may work but were not tested. If something misbehaves in them,
-use Chrome or Edge.
+The tutor window is drawn by a Chromium-based browser already on your computer: Microsoft
+Edge on Windows (always there), otherwise Google Chrome or Brave; on a Mac, Chrome, Edge,
+Brave or Chromium. It runs with its own private settings folder (`.runtime/app-window`),
+so it never touches your normal browser's tabs, history or logins. Tested with Edge on
+Windows 11. With none of those on a Mac, the tutor falls back to a tab in your default
+browser (Safari may work, but wasn't tested). To choose a specific browser, set
+`TUTOR_BROWSER` to its full path.
 
 ---
 
@@ -783,12 +801,12 @@ npm run dev        # first run asks for the Gemini key and writes .env
 ```
 
 Open <http://localhost:3000>. `npm run start:app` runs the same launcher the one-click
-scripts use (key check, install if needed, start, open browser).
+scripts use (key check, install if needed, production build, app window).
 
 | command                       | purpose                                                                    |
 | ----------------------------- | -------------------------------------------------------------------------- |
 | `npm run dev`                 | start the tutor at http://localhost:3000 (asks for a key the first time)   |
-| `npm run start:app`           | the one-click launcher: verify key, install deps, start, open the browser  |
+| `npm run start:app`           | the one-click launcher: key, deps, `next build` if stale, app window       |
 | `npm run setup`               | add or replace your Gemini API key in `.env`                               |
 | `npm run build && npm start`  | production build / serve                                                   |
 | `npm test`                    | unit tests                                                                 |
@@ -812,10 +830,29 @@ scripts use (key check, install if needed, start, open browser).
 | `install-mac.sh`             | one-line macOS installer: download, install to `~/Quebec French Tutor`, Desktop icon, start |
 | `Start Tutor (Windows).bat`  | finds Node ≥ 20.9 or downloads a portable copy into `.runtime/`, then runs `scripts/launch.mjs` |
 | `Start Tutor (Mac).command`  | the same for macOS (and Linux)                                              |
-| `scripts/launch.mjs`         | verify key (re-ask if Google rejects it) → `npm ci` if needed → `next dev -H 127.0.0.1` → open browser |
+| `scripts/launch.mjs`         | verify key (re-ask if Google rejects it) → `npm ci` if needed → `next build` if the source changed → background host: `next start -H 127.0.0.1` + app window |
+| `scripts/app-window.mjs`     | finds Edge/Chrome/Brave, opens the chromeless `--app` window, watches it over a DevTools pipe |
 
 The launcher binds the server to `127.0.0.1`, so the API routes (which spend your key)
 are not reachable from other machines on your network.
+
+**The desktop window.** The launcher runs a production build (`next build`, redone only
+when `package.json`, the lockfile, a config file or anything under `src/` or `public/`
+changed; the fingerprint is in `.runtime/build-stamp.json`), then starts a hidden
+background host and exits. The host runs `next start` and opens the tutor with
+`msedge`/`chrome --app=http://127.0.0.1:<port>` in a dedicated profile
+(`.runtime/app-window`), connected over `--remote-debugging-pipe` (a private pipe, no
+open debugging port). When the last tutor page closes, it quits that browser instance
+and the server. Links to other sites open in the default browser. Output goes to
+`.runtime/logs/tutor.log`. There's no Electron on purpose: Windows Smart App Control
+blocks an unsigned `.exe`, while `node.exe` and `msedge.exe` are signed.
+
+| variable | effect |
+| --- | --- |
+| `TUTOR_WINDOW=browser` | old behaviour: foreground server and a default-browser tab |
+| `TUTOR_BROWSER=<path>` | use this Chromium-based browser for the window |
+| `TUTOR_DEV=1` | the launcher runs `next dev` instead of a production build |
+| `NO_BROWSER=1` | start the server only |
 
 **Optional settings** in `.env` (`.env.example` lists them all with comments):
 

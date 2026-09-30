@@ -1,6 +1,6 @@
 # Architecture
 
-One Next.js 16 app, one process, one URL. Voice is a realtime audio stream (Gemini Live or OpenAI Realtime); long-term
+One Next.js 16 app, one process, one URL, shown in its own desktop window (see *Desktop window*). Voice is a realtime audio stream (Gemini Live or OpenAI Realtime); long-term
 learner memory lives in Letta. Nothing else stores learner state.
 
 ```
@@ -159,10 +159,32 @@ compares it against the published `package.json` on `main`. `scripts/launch.mjs`
 on every start and offers the update; `scripts/update.mjs --apply` downloads the archive
 to a temp dir and copies it over the install **in place** - it never deletes or moves the
 install folder (the running shell holds handles on it), never touches `.env`, `data`,
-`.runtime`, `node_modules` or `.git`, writes a changed root launcher script as
+`.runtime`, `.next`, `node_modules` or `.git`, writes a changed root launcher script as
 `<name>.new` (the shell reads those by byte offset while running) for the launcher to
 swap in on the next start, and only removes files listed in its own
 `.runtime/installed-files.json` manifest, so a learner-created file is never deleted.
+
+## Desktop window
+
+`scripts/launch.mjs` (run by the Desktop icon) checks for updates, the key and the
+dependencies in a short-lived console. It runs `next build` when the build fingerprint
+changes (`computeBuildFingerprint`: version, lockfile, configs, `src/`, `public/`),
+then re-spawns itself as a detached, hidden `--host` and exits. The host runs
+`next start -H 127.0.0.1`, and `scripts/app-window.mjs` opens Edge, Chrome or Brave in
+`--app=` mode with a dedicated `--user-data-dir` (`.runtime/app-window`) and
+`--remote-debugging-pipe`. Over that pipe the host tracks the tutor's page targets. When
+the last one is destroyed it sends `Browser.close` and stops the server. A page on
+another origin (the feedback card's Gmail link) is closed and reopened in the default
+browser. If the server dies, the window is navigated to a local error page. The host
+writes `.runtime/host-ready.json` once the window is up (the console waits for it) and
+logs to `.runtime/logs/tutor.log`. With no Chromium browser (a Mac with only Safari) or
+`TUTOR_WINDOW=browser`, the launcher falls back to a foreground server and a
+default-browser tab.
+
+Why not Electron or Tauri: Windows Smart App Control blocks unsigned executables
+outright, and the tutor ships no code-signing certificate. Every process here (`node.exe`,
+`msedge.exe`/`chrome.exe`) is signed by its vendor, which is the same reasoning as a
+pywebview app that runs on signed `python.exe` + WebView2.
 
 ## Why these choices
 

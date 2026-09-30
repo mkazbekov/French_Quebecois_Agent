@@ -14,7 +14,10 @@ setup and everyday flow.
 - **Zero-friction UX.** Learners install with one pasted line (`install-windows.ps1` /
   `install-mac.sh`) and then double-click the **Quebec French Tutor** Desktop icon, which
   runs `Start Tutor (Windows).bat` / `Start Tutor (Mac).command` → `scripts/launch.mjs`
-  (portable Node if needed, key check, `npm ci`, `next dev -H 127.0.0.1`, open browser).
+  (portable Node if needed, key check, `npm ci`, `next build` when stale, then a hidden
+  host runs `next start -H 127.0.0.1` and opens the tutor in its own chromeless
+  Edge/Chrome `--app` window via `scripts/app-window.mjs`; closing the window stops it).
+  Never ship an unsigned exe (Electron/Tauri): Smart App Control blocks it.
   Keep the launchers working on both OSes; README's install sections describe them
   step by step with screenshots in `docs/images/`. Developer use is `npm run dev` → open http://localhost:3000 →
   press Start Conversation → talk. The only setup screen is the one-time onboarding
@@ -109,6 +112,7 @@ setup and everyday flow.
 | `npm run verify:persistence` | writes state, re-reads from a child process; use it to prove Letta works |
 | `npm run reset:profile` | deletes the current learner's stored profile (Letta agent or file); confirms unless `--yes` |
 | `npm run check:gemini` / `check:review` / `check:realtime` | live provider checks (no microphone needed) |
+| `npm run start:app` | the Desktop-icon launcher: build if stale, background host, app window (`TUTOR_DEV=1` / `TUTOR_WINDOW=browser` / `TUTOR_BROWSER=<path>`) |
 | `npm run update` / `check:update` | apply / report the published version (`scripts/update.mjs`) |
 | `pwsh -File scripts/make-icons.ps1` | re-render `assets/*.png` + `tutor.ico` from the logo path data |
 
@@ -122,6 +126,7 @@ src/app/api/session/end          POST: evidence → review → merge → persist
 src/app/api/learner              GET: state + storeKind; PATCH: onboarding | name | language_mode | starting_level | placement:"test"; DELETE: wipe the learner (back to onboarding); `?scope=history` clears progress but keeps name + settings
 src/app/api/feedback             GET: feedback address + version/platform/provider (no POST; the card opens a mailto:)
 src/app/api/version              GET: installed vs. published version (6h cache, never throws)
+scripts/app-window.mjs           finds Edge/Chrome/Brave, opens the --app window, watches it over a DevTools pipe
 src/components/QuizCard.tsx      the on-screen multiple-choice check (ask_choice)
 src/components/FeedbackCard.tsx  footer feedback form; VersionBadge.tsx shows the version
 scripts/version.mjs              shared version helpers (launcher + /api/version)
@@ -142,11 +147,11 @@ tests/                           vitest; merge rules, stores, levels, syllabus, 
 
 ## Working style
 
-- **Planning, thinking, architecture and review: Opus 5** (the lead session). Opus
+- **Planning, thinking, architecture and review: Opus 5.5** (`claude-opus-5-5`, the lead session). Opus
   reads the docs, decides the design, writes the plan, and reviews every result
   before it is committed.
-- **Code changes: subagents on Sonnet 5 at medium effort.** Delegate implementation
-  (a function, a component, a test file) to a Sonnet 5 subagent with
+- **Code changes: subagents on Sonnet 5.5 at medium effort.** Delegate implementation
+  (a function, a component, a test file) to a Sonnet 5.5 subagent (`claude-sonnet-5-5`) with
   `model: "sonnet"` and medium reasoning effort; give it the exact files, the plan
   step, and the acceptance check (typecheck / lint / test). The lead only makes
   trivial edits itself (a doc line, a constant).
@@ -239,6 +244,18 @@ picker rendering and toggling at desktop and phone width with no console errors,
 `POST /api/realtime/session` returning `mode: "lesson"` for auto / `"quebec"` when
 asked. Still unverified: the in-call banner with a real microphone (it needs a live
 Gemini session, which writes a real session record) — do that in the manual voice test.
+
+2026-09-30 (v0.6.0): the tutor is a standalone desktop app window. The launcher builds
+once (`next build`, fingerprint in `.runtime/build-stamp.json`), hands off to a hidden
+host (`launch.mjs --host`) that runs `next start` and an Edge/Chrome `--app` window with
+its own profile, watched over `--remote-debugging-pipe`. The console closes itself, and
+closing the window stops the server. External links open in the default browser (via
+`rundll32 url.dll`, never `cmd start`, which splits URLs at `&`). Verified on this machine
+(Windows 11, Edge 154): typecheck, lint, 186 tests, build, a first launch that builds and
+opens the window, a second launch that opens a second window, and closing both windows
+stopping host and server. Still unverified: the macOS path (Chrome/Edge in /Applications),
+the in-window microphone prompt with a real voice call, and the error page after a
+server crash.
 
 After that, candidate improvements (not started): confidence time-decay, Letta
 archival search for older sessions, pronunciation-aware feedback, a true

@@ -48,7 +48,7 @@ const repoRoot = path.join(scriptDir, "..");
 // Names at the install root that are never touched by an update - a
 // learner's saved key, progress, downloaded runtime state, and installed
 // dependencies.
-const PRESERVE_ROOT_NAMES = new Set([".env", "data", ".runtime", "node_modules", ".git"]);
+const PRESERVE_ROOT_NAMES = new Set([".env", "data", ".runtime", ".next", "node_modules", ".git"]);
 
 // Root files that may be mid-execution while we update; write "<name>.new"
 // instead of overwriting them directly.

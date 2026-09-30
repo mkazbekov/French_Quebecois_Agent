@@ -4,6 +4,18 @@ Plain-language notes on what changed in each version, newest first. The
 version number is shown in the tutor's own footer (bottom of the page) —
 that's the easiest way to check what you're running.
 
+## 0.6.0 (2026-09-30)
+
+- **The tutor is now its own app.** Double-click the icon and the tutor opens in its own
+  window, with no browser tabs and no address bar. The black launcher window closes by
+  itself, and closing the tutor window stops the tutor completely. There's nothing left
+  running in the background.
+- **Faster, steadier pages.** The tutor now runs a prepared (production) version of
+  itself. The first start after installing or updating takes about a minute longer while
+  it's prepared; every start after that is quicker.
+- Links to other sites (like *Open in Gmail* on the feedback card) open in your normal
+  browser. Prefer the old way? Set `TUTOR_WINDOW=browser`.
+
 ## 0.5.0 (2026-09-22)
 
 - **Clear your learning history in one click.** A new *Clear learning history* button, at
