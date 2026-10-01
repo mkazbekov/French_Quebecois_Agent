@@ -1,14 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ClearHistoryButton } from "@/components/ClearHistoryButton";
 import { StartingLevel } from "@/components/StartingLevel";
 import { clearPendingSession } from "@/hooks/useTutorSession";
 import type { LearnerState } from "@/lib/learner/schema";
 
+const LABEL = "font-mono text-[9px] tracking-[.15em] uppercase text-muted";
+const FOCUS = "focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2";
+
 /**
- * Collapsed-by-default "Profile" disclosure under the header: change your
- * name, change your level, or retake the level test. Disabled during a call.
+ * "Profile" button in the header that opens a sheet (bottom sheet on phones,
+ * centered modal from `sm` up): change your name, change your level, retake the
+ * level test, clear history or delete the profile. Disabled during a call.
+ * The dialog itself stays mounted; only the inner form is keyed by the saved
+ * name, so saving re-seeds the input without closing the sheet.
  */
 export function ProfileSettings({
   state,
@@ -18,6 +24,70 @@ export function ProfileSettings({
   state: LearnerState;
   onChange: (next: LearnerState) => void;
   disabled?: boolean;
+}) {
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const initial = Array.from(state.profile.name.trim())[0]?.toUpperCase() ?? "?";
+
+  return (
+    <>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => dialogRef.current?.showModal()}
+        className={`inline-flex min-h-9 items-center gap-1.5 text-[11.5px] text-muted hover:text-ink disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS}`}
+      >
+        <span
+          aria-hidden="true"
+          className="grid h-5 w-5 place-items-center rounded-full bg-primary-tint text-[10px] font-semibold text-primary"
+        >
+          {initial}
+        </span>
+        Profile
+      </button>
+      <dialog
+        ref={dialogRef}
+        aria-label="Profile"
+        onClick={(e) => {
+          // a click on the backdrop lands on the dialog element itself, not on the inner div
+          if (e.target === e.currentTarget) e.currentTarget.close();
+        }}
+        className="m-0 mt-auto max-h-[85dvh] w-full max-w-none overflow-y-auto rounded-t-[16px] border border-rule bg-card p-0 text-ink backdrop:bg-black/40 sm:m-auto sm:max-w-md sm:rounded-[16px]"
+      >
+        <div className="px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-[17px] font-semibold">Profile</h2>
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={() => dialogRef.current?.close()}
+              className={`grid h-9 w-9 place-items-center rounded-full text-[22px] leading-none text-muted hover:text-ink ${FOCUS}`}
+            >
+              &times;
+            </button>
+          </div>
+          <ProfileForm
+            key={state.profile.name}
+            state={state}
+            onChange={onChange}
+            disabled={disabled}
+            onDeleted={() => dialogRef.current?.close()}
+          />
+        </div>
+      </dialog>
+    </>
+  );
+}
+
+function ProfileForm({
+  state,
+  onChange,
+  disabled,
+  onDeleted,
+}: {
+  state: LearnerState;
+  onChange: (next: LearnerState) => void;
+  disabled?: boolean;
+  onDeleted: () => void;
 }) {
   const [name, setName] = useState(state.profile.name);
   const [pending, setPending] = useState(false);
@@ -60,17 +130,16 @@ export function ProfileSettings({
         const data = (await res.json()) as { state: LearnerState };
         clearPendingSession();
         onChange(data.state);
+        onDeleted();
       })
       .catch((err: unknown) => setDeleteError(err instanceof Error ? err.message : "Couldn't delete your profile."))
       .finally(() => setDeletePending(false));
   }
 
   return (
-    <details className="mt-2 w-full max-w-xs">
-      <summary className="cursor-pointer text-center text-[11.5px] text-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2">
-        Profile
-      </summary>
-      <div className="mt-3 flex flex-col items-center gap-3">
+    <div className="mt-3 flex flex-col gap-5">
+      <section className="flex flex-col gap-2">
+        <h3 className={LABEL}>Name</h3>
         <div className="flex w-full items-center gap-2">
           <input
             type="text"
@@ -78,30 +147,37 @@ export function ProfileSettings({
             onChange={(e) => setName(e.target.value)}
             maxLength={40}
             disabled={disabled || pending}
-            className="flex-1 rounded-[8px] border border-rule bg-transparent px-3 py-1.5 text-sm text-ink disabled:opacity-50 focus:outline-none focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+            aria-label="Your name"
+            className={`min-w-0 flex-1 rounded-[8px] border border-rule bg-transparent px-3 py-2 text-base text-ink disabled:opacity-50 focus:outline-none ${FOCUS}`}
           />
           <button
             type="button"
             disabled={!canSave}
             onClick={saveName}
-            className="rounded-[8px] bg-ink text-paper text-[11px] font-medium px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+            className={`min-h-9 rounded-[8px] bg-ink px-4 text-[12px] font-medium text-paper disabled:opacity-50 disabled:cursor-not-allowed ${FOCUS}`}
           >
             Save
           </button>
         </div>
         {error && <p className="text-xs text-alert">{error}</p>}
+      </section>
+      <section className="flex flex-col gap-2">
+        <h3 className={LABEL}>Level</h3>
         <StartingLevel state={state} onChange={onChange} disabled={disabled} />
+      </section>
+      <section className="flex flex-col items-start gap-3 border-t border-rule-soft pt-4">
+        <h3 className={LABEL}>Danger zone</h3>
         <ClearHistoryButton onCleared={onChange} disabled={disabled} />
         <button
           type="button"
           disabled={disabled || deletePending}
           onClick={deleteProfile}
-          className="text-[11px] text-alert hover:opacity-80 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+          className={`min-h-9 text-[12px] text-alert hover:opacity-80 disabled:opacity-50 ${FOCUS}`}
         >
           Delete profile & start over
         </button>
         {deleteError && <p className="text-xs text-alert">{deleteError}</p>}
-      </div>
-    </details>
+      </section>
+    </div>
   );
 }

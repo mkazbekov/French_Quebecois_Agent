@@ -119,10 +119,12 @@ export default function Home() {
   };
 
   return (
-    <div className="flex-1 flex flex-col">
+    // During a call the page is exactly one screen tall (flex-none: flex-1 would let the
+    // transcript grow the page past the viewport) and the transcript scrolls inside it.
+    <div className={`flex flex-col ${isActive ? "h-dvh flex-none overflow-hidden" : "flex-1"}`}>
       <TutorHeader state={learnerState} onChange={handleLearnerStateChange} disabled={isActive} />
 
-      <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-4 flex flex-col gap-3">
+      <main className="flex-1 min-h-0 w-full max-w-5xl mx-auto px-4 py-4 flex flex-col gap-3">
         {profilePhase === "loading" ? (
           <p className="text-[13px] text-muted py-10 text-center">Loading your profile…</p>
         ) : profilePhase === "error" ? (
@@ -171,6 +173,52 @@ export default function Home() {
               Saving your progress… you can close this tab; nothing will be lost.
             </p>
           </div>
+        ) : isActive ? (
+          /* the call screen: compact controls on top, the transcript takes every remaining pixel */
+          <div className="flex min-h-0 flex-1 flex-col gap-3 lg:flex-row">
+            <div className="flex flex-col gap-3 max-h-[60dvh] overflow-y-auto lg:max-h-none lg:w-[42%] lg:shrink-0">
+              <div className={`${CARD} flex flex-col gap-2.5`}>
+                <MicOrb status={status} compact />
+
+                <button
+                  type="button"
+                  onClick={() => void end()}
+                  className="w-full rounded-full bg-danger text-on-primary py-3 text-[15px] font-semibold transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
+                >
+                  {isConnecting ? "Cancel" : "End conversation"}
+                </button>
+                <p className="hidden sm:block text-center text-[10px] text-muted">Esc · or say &laquo;&nbsp;on arrête&nbsp;&raquo;</p>
+
+                {/* Only once the server has resolved a real mode: while connecting there is
+                    nothing true to say yet, and "Now running · Tutor decides" would name a
+                    choice rather than the call. Never renders the literal string "auto". */}
+                {mode !== "auto" && (
+                  <div className="rounded-[10px] border border-primary bg-primary-tint px-3 py-1.5 text-left w-full">
+                    <p className="font-mono text-[9px] tracking-[.14em] uppercase text-primary">
+                      {selectedMode === "auto" ? "Now running · chosen by your tutor" : "Now running"}
+                    </p>
+                    <p className="text-[13px] font-semibold text-ink">{modeLabel(mode)}</p>
+                    <p className="hidden sm:block text-[11px] text-ink-soft">{modeBlurb(mode)}</p>
+                  </div>
+                )}
+
+                {error && <p className="text-[11px] text-due">{error}</p>}
+              </div>
+
+              {quiz && <QuizCard quiz={quiz.quiz} answeredIndex={quiz.answeredIndex} onAnswer={answerQuiz} />}
+            </div>
+
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+              <TranscriptPanel
+                fill
+                transcript={transcript}
+                partial={partialTranscript}
+                live={isConnected}
+                canSendText={isConnected}
+                onSendText={sendText}
+              />
+            </div>
+          </div>
         ) : (
           <>
             <div className="grid gap-3 items-start lg:grid-cols-[1.15fr_1fr]">
@@ -191,7 +239,7 @@ export default function Home() {
                   </div>
                 )}
 
-                {!isActive && status !== "error" && (
+                {status !== "error" && (
                   <button
                     type="button"
                     onClick={() => start(selectedMode)}
@@ -201,47 +249,18 @@ export default function Home() {
                   </button>
                 )}
 
-                {!isActive && status === "idle" && learnerState?.profile.sessions_completed === 0 && (
+                {status === "idle" && learnerState?.profile.sessions_completed === 0 && (
                   <p className="text-[10px] text-muted max-w-[30ch] leading-relaxed">
                     Your browser will ask to use your microphone — click <strong className="text-ink-soft">Allow</strong>.
                     Turn your sound on or plug in headphones: the tutor speaks first.
                   </p>
                 )}
 
-                {isActive && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => void end()}
-                      className="w-full rounded-full bg-danger text-on-primary py-3.5 text-[15px] font-semibold transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
-                    >
-                      {isConnecting ? "Cancel" : "End conversation"}
-                    </button>
-                    <p className="text-[10px] text-muted -mt-1.5">Esc · or say &laquo;&nbsp;on arrête&nbsp;&raquo;</p>
-
-                    {/* Only once the server has resolved a real mode: while connecting there is
-                        nothing true to say yet, and "Now running · Tutor decides" would name a
-                        choice rather than the call. Never renders the literal string "auto". */}
-                    {mode !== "auto" && (
-                      <div className="rounded-[10px] border border-primary bg-primary-tint px-3 py-2 text-left w-full">
-                        <p className="font-mono text-[9px] tracking-[.14em] uppercase text-primary">
-                          {selectedMode === "auto" ? "Now running · chosen by your tutor" : "Now running"}
-                        </p>
-                        <p className="text-[13px] font-semibold text-ink">{modeLabel(mode)}</p>
-                        <p className="text-[11px] text-ink-soft">{modeBlurb(mode)}</p>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {!isActive && (
-                  <ModePicker selected={selectedMode} plannedMode={plannedMode} onSelect={setSelectedMode} disabled={isActive} />
-                )}
+                <ModePicker selected={selectedMode} plannedMode={plannedMode} onSelect={setSelectedMode} />
 
                 <LanguageToggle
                   value={learnerState?.profile.preferences.language_mode ?? "auto"}
                   onChange={handleLanguageModeChange}
-                  disabled={isActive}
                 />
                 {languageModeError && <p className="text-[11px] text-alert">{languageModeError}</p>}
 
@@ -252,21 +271,20 @@ export default function Home() {
               {learnerState && onboarded && <ProgramCard state={learnerState} />}
             </div>
 
-            {isActive && quiz && (
-              <QuizCard quiz={quiz.quiz} answeredIndex={quiz.answeredIndex} onAnswer={answerQuiz} />
+            {(transcript.length > 0 || partialTranscript.length > 0) && (
+              <TranscriptPanel
+                transcript={transcript}
+                partial={partialTranscript}
+                live={false}
+                canSendText={false}
+                onSendText={sendText}
+              />
             )}
-
-            <TranscriptPanel
-              transcript={transcript}
-              partial={partialTranscript}
-              live={isConnected}
-              canSendText={isConnected}
-              onSendText={sendText}
-            />
           </>
         )}
       </main>
 
+      {!isActive && (
       <footer className="w-full max-w-5xl mx-auto flex flex-col items-center gap-2 px-4 pb-6 pt-2">
         <p className="font-mono text-[9px] tracking-[.12em] uppercase text-muted">
           Memory: {storeKind ?? "…"}
@@ -276,6 +294,7 @@ export default function Home() {
         <FeedbackCard />
         <ChangeApiKeyButton />
       </footer>
+      )}
     </div>
   );
 }

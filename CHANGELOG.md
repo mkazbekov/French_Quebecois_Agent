@@ -4,6 +4,17 @@ Plain-language notes on what changed in each version, newest first. The
 version number is shown in the tutor's own footer (bottom of the page) —
 that's the easiest way to check what you're running.
 
+## 0.7.2 (2026-09-30)
+
+- **Your profile now opens as a panel that fits the phone screen.** Tap "Profile" and a
+  sheet slides up with your name, your level and the reset options, instead of everything
+  unfolding in the header.
+- **During a call, the transcript fills the screen right under the controls.** No more
+  scrolling to the bottom to read what was said; the typing box sits at the bottom of the
+  transcript.
+- **The program card and the footer step aside during a call** so the conversation has
+  the whole screen, and they come back as soon as the call ends.
+
 ## 0.7.1 (2026-09-30)
 
 - **The tutor no longer goes quiet and then answers everything at once.** If the phone's

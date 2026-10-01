@@ -1,6 +1,6 @@
 {
   "name": "quebec-french-tutor",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "private": true,
   "engines": {
     "node": ">=20.9"
