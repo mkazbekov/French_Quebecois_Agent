@@ -1,5 +1,5 @@
 import { LiveEvidenceSchema, QuizQuestionSchema, type LiveEvidence, type QuizQuestion, type TranscriptTurn } from "@/lib/learner/schema";
-import { CALL_START_SENTINEL } from "@/lib/tutor/gemini-setup";
+import { CALL_START_SENTINEL, REPLY_NUDGE_SENTINEL, isControlTurn } from "@/lib/tutor/gemini-setup";
 
 /**
  * Raw Gemini Live API protocol handling: WebSocket + message parsing only.
@@ -16,6 +16,16 @@ const SETUP_TIMEOUT_MS = 15_000;
  * after a stall is what made the tutor answer minutes later.
  */
 export const MAX_BUFFERED_AUDIO_BYTES = 96_000;
+
+/**
+ * If the learner has spoken and the tutor has not started answering this long
+ * after their last transcribed words, nudge the model once with
+ * REPLY_NUDGE_SENTINEL. A safety net for a turn the Live session leaves
+ * hanging (the "it heard me but didn't answer" freeze); normal replies start
+ * 1–4 s after the learner stops, and PATIENCE allows ~10 s for someone who is
+ * still thinking, so this stays well clear of both.
+ */
+export const REPLY_NUDGE_MS = 8_000;
 
 /** Pure backpressure check: is there room to send another microphone chunk? */
 export function shouldSendAudio(bufferedAmount: number): boolean {
@@ -85,6 +95,9 @@ export class GeminiLiveProtocol {
   private curUserText = "";
   private curAssistantText = "";
   private curTurnHasAudio = false;
+  private nudgeTimer: ReturnType<typeof setTimeout> | null = null;
+  /** One nudge per learner turn; reset once the tutor actually answers. */
+  private nudgedThisTurn = false;
 
   constructor(callbacks: GeminiLiveProtocolCallbacks) {
     this.callbacks = callbacks;
@@ -155,7 +168,7 @@ export class GeminiLiveProtocol {
     const text = this.curUserText.trim();
     this.curUserText = "";
     if (!text) return;
-    if (text === CALL_START_SENTINEL) return;
+    if (isControlTurn(text)) return;
     this.turns.push({ role: "user", text });
   }
 
@@ -169,10 +182,32 @@ export class GeminiLiveProtocol {
   private emitPartial(): void {
     const partials: TranscriptTurn[] = [];
     const userText = this.curUserText.trim();
-    if (userText && userText !== CALL_START_SENTINEL) partials.push({ role: "user", text: userText });
+    if (userText && !isControlTurn(userText)) partials.push({ role: "user", text: userText });
     const assistantText = this.curAssistantText.trim();
     if (assistantText) partials.push({ role: "assistant", text: assistantText });
     this.callbacks.onPartialTranscript(partials);
+  }
+
+  /** (Re)starts the no-reply watchdog after the learner's latest words. */
+  private armNudge(): void {
+    this.disarmNudge();
+    if (this.nudgedThisTurn || this.closedByUs) return;
+    this.nudgeTimer = setTimeout(() => {
+      this.nudgeTimer = null;
+      this.nudgedThisTurn = true;
+      this.sendText(REPLY_NUDGE_SENTINEL);
+    }, REPLY_NUDGE_MS);
+  }
+
+  private disarmNudge(): void {
+    if (this.nudgeTimer) clearTimeout(this.nudgeTimer);
+    this.nudgeTimer = null;
+  }
+
+  /** The tutor is answering: stop the watchdog and allow a nudge on the next turn. */
+  private tutorAnswered(): void {
+    this.disarmNudge();
+    this.nudgedThisTurn = false;
   }
 
   handleServerMessage(msg: Record<string, unknown>) {
@@ -194,12 +229,15 @@ export class GeminiLiveProtocol {
     if (sc?.inputTranscription?.text) {
       this.curUserText += sc.inputTranscription.text;
       this.emitPartial();
+      // Only while the tutor is not mid-answer (echo of its own voice must not arm it).
+      if (!this.curTurnHasAudio) this.armNudge();
     }
 
     if (sc?.modelTurn?.parts) {
       for (const part of sc.modelTurn.parts) {
         const data = part.inlineData?.data;
         if (data) {
+          this.tutorAnswered();
           if (!this.curTurnHasAudio) {
             this.curTurnHasAudio = true;
             // User (if any) finished speaking now that the model is responding.
@@ -217,6 +255,7 @@ export class GeminiLiveProtocol {
     }
 
     if (sc?.outputTranscription?.text) {
+      this.tutorAnswered();
       this.curAssistantText += sc.outputTranscription.text;
       this.emitPartial();
     }
@@ -287,7 +326,9 @@ export class GeminiLiveProtocol {
 
   sendText(text: string, source: "typed" | "choice" = "typed"): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-    if (text !== CALL_START_SENTINEL) {
+    if (!isControlTurn(text)) {
+      // The learner typed or clicked: that is a complete turn, no nudge needed.
+      this.disarmNudge();
       this.finalizeUserTurn();
       this.turns.push(source === "choice" ? { role: "user", text, choice: true } : { role: "user", text, typed: true });
       this.callbacks.onTranscript([...this.turns]);
@@ -314,6 +355,7 @@ export class GeminiLiveProtocol {
   close(): void {
     if (this.closedByUs) return;
     this.closedByUs = true;
+    this.disarmNudge();
     try {
       this.ws?.close();
     } catch {

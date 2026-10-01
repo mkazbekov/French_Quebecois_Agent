@@ -329,14 +329,26 @@ export class GeminiVoiceSession implements VoiceSession {
 
     this.nextStartTime = ctx.currentTime;
 
+    // Phones suspend or "interrupt" audio output (audio focus, a notification,
+    // Bluetooth renegotiating). Queued replies would then sit silent and play
+    // late, so wake the context as soon as it stops while the call is live.
+    ctx.onstatechange = () => this.wakePlayback();
+
     // Warm up before the greeting is requested, so the device is actually
     // live by the time the first audio chunk arrives.
     await new Promise<void>((resolve) => setTimeout(resolve, PLAYBACK_WARMUP_MS));
   }
 
+  private wakePlayback(): void {
+    const ctx = this.playCtx;
+    if (!ctx || this.closed || ctx.state === "running" || ctx.state === "closed") return;
+    ctx.resume().catch(() => {});
+  }
+
   private playChunk(bytes: ArrayBuffer): void {
     const ctx = this.playCtx;
     if (!ctx) return;
+    this.wakePlayback();
     const int16 = new Int16Array(bytes);
     const buffer = ctx.createBuffer(1, int16.length, PLAYBACK_SAMPLE_RATE);
     const channel = buffer.getChannelData(0);

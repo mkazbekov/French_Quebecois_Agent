@@ -112,3 +112,16 @@ export function geminiLiveUrlForApiKey(apiKey: string): string {
 
 /** Sentinel first user turn that asks the tutor to open the call; filtered out of transcripts. */
 export const CALL_START_SENTINEL = "[L'appel vient de commencer. Salue l'apprenant et pose ta première question.]";
+
+/**
+ * Hidden user turn sent when the learner has spoken but no reply has started
+ * after REPLY_NUDGE_MS (the Live session occasionally leaves a turn hanging).
+ * Filtered out of transcripts like CALL_START_SENTINEL.
+ */
+export const REPLY_NUDGE_SENTINEL =
+  "[The learner has been silent for several seconds. If they finished what they were saying, answer them now. If they clearly stopped mid-sentence, help with one short prompt, as PATIENCE says.]";
+
+/** Turns the app sends on its own; never part of the learner's transcript. */
+export function isControlTurn(text: string): boolean {
+  return text === CALL_START_SENTINEL || text === REPLY_NUDGE_SENTINEL;
+}

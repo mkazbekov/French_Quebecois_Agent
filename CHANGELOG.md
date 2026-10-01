@@ -4,6 +4,17 @@ Plain-language notes on what changed in each version, newest first. The
 version number is shown in the tutor's own footer (bottom of the page) —
 that's the easiest way to check what you're running.
 
+## 0.8.3 (2026-09-30)
+
+- **The tutor no longer goes quiet after hearing you.** Sometimes it showed what you said
+  but didn't answer until you spoke again. Now, if you've finished speaking and it still
+  hasn't started answering after 8 seconds, the app nudges it once to reply. It still gives
+  you time to think: the timer restarts every time you say something, and the nudge only
+  comes after you go quiet.
+- **Answers no longer play late on phones.** If the phone paused the sound (a
+  notification, Bluetooth reconnecting), the tutor's answer could wait silently and play
+  later. The sound now wakes up right away.
+
 ## 0.8.2 (2026-09-30)
 
 - **Better French pronunciation when the tutor mixes in English.** For beginners, the
