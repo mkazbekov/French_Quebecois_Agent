@@ -30,6 +30,15 @@ describe("shared learner handler", () => {
     expect(profile.onboarded_at).not.toBeNull();
   });
 
+  it("PATCH vocab_focus saves a clean list and rejects an unknown theme id", async () => {
+    const s = store();
+    const res = await patchLearner({ vocab_focus: { source: "custom", theme_id: "", custom_words: ["- un chat, la porte", "un chat"] } }, { store: s });
+    expect(res.status).toBe(200);
+    expect((await s.load()).profile.preferences.vocab_focus).toEqual({ source: "custom", theme_id: "", custom_words: ["un chat", "la porte"] });
+    const bad = await patchLearner({ vocab_focus: { source: "theme", theme_id: "nope", custom_words: [] } }, { store: s });
+    expect(bad.status).toBe(400);
+  });
+
   it("PATCH language_mode persists", async () => {
     const s = store();
     await patchLearner({ language_mode: "french_only" }, { store: s });

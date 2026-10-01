@@ -3,6 +3,7 @@ import type { LearnerState, SessionMode } from "@/lib/learner/schema";
 import { dueItems, recurringDue } from "@/lib/learner/spacing";
 import { findUnit, formatUnit, levelProgress, pendingUnits } from "@/lib/learner/syllabus";
 import type { SessionRecord } from "@/lib/learner/store";
+import { findTheme, knownWords, suggestTheme, themeWordsFor, type ThemeWord } from "@/lib/learner/vocab-themes";
 
 /**
  * Builds the realtime tutor's instructions from the learner state.
@@ -34,6 +35,15 @@ Vary difficulty across the levels: level 1–2 tasks are memorised phrases and y
   remediation: `MODE: Remediation drill.
 The learner has recurring errors that are due for work (listed under RECURRING ERRORS and DUE FOR REVIEW). This call targets them, two or three at most, most frequent first.
 For each one: (1) say the correct form and the rule in at most two sentences, with the learner's own past mistake as the example; (2) ask four to six short questions whose natural answer requires the form, correcting every miss immediately and briefly; (3) once they get three in a row, move on. Then a short free exchange where those forms come up naturally; recast if they slip. Log each success or failure with note_evidence so the record shows whether the drill worked. Keep the tone light; this is practice, not a test.`,
+  vocabulary: `MODE: Vocabulary.
+A words-only call. No grammar lesson: touch grammar only as far as a word needs it (gender, article, a preposition that goes with it). Teach the words in the VOCABULARY FOCUS block below.
+1. Warm-up: one easy line to get the learner talking.
+2. Teach in small batches of three. For each word: say it clearly, give the meaning (in English, as the LANGUAGE STAGE allows), give one short example sentence set in Québec daily life, have the learner repeat it, then have them use it in a sentence of their own. Where the entry is marked as Québec usage, say how it differs from international French.
+3. After each batch, a quick retrieval round: give the English meaning (or a definition or a situation) and the learner produces the French word.
+4. At least two ask_choice checks (the meaning of a word, or which word fits a sentence). Once, ask the learner to TYPE one of the words in a sentence in the text box, and comment on spelling and accents in one line.
+5. Final recall: go back over every word taught, out of order, and re-ask the ones they missed a second time before the end.
+6. Log every word with note_evidence: vocabulary_success when the learner produced it correctly without help, vocabulary_gap when they missed it. The progress record depends on it.
+Aim for six to ten words in the call; fewer if the learner struggles. Never move on from a word before the learner has produced it at least once.`,
   quebec: `MODE: Québec situations.
 Role-play one concrete Montréal situation (choose one that has not been done recently: café, dépanneur/épicerie, métro/STM, workplace small talk, a rendez-vous, a restaurant, meeting a neighbour, weather and winter, asking directions, renting an apartment). Set the scene in one sentence, play the other person, and use natural Québec vocabulary for the situation. Step out of the role only briefly if the learner is stuck.`,
 };
@@ -173,6 +183,58 @@ function placementNote(state: LearnerState, resolved: Exclude<SessionMode, "auto
   return "\nThis is the learner's PLACEMENT call: you don't know their real level yet, the levels shown above are only a default starting guess. Start with easy tasks, then climb quickly — if a task at one level is easy for them, jump several levels rather than climbing one at a time. It is fine, and good, to end up well above the default estimate for a strong learner.";
 }
 
+const VOCAB_BATCH = 10;
+
+/** Collapse whitespace and control characters so a learner-typed word cannot break the prompt layout. */
+function cleanWord(w: string): string {
+  return w.replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function themeLine(w: ThemeWord): string {
+  return `- ${w.fr} — ${w.en}${w.register === "quebec" ? " (Québec usage)" : ""}`;
+}
+
+/** The VOCABULARY FOCUS block; only included in a vocabulary call. */
+function vocabularyFocus(state: LearnerState, resolved: Exclude<SessionMode, "auto">): string {
+  if (resolved !== "vocabulary") return "";
+  const focus = state.profile.preferences.vocab_focus;
+  const custom = focus.source === "custom" ? focus.custom_words.map(cleanWord).filter(Boolean) : [];
+  if (custom.length) {
+    const lines = custom.slice(0, VOCAB_BATCH).map((w) => `- ${w}`);
+    const more = custom.length - VOCAB_BATCH;
+    return `
+VOCABULARY FOCUS
+The learner's own list (they chose these; teach these, in order, up to ~${VOCAB_BATCH} this call; entries may be French, or English words they want in Québec French — then teach the natural Québec French equivalent):
+${lines.join("\n")}${more > 0 ? `
+(${more} more on their list are not for this call; they will come up next time.)` : ""}
+`;
+  }
+  const theme = findTheme(focus.theme_id) ?? suggestTheme(state);
+  const words = themeWordsFor(theme, state, VOCAB_BATCH);
+  const lines: string[] = [];
+  if (words.length) {
+    lines.push(...words.map(themeLine));
+  } else {
+    // Everything at or below level+1 is known: go one level further within the theme.
+    const known = knownWords(state);
+    const level = state.competencies.oral_production.level;
+    const above = theme.words
+      .filter((w) => w.level > level + 1 && !known.has(w.fr.toLowerCase().normalize("NFC").trim()))
+      .sort((a, b) => a.level - b.level)
+      .slice(0, VOCAB_BATCH);
+    lines.push("(The learner already knows the words of this theme at their level, so go one level up:)");
+    lines.push(...above.map(themeLine));
+  }
+  const shaky = state.vocabulary.items.filter((v) => v.status === "shaky").slice(0, 4);
+  const recycle = shaky.length ? `
+Also recycle these shaky words from earlier calls: ${shaky.map((v) => cleanWord(v.word)).join(", ")}.` : "";
+  return `
+VOCABULARY FOCUS
+Theme: ${theme.title} (${theme.label}). Teach these words, in this order:
+${lines.join("\n")}${recycle}
+`;
+}
+
 function recentSessions(records: SessionRecord[]): string {
   if (!records.length) return "This is the learner's first session with you.";
   return records
@@ -220,7 +282,7 @@ ${levelBand(state)}
 ${LANGUAGE_GUIDANCE[stage]}
 
 TEACHING STYLE
-- Conversation is the backbone of every call, but you DO teach: every session must contain at least one short explicit teaching moment on a grammar point and three to five new or shaky vocabulary items (see the lists below and the roadmap focus). A teaching moment is at most three sentences of explanation plus examples, then immediate practice in conversation. Never a monologue.
+- Conversation is the backbone of every call, but you DO teach: every session must contain at least one short explicit teaching moment on a grammar point and three to five new or shaky vocabulary items (see the lists below and the roadmap focus). The exception is a vocabulary call, which is words only: no grammar lesson. A teaching moment is at most three sentences of explanation plus examples, then immediate practice in conversation. Never a monologue.
 - Otherwise do not lecture, do not list rules, do not correct every sentence.
 - Prefer recasts: repeat the learner's idea in correct French inside your natural reply. In a lesson, correction or level-check call, be more explicit: give the corrected form in one short line, then continue.
 - Recycle the shaky words and weak grammar below by creating natural opportunities to use them.
@@ -233,10 +295,10 @@ INTERACTIVE CHECKS
 - Always SAY the question and the options out loud too — this is a voice call, the screen is a bonus, not a replacement.
 - Only one check open at a time; wait for the answer however it comes (spoken, typed, or clicked — a click just arrives as a normal message from the learner). Then react in one short line and move on.
 - Never mention "the tool" or explain the screen mechanics; at most a natural "regarde l'écran" if useful.
-- Frequency: at least two checks in a lesson, level-check or remediation call; at least one in a guided-practice call; optional in free conversation or a Québec role-play. Never more than one every couple of minutes.
+- Frequency: at least two checks in a lesson, vocabulary, level-check or remediation call; at least one in a guided-practice call; optional in free conversation or a Québec role-play. Never more than one every couple of minutes.
 
 ${MODE_GUIDANCE[resolved]}
-${placementNote(state, resolved)}
+${placementNote(state, resolved)}${vocabularyFocus(state, resolved)}
 
 LEARNER
 - Name: ${hasName ? p.name : "unknown — ask for it naturally early in the call (e.g. « Comment tu t'appelles ? ») and remember it."} Sessions so far: ${p.sessions_completed}${daysSince !== null ? ` (last one ${daysSince} day${daysSince === 1 ? "" : "s"} ago)` : ""}.

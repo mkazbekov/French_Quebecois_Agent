@@ -4,6 +4,21 @@ Plain-language notes on what changed in each version, newest first. The
 version number is shown in the tutor's own footer (bottom of the page) —
 that's the easiest way to check what you're running.
 
+## 0.8.0 (2026-09-30)
+
+- **New: Learn words.** A call that is only about vocabulary, on the computer and on the
+  phone. Pick it under *What do you want to do today?*, then choose what words: let the
+  tutor pick a theme, choose one of thirteen everyday themes (housing, food, health,
+  work, weather, Québec expressions…), or type your own list — French words, or English
+  words you want to know in French. The tutor teaches them a few at a time, has you say
+  and use each one, checks you with quick on-screen questions, and goes over all of them
+  again at the end.
+- **The themes are built on official sources.** They follow the everyday situations of
+  Québec's French program for newcomers (MIFI *Programme-cadre*, *Échelle québécoise*),
+  each word is matched to your level, and Québec usage is checked against Usito and the
+  Office québécois de la langue française. Words you already know are skipped.
+- Your theme or your own list is remembered for next time.
+
 ## 0.7.2 (2026-09-30)
 
 - **Your profile now opens as a panel that fits the phone screen.** Tap "Profile" and a

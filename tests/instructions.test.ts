@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { defaultLearnerState } from "@/lib/learner/defaults";
 import { buildTutorInstructions, resolveMode } from "@/lib/tutor/instructions";
 import type { LearnerState } from "@/lib/learner/schema";
+import { VOCAB_THEMES, themeWordsFor } from "@/lib/learner/vocab-themes";
 
 function stateWithSessions(n: number): LearnerState {
   const state = defaultLearnerState("Sam");
@@ -141,5 +142,40 @@ describe("language stage", () => {
     s.competencies.oral_production.level = 2;
     expect(resolveLanguageStage(s)).toBe("french_only");
     expect(buildTutorInstructions({ state: s, mode: "auto", recentRecords: [] }).instructions).toContain("LANGUAGE STAGE: French only");
+  });
+});
+
+describe("vocabulary mode", () => {
+  const build = (state: LearnerState, mode: "vocabulary" | "lesson" = "vocabulary") =>
+    buildTutorInstructions({ state, mode, recentRecords: [] }).instructions;
+
+  it("includes a VOCABULARY FOCUS block with the chosen theme's words", () => {
+    const state = stateWithSessions(2);
+    const theme = VOCAB_THEMES[1];
+    state.profile.preferences.vocab_focus = { source: "theme", theme_id: theme.id, custom_words: [] };
+    const text = build(state);
+    expect(text).toContain("MODE: Vocabulary.");
+    expect(text).toContain("VOCABULARY FOCUS");
+    expect(text).toContain(theme.title);
+    expect(text).toContain(themeWordsFor(theme, state, 10)[0].fr);
+  });
+
+  it("lists a custom list, sanitised, and notes the overflow", () => {
+    const state = stateWithSessions(2);
+    const words = Array.from({ length: 12 }, (_, i) => `mot${i}`);
+    words[0] = "un\nchat   noir";
+    state.profile.preferences.vocab_focus = { source: "custom", theme_id: "", custom_words: words };
+    const text = build(state);
+    expect(text).toContain("- un chat noir");
+    expect(text).toContain("- mot9");
+    expect(text).not.toContain("- mot10");
+    expect(text).toContain("2 more");
+  });
+
+  it("is absent in other modes and never chosen by auto", () => {
+    const state = stateWithSessions(2);
+    expect(build(state, "lesson")).not.toContain("VOCABULARY FOCUS");
+    for (let n = 0; n < 14; n++) expect(resolveMode("auto", stateWithSessions(n))).not.toBe("vocabulary");
+    expect(resolveMode("vocabulary", state)).toBe("vocabulary");
   });
 });

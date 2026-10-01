@@ -45,6 +45,11 @@ export const MODE_COPY: Record<PickableMode, ModeCopy> = {
     blurb: "Targeted practice on what you keep getting wrong.",
     length: "~15 min",
   },
+  vocabulary: {
+    label: "Learn words",
+    blurb: "Words only: a theme or your own list, practised until they stick.",
+    length: "~15 min",
+  },
   assessment: {
     label: "Check my level",
     blurb: "A friendly test of all four skills. Can move your level.",
@@ -53,7 +58,7 @@ export const MODE_COPY: Record<PickableMode, ModeCopy> = {
 };
 
 /** Grid/list order, auto first. */
-export const MODE_ORDER: PickableMode[] = ["free", "guided", "lesson", "quebec", "correction", "remediation", "assessment"];
+export const MODE_ORDER: PickableMode[] = ["free", "guided", "lesson", "vocabulary", "quebec", "correction", "remediation", "assessment"];
 
 export const AUTO_COPY: { label: string; blurb: string } = {
   label: "Tutor decides",

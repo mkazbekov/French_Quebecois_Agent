@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { clearLearningHistory, completeOnboarding, normalizeName, retakePlacement, setStartingLevel } from "@/lib/learner/placement";
 import { LEARNER_DOCUMENTS, type LearnerState } from "@/lib/learner/schema";
+import { MAX_CUSTOM_WORDS, findTheme, parseCustomWords } from "@/lib/learner/vocab-themes";
 import { resolveMode } from "@/lib/tutor/instructions";
 import { fail, ok, type ApiDeps, type ApiResult } from "./types";
 
@@ -44,7 +45,14 @@ export async function deleteLearner(scope: string | null, { store }: Pick<ApiDep
 
 const LevelOrTestSchema = z.union([z.number().int().min(1).max(12), z.literal("test")]);
 
+const VocabFocusPatchSchema = z.object({
+  source: z.enum(["theme", "custom"]),
+  theme_id: z.string().refine((id) => id === "" || findTheme(id) !== undefined, "Unknown theme"),
+  custom_words: z.array(z.string()).max(MAX_CUSTOM_WORDS * 2),
+});
+
 const PatchBodySchema = z.union([
+  z.object({ vocab_focus: VocabFocusPatchSchema }),
   z.object({ language_mode: z.enum(["auto", "english_support", "french_only"]) }),
   z.object({ starting_level: z.number().int().min(1).max(12) }),
   z.object({ placement: z.literal("test") }),
@@ -60,6 +68,17 @@ export async function patchLearner(rawBody: unknown, { store }: Pick<ApiDeps, "s
 
   if ("language_mode" in parsed.data) {
     state.profile.preferences.language_mode = parsed.data.language_mode;
+    await store.save({ profile: state.profile });
+    return ok(payload(state, store.kind));
+  }
+
+  if ("vocab_focus" in parsed.data) {
+    const f = parsed.data.vocab_focus;
+    state.profile.preferences.vocab_focus = {
+      source: f.source,
+      theme_id: f.theme_id,
+      custom_words: parseCustomWords(f.custom_words.join("\n")),
+    };
     await store.save({ profile: state.profile });
     return ok(payload(state, store.kind));
   }

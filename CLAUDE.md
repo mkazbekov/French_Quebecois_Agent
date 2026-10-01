@@ -267,3 +267,15 @@ build, and the static export in desktop Chrome at Pixel size (key gate, key reje
 onboarding, device store, `/api/realtime/session` via the local API, Gemini CORS for
 `auth_tokens` and `generateContent`). Not yet verified on a real phone: the mic prompt,
 a live Gemini voice call, and the end-of-call review.
+
+2026-09-30 (v0.8.0): **Learn words** (`vocabulary` mode), desktop and phone. Words only;
+never picked by auto. What it drills is `profile.preferences.vocab_focus` (theme id, "" =
+`suggestTheme`, or the learner's own list, ≤60 words, parsed by `parseCustomWords`), saved
+by `PATCH /api/learner { vocab_focus }` when Start is pressed. Themes live in
+`src/lib/learner/vocab-themes.ts` (stable ids, append only), aligned with the MIFI
+Programme-cadre / Échelle québécoise domains, Québec usage per Usito / OQLF; each word has
+the Échelle level it is taught at, and `themeWordsFor` skips known words. Verified:
+typecheck, lint, 227 tests, desktop build, APK build, the picker at 390px against the real
+Letta profile (old profile migrated to the default focus). Not verified: a live vocabulary
+voice call. Known issue: `npm run build:android` leaves `.next` holding a device build
+(key gate on desktop `next start`); run `npm run build` again after an APK build.

@@ -73,6 +73,7 @@ Principles
 LEVEL SCALE
 ${describeScale()}
 - Vocabulary: "used_correctly" for words the learner produced well (especially target/shaky ones), "struggled" for words they searched for, mis-used, or needed in English, "introduced" for useful words the tutor taught. Mark register "quebec" for Québec-specific usage (dépanneur, magasiner, frette, chum/blonde, tantôt, char, correct...).
+- In a vocabulary session (MODE: vocabulary), report every word worked on in \`vocabulary\` with its outcome (introduced / used_correctly / struggled); units_practiced may be empty.
 - Grammar: report points actually exercised, with success/failure outcomes.
 - Pronunciation: only issues the tutor's notes mention or that are unmistakable.
 - units_practiced: for each syllabus unit (ids from "Syllabus units in play") that was genuinely worked on: "introduced" if the tutor presented it for the first time, "practiced_ok" if the learner produced the target mostly correctly, "struggled" if they clearly could not. Never invent ids.

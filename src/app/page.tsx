@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTutorSession } from "@/hooks/useTutorSession";
-import type { LearnerState, SessionMode } from "@/lib/learner/schema";
+import { DEFAULT_VOCAB_FOCUS, type LearnerState, type SessionMode, type VocabFocus } from "@/lib/learner/schema";
 import { TutorHeader } from "@/components/TutorHeader";
 import { MicOrb } from "@/components/MicOrb";
 import { ModePicker } from "@/components/ModePicker";
+import { VocabFocusPicker } from "@/components/VocabFocusPicker";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { Onboarding } from "@/components/Onboarding";
 import { ProgramCard } from "@/components/ProgramCard";
@@ -15,6 +16,7 @@ import { QuizCard } from "@/components/QuizCard";
 import { FeedbackCard } from "@/components/FeedbackCard";
 import VersionBadge from "@/components/VersionBadge";
 import { ChangeApiKeyButton } from "@/components/DeviceRuntime";
+import { parseCustomWords } from "@/lib/learner/vocab-themes";
 import { modeBlurb, modeLabel, type PickableMode } from "@/lib/tutor/modes";
 
 /*
@@ -38,10 +40,14 @@ export default function Home() {
   const [storeKind, setStoreKind] = useState<string | null>(null);
   const [plannedMode, setPlannedMode] = useState<PickableMode | null>(null);
   const [selectedMode, setSelectedMode] = useState<SessionMode>("auto");
+  const [vocabFocus, setVocabFocus] = useState<VocabFocus>(DEFAULT_VOCAB_FOCUS);
+  const [vocabError, setVocabError] = useState<string | null>(null);
   const [languageModeError, setLanguageModeError] = useState<string | null>(null);
   const [profilePhase, setProfilePhase] = useState<ProfilePhase>("loading");
   const [profileError, setProfileError] = useState<string | null>(null);
   const [retryToken, setRetryToken] = useState(0);
+
+  const seededVocab = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,6 +59,11 @@ export default function Home() {
       .then((data: { state: LearnerState; storeKind: string; plannedMode: PickableMode }) => {
         if (cancelled) return;
         setLearnerState(data.state);
+        // Only the first load seeds the picker; later refetches must not overwrite what is being typed.
+        if (!seededVocab.current) {
+          seededVocab.current = true;
+          setVocabFocus(data.state.profile.preferences.vocab_focus);
+        }
         setStoreKind(data.storeKind);
         setPlannedMode(data.plannedMode);
         setProfilePhase("ready");
@@ -105,6 +116,34 @@ export default function Home() {
         setLearnerState(previous);
         setLanguageModeError("Couldn't save language setting.");
       });
+  };
+
+  // A vocabulary call first saves what the learner picked, then starts; other modes start directly.
+  const handleStart = async () => {
+    setVocabError(null);
+    if (selectedMode !== "vocabulary") {
+      void start(selectedMode);
+      return;
+    }
+    const customWords = parseCustomWords(vocabFocus.custom_words.join("\n"));
+    if (vocabFocus.source === "custom" && customWords.length === 0) {
+      setVocabError("Add at least one word, or pick a theme.");
+      return;
+    }
+    try {
+      const res = await fetch("/api/learner", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ vocab_focus: { ...vocabFocus, custom_words: customWords } }),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      const data: { state: LearnerState } = await res.json();
+      setLearnerState(data.state);
+    } catch {
+      setVocabError("Couldn't save your word choice. Try again.");
+      return;
+    }
+    void start("vocabulary");
   };
 
   const onboarded = learnerState !== null && learnerState.profile.onboarded_at !== null;
@@ -231,7 +270,7 @@ export default function Home() {
                     <p className="text-[13px] text-alert">{error}</p>
                     <button
                       type="button"
-                      onClick={() => start(selectedMode)}
+                      onClick={handleStart}
                       className="mt-2.5 rounded-full bg-danger text-on-primary px-4 py-1.5 text-[13px] font-semibold focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
                     >
                       Retry
@@ -242,7 +281,7 @@ export default function Home() {
                 {status !== "error" && (
                   <button
                     type="button"
-                    onClick={() => start(selectedMode)}
+                    onClick={handleStart}
                     className="w-full rounded-full bg-primary-solid text-on-primary py-3.5 text-[15px] font-semibold transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
                   >
                     Start conversation
@@ -257,6 +296,8 @@ export default function Home() {
                 )}
 
                 <ModePicker selected={selectedMode} plannedMode={plannedMode} onSelect={setSelectedMode} />
+                {selectedMode === "vocabulary" && <VocabFocusPicker value={vocabFocus} onChange={setVocabFocus} />}
+                {vocabError && <p className="text-[11px] text-alert">{vocabError}</p>}
 
                 <LanguageToggle
                   value={learnerState?.profile.preferences.language_mode ?? "auto"}

@@ -727,7 +727,7 @@ the conversation back up from your answer.
 you to *type* an answer (that is how it assesses your writing) or to *read* what it just
 said on screen (reading). You can also type any time instead of speaking.
 
-**What do you want to do today?** Under the Start button, all eight kinds of call are
+**What do you want to do today?** Under the Start button, all nine kinds of call are
 laid out with a line each saying what happens. Pick one before you start, or leave it on
 **Tutor decides** — which tells you what it is going to choose ("Today it picks: Teach me
 something"), so you always know what is coming.
@@ -738,10 +738,23 @@ something"), so you always know what is coming.
 | **Just talk** | fluency first, light corrections |
 | **Guided practice** | the conversation is steered toward your current unit |
 | **Teach me something** | one grammar point explained and drilled, three to five new words, then used live |
+| **Learn words** | vocabulary only: pick a theme or paste your own list, and the tutor teaches the words in small batches, has you use each one, quizzes you, and recalls them all at the end |
 | **Québec situation** | role-play of one Montréal situation (dépanneur, STM, landlord, winter…) |
 | **Correct me closely** | explicit one-line corrections after each clear error |
 | **Drill my mistakes** | a targeted drill on your recurring errors |
 | **Check my level** | checks your level in all four skills; no score is announced |
+
+**Learn words** asks one more question when you pick it: *what words?* Leave it on
+**Tutor picks a theme**, choose a theme (greetings, family, housing, food, shopping,
+getting around, health, work, weather, free time, services and paperwork, school and
+daycare, everyday Québec expressions), or choose **My own words** and type or paste a
+list, one per line or separated by commas: French words, or English words you want to
+learn in French (up to 60). Your choice is remembered for next time. The themes follow
+the everyday situations of Québec's official French program for newcomers (the MIFI
+*Programme-cadre de français* and the *Échelle québécoise* levels), each word is pitched
+at your level, and Québec usage (*dépanneur*, *souper*, *un 4 ½*) is checked against Usito
+and the Office québécois de la langue française. Words you already use well are skipped,
+and every word you practise goes into your vocabulary record for spaced review.
 
 Once the call starts, the mode actually running is named on the card — so when the tutor
 chose for you, you can see what it picked and how long that kind of call usually runs.

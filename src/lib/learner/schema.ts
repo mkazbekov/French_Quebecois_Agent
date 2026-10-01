@@ -33,7 +33,7 @@ export const COMPETENCY_KEYS = [
 export type CompetencyKey = (typeof COMPETENCY_KEYS)[number];
 export const CompetencyKeySchema = z.enum(COMPETENCY_KEYS);
 
-export const SESSION_MODES = ["auto", "free", "guided", "lesson", "correction", "assessment", "quebec", "remediation"] as const;
+export const SESSION_MODES = ["auto", "free", "guided", "lesson", "correction", "assessment", "quebec", "remediation", "vocabulary"] as const;
 export type SessionMode = (typeof SESSION_MODES)[number];
 export const SessionModeSchema = z.enum(SESSION_MODES);
 
@@ -65,6 +65,19 @@ export const PlacementSchema = z.object({
 });
 export type Placement = z.infer<typeof PlacementSchema>;
 
+/**
+ * What a vocabulary call works on.
+ *  theme   one of the curated themes in ./vocab-themes.ts ("" = the tutor picks the next theme for the level)
+ *  custom  the learner's own list (French words, or English words they want in French)
+ */
+export const VocabFocusSchema = z.object({
+  source: z.enum(["theme", "custom"]).default("theme"),
+  theme_id: z.string().default(""),
+  custom_words: z.array(z.string().max(80)).max(60).default([]),
+});
+export type VocabFocus = z.infer<typeof VocabFocusSchema>;
+export const DEFAULT_VOCAB_FOCUS: VocabFocus = { source: "theme", theme_id: "", custom_words: [] };
+
 /** Stored profiles before this field existed get a placement inferred from sessions_completed. */
 const ProfileObjectSchema = z.object({
   name: z.string(),
@@ -80,6 +93,8 @@ const ProfileObjectSchema = z.object({
      *  french_only     French all the way; English only for a rare quick gloss
      */
     language_mode: z.enum(["auto", "english_support", "french_only"]).default("auto"),
+    /** What a vocabulary call drills; see VocabFocusSchema. */
+    vocab_focus: VocabFocusSchema.default(DEFAULT_VOCAB_FOCUS),
   }),
   sessions_completed: z.number().int().nonnegative().default(0),
   total_minutes: z.number().nonnegative().default(0),

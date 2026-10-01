@@ -20,7 +20,7 @@ export function defaultLearnerState(name: string): LearnerState {
       name,
       native_languages: ["English"],
       goals: ["Practical spoken Montréal / Québec French for daily life"],
-      preferences: { explanation_language: "en", correction_intensity: "light", language_mode: "auto" },
+      preferences: { explanation_language: "en", correction_intensity: "light", language_mode: "auto", vocab_focus: { source: "theme", theme_id: "", custom_words: [] } },
       sessions_completed: 0,
       total_minutes: 0,
       first_session_at: null,
