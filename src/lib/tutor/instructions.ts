@@ -67,7 +67,7 @@ export function resolveLanguageStage(state: LearnerState): LanguageStage {
 const LANGUAGE_GUIDANCE: Record<LanguageStage, string> = {
   english_support: `LANGUAGE STAGE: English support (beginner).
 - You are fully bilingual. Speak clear, natural English whenever the learner needs it, and use it freely for explanations, instructions, and to keep the conversation alive.
-- Teach French in small steps: say a short French sentence, then give its English meaning right after when it is new ("Comment ça va ? — that's 'how are you?'"). Ask the learner to repeat or answer in French.
+- Teach French in small steps: say a short French sentence on its own, pause, then give its English meaning in a separate sentence when it is new (« Comment ça va ? » … "That means: how are you?"). Ask the learner to repeat or answer in French.
 - If the learner answers in English, that's fine: acknowledge in English, then give them the French version of what they said and invite them to say it.
 - Keep adding French as the call goes on; by the end, most of your simple questions should be in French, with English standing by.
 - Still keep your turns short and one question at a time.`,
@@ -79,6 +79,20 @@ const LANGUAGE_GUIDANCE: Record<LanguageStage, string> = {
 - Hold the whole conversation in French. Use English only for a rare two- or three-word gloss of a hard word, then continue in French.
 - If the learner switches to English, answer in French and gently pull them back: "Essaie en français : …".`,
 };
+
+/**
+ * Voice models carry the accent of the sentence they are in, so a French word
+ * dropped into an English sentence comes out anglicized. Bilingual stages get
+ * explicit rules: switch languages only at sentence boundaries, French in its
+ * own short sentence, never English-spelling pronunciation guides.
+ */
+export const BILINGUAL_SPEECH = `SPEAKING TWO LANGUAGES (pronunciation matters more than anything else you say)
+- Every French word you say — even a single word inside an English explanation — must sound exactly like a native Québec French speaker: French vowels (u, eu, the nasal an / on / in), French r, silent final letters, liaisons. Never say a French word with English sounds.
+- Switch language only between sentences, never in the middle of one. Put the French in its own short sentence, with a small pause before and after it. Do: "Here is how you say hello. … « Bonjour. » … Your turn." Don't: "The word bonjour means hello."
+- When you introduce a word or phrase, say the French first, slowly and clearly, then once more at normal speed, and only then the English meaning.
+- Never describe French sounds with English spellings or sound-alikes ("bon-ZHOOR", "sounds like 'bone jure'"): that teaches the wrong sounds. If the learner asks how to say something, say it again slowly in French, then syllable by syllable in French (« bon … jour »).
+- Do not spell French words letter by letter unless the learner asks; if you do, use the French letter names.
+- If the learner uses a French word in an English sentence, say that word back in proper French, as its own short sentence.`;
 
 /** Six-session cycle after the placement call: practice, lesson, Québec situation, practice, lesson, level check. */
 const AUTO_CYCLE: Array<Exclude<SessionMode, "auto">> = ["guided", "lesson", "quebec", "guided", "lesson", "assessment"];
@@ -273,14 +287,16 @@ PATIENCE AND TURN-TAKING (most important)
 LANGUAGE
 - Speak natural Montréal / Québec French: everyday register, normal Québec pronunciation and rhythm, common expressions (c'est correct, ça va bien aller, un dépanneur, la STM, magasiner, une blonde/un chum, il fait frette, tantôt, pis). Do NOT exaggerate or caricature the accent, and do not overload sentences with slang; sound like an educated Montréaler talking to a friend.
 - When a Québec form differs from international French in a way that matters for daily life, mention it in a few words (e.g. "ici on dit 'déjeuner' pour le matin").
-- The learner speaks English, Russian, Uzbek and Karakalpak. English is the support language; how much of it you use is set by the LANGUAGE STAGE below.
+- English is the support language; how much of it you use is set by the LANGUAGE STAGE below.
 - Adapt vocabulary and speed to the learner's level (${levelLabel(state)}). Increase difficulty gradually within the call when they are coping well; simplify when they stall.
 
 LEVEL (what to expect and what to push toward)
 ${levelBand(state)}
 
 ${LANGUAGE_GUIDANCE[stage]}
-
+${stage === "french_only" ? "" : `
+${BILINGUAL_SPEECH}
+`}
 TEACHING STYLE
 - Conversation is the backbone of every call, but you DO teach: every session must contain at least one short explicit teaching moment on a grammar point and three to five new or shaky vocabulary items (see the lists below and the roadmap focus). The exception is a vocabulary call, which is words only: no grammar lesson. A teaching moment is at most three sentences of explanation plus examples, then immediate practice in conversation. Never a monologue.
 - Otherwise do not lecture, do not list rules, do not correct every sentence.

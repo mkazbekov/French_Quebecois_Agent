@@ -4,6 +4,15 @@ Plain-language notes on what changed in each version, newest first. The
 version number is shown in the tutor's own footer (bottom of the page) —
 that's the easiest way to check what you're running.
 
+## 0.8.2 (2026-09-30)
+
+- **Better French pronunciation when the tutor mixes in English.** For beginners, the
+  tutor used to drop French words into English sentences and say them with an English
+  accent. Now it says French in its own short sentence, slowly and with a real Québec
+  French accent, then gives the English meaning. It no longer spells out sounds with
+  English look-alikes ("bon-ZHOOR"); if you ask how to say a word, it repeats it slowly in
+  French, syllable by syllable.
+
 ## 0.8.1 (2026-09-30)
 
 - For people who build the Android app themselves: building it no longer breaks the

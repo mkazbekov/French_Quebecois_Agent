@@ -119,7 +119,7 @@ describe("buildTutorInstructions", () => {
   });
 });
 
-import { resolveLanguageStage } from "@/lib/tutor/instructions";
+import { BILINGUAL_SPEECH, resolveLanguageStage } from "@/lib/tutor/instructions";
 import { defaultLearnerState as mkState } from "@/lib/learner/defaults";
 
 describe("language stage", () => {
@@ -129,6 +129,16 @@ describe("language stage", () => {
     const { instructions } = buildTutorInstructions({ state: s, mode: "auto", recentRecords: [] });
     expect(instructions).toContain("LANGUAGE STAGE: English support");
     expect(instructions).toContain("say the same thing in English");
+  });
+  it("bilingual stages get the pronunciation rules, French-only does not", () => {
+    const s = mkState("Sam");
+    const build = () => buildTutorInstructions({ state: s, mode: "auto", recentRecords: [] }).instructions;
+    expect(build()).toContain(BILINGUAL_SPEECH);
+    s.profile.preferences.language_mode = "auto";
+    s.competencies.oral_production.level = 4;
+    expect(build()).toContain(BILINGUAL_SPEECH);
+    s.profile.preferences.language_mode = "french_only";
+    expect(build()).not.toContain("SPEAKING TWO LANGUAGES");
   });
   it("follows the oral level when auto, and the explicit preference otherwise", () => {
     const s = mkState("Sam");
