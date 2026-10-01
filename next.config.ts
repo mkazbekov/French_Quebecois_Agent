@@ -26,7 +26,8 @@ const nextConfig: NextConfig = {
   ...(isAndroid
     ? {
         output: "export",
-        // A separate build folder so this never clobbers the desktop .next (the launcher's build stamp).
+        // Where the finished export is copied. Next still compiles in .next, which is why
+        // scripts/android-build.mjs moves the desktop .next aside for the duration.
         distDir: ".next-android",
         pageExtensions: ["tsx"],
         trailingSlash: true,

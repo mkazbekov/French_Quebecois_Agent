@@ -277,5 +277,11 @@ Programme-cadre / Échelle québécoise domains, Québec usage per Usito / OQLF;
 the Échelle level it is taught at, and `themeWordsFor` skips known words. Verified:
 typecheck, lint, 227 tests, desktop build, APK build, the picker at 390px against the real
 Letta profile (old profile migrated to the default focus). Not verified: a live vocabulary
-voice call. Known issue: `npm run build:android` leaves `.next` holding a device build
-(key gate on desktop `next start`); run `npm run build` again after an APK build.
+voice call.
+
+2026-09-30 (v0.8.1): with `output: "export"` Next 16 still compiles into `.next` (distDir is
+only where the export is copied), so `build:android` used to replace the desktop build and
+the Desktop icon opened the phone's key gate. `scripts/android-build.mjs` now moves `.next`
+to `.next-desktop-stash` for the export and restores it on success, failure or Ctrl+C
+(and recovers a stash left by a killed run). Verified: desktop BUILD_ID unchanged and
+`/api/learner` still served after an APK build and after a deliberately failing export.

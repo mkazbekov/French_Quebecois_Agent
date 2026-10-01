@@ -48,6 +48,7 @@ next-env.d.ts
 
 # Android app (Capacitor): web export, separate Next build dir, APK output, local SDK paths, signing keys
 /.next-android/
+/.next-desktop-stash/
 /dist/
 /android/local.properties
 /android/.gradle/

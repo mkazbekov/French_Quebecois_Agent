@@ -3,13 +3,15 @@
 //   node scripts/android-build.mjs          web export (out/) + `cap sync android`
 //   node scripts/android-build.mjs --apk    ... then gradlew assembleDebug -> dist/QuebecFrenchTutor.apk
 //
-// The export uses its own Next build folder (.next-android), so it never disturbs the
-// desktop build (.next) or the launcher's build stamp. JDK / Android SDK come from
+// With output: "export", Next still compiles into .next and only copies the finished export
+// to distDir (.next-android). The desktop build in .next is therefore moved aside for the
+// export and put back afterwards (even on failure or Ctrl+C), so the Desktop icon never
+// ends up serving the phone bundle. JDK / Android SDK come from
 // JAVA_HOME / ANDROID_HOME (or ANDROID_SDK_ROOT); if unset, %LOCALAPPDATA%\AndroidBuild is tried.
 // Nothing here is hardcoded to a machine, and no key or learner data is ever involved.
 
 import { spawnSync } from "node:child_process";
-import { cpSync, rmSync, copyFileSync, existsSync, mkdirSync, readdirSync, statSync, writeFileSync, readFileSync } from "node:fs";
+import { cpSync, rmSync, renameSync, copyFileSync, existsSync, mkdirSync, readdirSync, statSync, writeFileSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -75,11 +77,38 @@ function findToolchain() {
   return { javaHome, sdk };
 }
 
+// 0. Keep the desktop build out of harm's way while Next compiles the export into .next.
+const desktopNext = path.join(root, ".next");
+const stash = path.join(root, ".next-desktop-stash");
+
+/** Puts the desktop .next back; whatever Next wrote there for the export is discarded. */
+function restoreDesktopBuild() {
+  if (!existsSync(stash)) return;
+  rmSync(desktopNext, { recursive: true, force: true });
+  renameSync(stash, desktopNext);
+}
+
+// A stash left by an earlier run that was killed hard: that is the real desktop build.
+restoreDesktopBuild();
+if (existsSync(desktopNext)) {
+  try {
+    renameSync(desktopNext, stash);
+  } catch (err) {
+    console.error(`Cannot move the desktop build (.next) aside: ${err.code ?? err.message}.
+Close the tutor (and any "next start" / "next dev") and try again.`);
+    process.exit(1);
+  }
+}
+// run() exits the process on failure; "exit" handlers still run, so the desktop build always comes back.
+process.on("exit", restoreDesktopBuild);
+for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => process.exit(130));
+
 // 1. Static export of the web app for the phone.
 console.log("== Building the web app for Android (static export)");
 run(process.execPath, [bin("next/dist/bin/next"), "build"], {
   env: { TUTOR_TARGET: "android", NEXT_TELEMETRY_DISABLED: "1" },
 });
+restoreDesktopBuild();
 // With a custom distDir, Next writes the static export there; Capacitor's webDir is out/.
 const exportDir = path.join(root, ".next-android");
 if (!existsSync(path.join(exportDir, "index.html"))) {

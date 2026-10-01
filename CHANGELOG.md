@@ -4,6 +4,12 @@ Plain-language notes on what changed in each version, newest first. The
 version number is shown in the tutor's own footer (bottom of the page) —
 that's the easiest way to check what you're running.
 
+## 0.8.1 (2026-09-30)
+
+- For people who build the Android app themselves: building it no longer breaks the
+  desktop app on the same computer (the Desktop icon used to open the phone's "add your
+  key" screen afterwards). Nothing changes for learners.
+
 ## 0.8.0 (2026-09-30)
 
 - **New: Learn words.** A call that is only about vocabulary, on the computer and on the

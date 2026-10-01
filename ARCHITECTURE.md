@@ -210,7 +210,8 @@ pywebview app that runs on signed `python.exe` + WebView2.
 
 `TUTOR_TARGET=android` (`scripts/android-build.mjs`, `npm run build:android`) builds a static
 export (`output: "export"`, `pageExtensions: ["tsx"]` so no `route.ts` ships, `distDir:
-.next-android` copied to `out/`) that Capacitor wraps in `android/`. The route bodies live in
+.next-android` copied to `out/`; Next still compiles in `.next`, so the script moves the
+desktop `.next` aside for the export and restores it afterwards) that Capacitor wraps in `android/`. The route bodies live in
 `src/lib/api/*` as `(input, {store, config}) → {status, body}` handlers; on desktop the
 `route.ts` files call them with `env` (`src/lib/server-deps.ts`), on the phone
 `src/lib/device/local-api.ts` wraps `window.fetch` and answers same-origin `/api/*` with the
