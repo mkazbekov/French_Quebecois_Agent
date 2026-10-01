@@ -78,6 +78,7 @@ export function useTutorSession(): UseTutorSessionResult {
   const startingRef = useRef(false);
   const cancelledRef = useRef(false);
   const endRef = useRef<() => Promise<void>>(async () => {});
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
   const setQuiz = useCallback((next: QuizState | null) => {
     quizRef.current = next;
@@ -102,7 +103,21 @@ export function useTutorSession(): UseTutorSessionResult {
     }
   }, []);
 
+  /** Best-effort: keep the screen on during a call. Never blocks or fails the call. */
+  const acquireWakeLock = useCallback(async () => {
+    try {
+      if (typeof navigator === "undefined" || !navigator.wakeLock) return;
+      if (wakeLockRef.current && !wakeLockRef.current.released) return;
+      wakeLockRef.current = await navigator.wakeLock.request("screen");
+    } catch {
+      // unsupported, denied or battery saver: carry on without it
+    }
+  }, []);
+
   const teardown = useCallback(() => {
+    const lock = wakeLockRef.current;
+    wakeLockRef.current = null;
+    if (lock) void lock.release().catch(() => {});
     try {
       voiceRef.current?.close();
     } catch {
@@ -296,6 +311,7 @@ export function useTutorSession(): UseTutorSessionResult {
         return;
       }
       activeRef.current = true;
+      void acquireWakeLock();
       setStatus("listening");
     } catch (err) {
       if (cancelledRef.current) {
@@ -310,7 +326,7 @@ export function useTutorSession(): UseTutorSessionResult {
       startingRef.current = false;
       cancelledRef.current = false;
     }
-  }, [postEnd, teardown, setQuiz]);
+  }, [postEnd, teardown, setQuiz, acquireWakeLock]);
 
   const sendText = useCallback((text: string) => {
     if (!voiceRef.current || !activeRef.current) return;
@@ -371,6 +387,15 @@ export function useTutorSession(): UseTutorSessionResult {
       }
     })();
   }, []);
+
+  // Wake locks are released when the page is hidden; take it again on return.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && activeRef.current) void acquireWakeLock();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [acquireWakeLock]);
 
   // Clean up on unmount
   useEffect(() => {

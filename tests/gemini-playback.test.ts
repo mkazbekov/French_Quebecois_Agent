@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextChunkStart } from "@/lib/voice/gemini-session";
+import { isStaleCapture, nextChunkStart } from "@/lib/voice/gemini-session";
 
 describe("nextChunkStart", () => {
   it("adds a lead-in when the queue has drained", () => {
@@ -19,5 +19,20 @@ describe("nextChunkStart", () => {
 
   it("uses the default lead-in constant when none is passed", () => {
     expect(nextChunkStart(0, 0)).toBeCloseTo(0.15);
+  });
+});
+
+describe("isStaleCapture", () => {
+  it("keeps fresh chunks", () => {
+    expect(isStaleCapture(10, 9.9, 0.75)).toBe(false);
+  });
+
+  it("drops backlog older than the max age", () => {
+    expect(isStaleCapture(10, 5, 0.75)).toBe(true);
+  });
+
+  it("uses the default max age", () => {
+    expect(isStaleCapture(10, 9.9)).toBe(false);
+    expect(isStaleCapture(10, 8)).toBe(true);
   });
 });

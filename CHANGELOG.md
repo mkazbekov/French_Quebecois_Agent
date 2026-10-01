@@ -4,6 +4,15 @@ Plain-language notes on what changed in each version, newest first. The
 version number is shown in the tutor's own footer (bottom of the page) —
 that's the easiest way to check what you're running.
 
+## 0.7.1 (2026-09-30)
+
+- **The tutor no longer goes quiet and then answers everything at once.** If the phone's
+  screen turned off or the connection hiccuped mid-call, the tutor could seem to freeze and
+  then, minutes later, respond to everything you had said in one go. Old audio is now
+  dropped instead of piling up, and the tutor starts listening again as soon as you are back.
+- **The screen stays on during a call**, so the phone doesn't fall asleep mid-conversation.
+  This applies to both the computer and the phone.
+
 ## 0.7.0 (2026-09-30)
 
 - **The tutor on an Android phone (preview).** A separate Android app runs the whole tutor

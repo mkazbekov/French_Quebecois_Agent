@@ -9,6 +9,19 @@ import { CALL_START_SENTINEL } from "@/lib/tutor/gemini-setup";
 
 const SETUP_TIMEOUT_MS = 15_000;
 
+/**
+ * Stop queueing microphone audio once this many bytes are waiting in the
+ * WebSocket send buffer (~2 s of 16 kHz PCM16 as base64 JSON, about 43 KB/s).
+ * Live audio that late is useless to the model, and flushing it in one burst
+ * after a stall is what made the tutor answer minutes later.
+ */
+export const MAX_BUFFERED_AUDIO_BYTES = 96_000;
+
+/** Pure backpressure check: is there room to send another microphone chunk? */
+export function shouldSendAudio(bufferedAmount: number): boolean {
+  return bufferedAmount <= MAX_BUFFERED_AUDIO_BYTES;
+}
+
 /** Binary frames arrive as Blob (browser, Node 24) or ArrayBuffer; both are UTF-8 JSON. */
 async function decodeFrame(data: unknown): Promise<string> {
   const buf = data instanceof ArrayBuffer ? data : await (data as Blob).arrayBuffer();
@@ -65,6 +78,8 @@ export class GeminiLiveProtocol {
   private readonly callbacks: GeminiLiveProtocolCallbacks;
   private setupDone = false;
   private closedByUs = false;
+  /** Serializes inbound frames: Blob frames decode asynchronously and must not overtake text frames. */
+  private inbox: Promise<void> = Promise.resolve();
 
   private turns: TranscriptTurn[] = [];
   private curUserText = "";
@@ -91,23 +106,26 @@ export class GeminiLiveProtocol {
         ws.send(JSON.stringify(setupMessage));
       };
 
-      ws.onmessage = async (ev) => {
-        try {
-          const raw = typeof ev.data === "string" ? ev.data : await decodeFrame(ev.data);
-          const msg = JSON.parse(raw) as Record<string, unknown>;
-          this.handleServerMessage(msg);
-          if (msg.setupComplete && !settled) {
-            settled = true;
-            clearTimeout(timer);
-            this.setupDone = true;
-            this.callbacks.onSetupComplete();
-            // Greeting: ask the tutor to open the call.
-            this.sendText(CALL_START_SENTINEL);
-            resolve();
+      ws.onmessage = (ev) => {
+        const data = ev.data;
+        this.inbox = this.inbox.then(async () => {
+          try {
+            const raw = typeof data === "string" ? data : await decodeFrame(data);
+            const msg = JSON.parse(raw) as Record<string, unknown>;
+            this.handleServerMessage(msg);
+            if (msg.setupComplete && !settled) {
+              settled = true;
+              clearTimeout(timer);
+              this.setupDone = true;
+              this.callbacks.onSetupComplete();
+              // Greeting: ask the tutor to open the call.
+              this.sendText(CALL_START_SENTINEL);
+              resolve();
+            }
+          } catch (err) {
+            this.callbacks.onError(err instanceof Error ? err.message : String(err));
           }
-        } catch (err) {
-          this.callbacks.onError(err instanceof Error ? err.message : String(err));
-        }
+        });
       };
 
       ws.onerror = () => {
@@ -257,6 +275,7 @@ export class GeminiLiveProtocol {
 
   sendAudioPcm16(bytes: ArrayBuffer): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    if (!shouldSendAudio(this.ws.bufferedAmount)) return;
     this.ws.send(
       JSON.stringify({
         realtimeInput: {

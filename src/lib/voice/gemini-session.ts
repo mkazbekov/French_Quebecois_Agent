@@ -29,6 +29,20 @@ const KEEP_ALIVE_BUFFER_S = 1;
  * device's amplifier powered on for the whole call.
  */
 const KEEP_ALIVE_AMPLITUDE = 1e-4;
+/**
+ * Microphone chunks older than this (capture clock vs. now) are backlog from a
+ * frozen main thread (screen off, WebView paused) and are dropped, not sent.
+ */
+const MAX_CAPTURE_AGE_S = 0.75;
+
+/** Pure helper: was this captured chunk produced too long ago to be worth sending? */
+export function isStaleCapture(
+  nowS: number,
+  capturedAtS: number,
+  maxAgeS: number = MAX_CAPTURE_AGE_S,
+): boolean {
+  return nowS - capturedAtS > maxAgeS;
+}
 
 /**
  * Pure scheduling helper: when the queue has drained, start the next chunk
@@ -60,7 +74,7 @@ class PcmCaptureProcessor extends AudioWorkletProcessor {
         const s = Math.max(-1, Math.min(1, channel[i]));
         this.buffer[this.offset++] = s < 0 ? s * 0x8000 : s * 0x7fff;
         if (this.offset >= this.buffer.length) {
-          this.port.postMessage(this.buffer.buffer.slice(0));
+          this.port.postMessage({ pcm: this.buffer.buffer.slice(0), t: currentTime });
           this.offset = 0;
         }
       }
@@ -108,6 +122,7 @@ export class GeminiVoiceSession implements VoiceSession {
   private keepAliveSource: AudioBufferSourceNode | null = null;
 
   private closed = false;
+  private onVisibility: (() => void) | null = null;
   private endPending = false;
   private endFired = false;
   private endDrainTimer: ReturnType<typeof setTimeout> | null = null;
@@ -172,6 +187,17 @@ export class GeminiVoiceSession implements VoiceSession {
       instructions: this.params.instructions,
     });
     await this.protocol.connect(url, setupMessage);
+
+    // The OS may suspend audio while the page is hidden; wake both contexts when it is back.
+    if (typeof document !== "undefined") {
+      this.onVisibility = () => {
+        if (document.visibilityState !== "visible" || this.closed) return;
+        for (const ctx of [this.playCtx, this.captureCtx]) {
+          if (ctx && ctx.state !== "running") ctx.resume().catch(() => {});
+        }
+      };
+      document.addEventListener("visibilitychange", this.onVisibility);
+    }
   }
 
   sendText(text: string, source: "typed" | "choice" = "typed"): void {
@@ -185,6 +211,10 @@ export class GeminiVoiceSession implements VoiceSession {
   close(): void {
     if (this.closed) return;
     this.closed = true;
+    if (this.onVisibility && typeof document !== "undefined") {
+      document.removeEventListener("visibilitychange", this.onVisibility);
+    }
+    this.onVisibility = null;
     if (this.endDrainTimer) clearTimeout(this.endDrainTimer);
     if (this.endSafetyTimer) clearTimeout(this.endSafetyTimer);
     this.protocol.close();
@@ -236,9 +266,10 @@ export class GeminiVoiceSession implements VoiceSession {
       URL.revokeObjectURL(blobUrl);
 
       const worklet = new AudioWorkletNode(ctx, "pcm-capture");
-      worklet.port.onmessage = (ev: MessageEvent<ArrayBuffer>) => {
+      worklet.port.onmessage = (ev: MessageEvent<{ pcm: ArrayBuffer; t: number }>) => {
         if (this.muted) return;
-        this.protocol.sendAudioPcm16(ev.data);
+        if (isStaleCapture(ctx.currentTime, ev.data.t)) return;
+        this.protocol.sendAudioPcm16(ev.data.pcm);
       };
       source.connect(worklet);
       this.captureWorklet = worklet;
@@ -247,6 +278,7 @@ export class GeminiVoiceSession implements VoiceSession {
       const processor = ctx.createScriptProcessor(4096, 1, 1);
       processor.onaudioprocess = (ev) => {
         if (this.muted) return;
+        if (isStaleCapture(ctx.currentTime, ev.playbackTime)) return;
         const int16 = floatToInt16(ev.inputBuffer.getChannelData(0));
         this.protocol.sendAudioPcm16(int16.buffer as ArrayBuffer);
       };
